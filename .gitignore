@@ -31,3 +31,5 @@ coverage
 
 # Build
 .cache
+.vercel
+.env*
