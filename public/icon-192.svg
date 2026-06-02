@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 192 192" width="192" height="192">
+  <!-- Fundo azul escuro -->
+  <rect width="192" height="192" fill="#041F5A"/>
+  
+  <!-- Borda com detalhe em dourado -->
+  <rect x="6" y="6" width="180" height="180" fill="none" stroke="#C89B3C" stroke-width="3" rx="20"/>
+  
+  <!-- Texto MT em dourado -->
+  <text x="96" y="115" font-family="system-ui, -apple-system, sans-serif" font-size="90" font-weight="bold" fill="#C89B3C" text-anchor="middle" dominant-baseline="middle">MT</text>
+  
+  <!-- Detalhe inferior em dourado (elemento decorativo) -->
+  <circle cx="96" cy="160" r="6" fill="#C89B3C"/>
+  <line x1="80" y1="160" x2="112" y2="160" stroke="#C89B3C" stroke-width="2" stroke-linecap="round"/>
+</svg>

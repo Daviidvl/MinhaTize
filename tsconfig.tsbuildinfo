@@ -1,0 +1,1 @@
+{"root":["./src/app.tsx","./src/main.tsx","./src/types.ts","./src/__tests__/calculator.test.ts","./src/components/calculator.tsx","./src/components/footer.tsx","./src/components/header.tsx","./src/components/result.tsx","./src/utils/calculator.ts"],"version":"5.9.3"}
