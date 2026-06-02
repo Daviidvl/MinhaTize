@@ -9,25 +9,26 @@ interface ResultProps {
 
 export default function Result({
   result,
-  doseDesejada,
   syringeCapacity,
 }: ResultProps) {
   if (!result.isValid) {
     return (
-      <div className="card border-2 border-red-500 bg-red-50">
-        <div className="flex items-start gap-3">
+      <div className="card-purple border-[rgba(239,159,39,0.5)]">
+        <div className="flex items-start gap-4">
           <div
-            className="flex-shrink-0 w-6 h-6 bg-red-500 rounded-full flex items-center justify-center text-white font-bold text-sm"
+            className="flex-shrink-0 w-8 h-8 bg-[rgba(239,159,39,0.3)] rounded-full flex items-center justify-center text-[#EF9F27] font-bold text-lg mt-1"
             aria-hidden="true"
           >
-            !
+            ⚠
           </div>
-          <div>
-            <h3 className="font-bold text-red-700 text-lg">Atenção</h3>
-            <p className="text-red-600 mt-1 text-base" role="alert">
+          <div className="flex-1">
+            <h3 className="font-jakarta font-700 text-[#EF9F27] text-lg">
+              Atenção
+            </h3>
+            <p className="text-tize-text-secondary mt-1 text-sm leading-relaxed" role="alert">
               {result.error}
             </p>
-            <p className="text-red-500 text-sm mt-2">
+            <p className="text-[rgba(239,159,39,0.6)] text-xs mt-2 font-medium">
               Consulte seu médico para ajustar a dose.
             </p>
           </div>
@@ -39,76 +40,121 @@ export default function Result({
   const guidance = generateGuidance(result.ui)
 
   return (
-    <div className="space-y-4">
-      {/* Resultado Principal */}
-      <div className="card border-4 border-tize-gold bg-gradient-to-br from-tize-light to-white">
+    <div className="space-y-6">
+      {/* Card de Resultado */}
+      <div className="card-purple">
         <div className="text-center">
-          <p className="text-sm font-semibold text-tize-dark uppercase tracking-wider">
+          <p className="text-xs font-jakarta font-800 text-tize-lilac-1 uppercase tracking-widest">
             Resultado
           </p>
           <p
-            className="text-6xl font-bold text-tize-blue my-4"
+            className="text-7xl font-jakarta font-800 text-tize-lilac-2 my-4"
             role="status"
             aria-live="polite"
             aria-label={`${result.ui} unidades`}
           >
             {result.ui}
           </p>
-          <p className="text-lg font-semibold text-gray-700">Unidades (UI)</p>
+          <p className="text-base font-jakarta font-600 text-tize-text">
+            Unidades (UI)
+          </p>
         </div>
       </div>
 
       {/* Orientação de Uso */}
-      <div className="card bg-tize-light border-l-4 border-tize-blue">
-        <h3 className="text-sm font-bold text-tize-dark uppercase tracking-wider mb-2">
-          Orientação de Uso
+      <div className="card space-y-4">
+        <h3 className="text-sm font-jakarta font-700 text-tize-lilac-2 uppercase tracking-wide">
+          💉 Como Aspirar
         </h3>
         <p
-          className="text-base leading-relaxed text-gray-800 font-semibold"
+          className="text-base font-jakarta font-500 text-tize-text leading-relaxed"
           aria-label="Instrução de como aspirar na seringa"
         >
           {guidance}
         </p>
       </div>
 
-      {/* Detalhes do Cálculo */}
-      <details className="card bg-gray-50 border border-gray-200 cursor-pointer hover:bg-gray-100 transition-colors">
-        <summary className="font-semibold text-tize-dark select-none">
-          📊 Ver detalhes do cálculo
+      {/* Accordion - Detalhes */}
+      <details className="card group">
+        <summary className="font-jakarta font-600 text-tize-lilac-1 select-none cursor-pointer flex items-center gap-2 justify-between">
+          <span>📊 Ver Detalhes do Cálculo</span>
+          <span className="text-xl group-open:rotate-180 transition-transform duration-300">▼</span>
         </summary>
-        <div className="mt-4 space-y-3 text-sm">
-          <div className="flex justify-between items-center py-2 border-b border-gray-200">
-            <span className="text-gray-600">Dose desejada:</span>
-            <span className="font-semibold text-gray-900">{doseDesejada}mg</span>
+
+        <div className="mt-6 pt-6 border-t border-glass space-y-6">
+          {/* Passo 1 */}
+          <div className="flex gap-4">
+            <div className="flex-shrink-0">
+              <div className="w-8 h-8 rounded-full bg-tize-purple flex items-center justify-center">
+                <span className="text-sm font-jakarta font-800 text-tize-text">1</span>
+              </div>
+            </div>
+            <div>
+              <p className="text-xs font-jakarta font-700 text-tize-lilac-1 uppercase tracking-wide">
+                Concentração
+              </p>
+              <div className="mt-1 bg-glass rounded-10 p-3 border border-glass">
+                <p className="font-mono text-sm text-tize-text">
+                  Concentração = <span className="text-tize-lilac-2 font-bold">{result.concentration.toFixed(1)} mg/mL</span>
+                </p>
+              </div>
+            </div>
           </div>
-          <div className="flex justify-between items-center py-2 border-b border-gray-200">
-            <span className="text-gray-600">Concentração da ampola:</span>
-            <span className="font-semibold text-gray-900">
-              {result.concentration.toFixed(1)}mg/mL
-            </span>
+
+          {/* Passo 2 */}
+          <div className="flex gap-4">
+            <div className="flex-shrink-0">
+              <div className="w-8 h-8 rounded-full bg-tize-purple flex items-center justify-center">
+                <span className="text-sm font-jakarta font-800 text-tize-text">2</span>
+              </div>
+            </div>
+            <div>
+              <p className="text-xs font-jakarta font-700 text-tize-lilac-1 uppercase tracking-wide">
+                Volume
+              </p>
+              <div className="mt-1 bg-glass rounded-10 p-3 border border-glass">
+                <p className="font-mono text-sm text-tize-text">
+                  Volume = <span className="text-tize-lilac-2 font-bold">{result.volume.toFixed(3)} mL</span>
+                </p>
+              </div>
+            </div>
           </div>
-          <div className="flex justify-between items-center py-2 border-b border-gray-200">
-            <span className="text-gray-600">Volume a aspirar:</span>
-            <span className="font-semibold text-gray-900">
-              {result.volume.toFixed(3)}mL
-            </span>
+
+          {/* Passo 3 */}
+          <div className="flex gap-4">
+            <div className="flex-shrink-0">
+              <div className="w-8 h-8 rounded-full bg-tize-lilac-2 flex items-center justify-center">
+                <span className="text-sm font-jakarta font-800 text-tize-dark-bg">3</span>
+              </div>
+            </div>
+            <div>
+              <p className="text-xs font-jakarta font-700 text-tize-lilac-1 uppercase tracking-wide">
+                Resultado Final
+              </p>
+              <div className="mt-1 bg-[rgba(124,92,191,0.12)] rounded-10 p-3 border border-tize-purple">
+                <p className="font-mono text-sm text-tize-text">
+                  UI = Volume × 100 = <span className="text-tize-lilac-2 font-bold">{result.ui} UI</span>
+                </p>
+              </div>
+            </div>
           </div>
-          <div className="flex justify-between items-center py-2 bg-tize-light px-2 rounded">
-            <span className="text-tize-dark font-semibold">UI (resultado):</span>
-            <span className="font-bold text-tize-blue text-lg">{result.ui}</span>
+
+          {/* Capacidade da Seringa */}
+          <div className="bg-glass rounded-10 p-4 border border-glass">
+            <p className="text-xs font-jakarta font-600 text-tize-text-secondary uppercase tracking-wide">
+              Capacidade da Seringa
+            </p>
+            <p className="text-base font-jakarta font-700 text-tize-lilac-2 mt-2">
+              {syringeCapacity} UI
+            </p>
+            {result.ui > syringeCapacity * 0.8 && result.ui <= syringeCapacity && (
+              <p className="text-xs font-jakarta font-600 text-[#EF9F27] mt-3 flex items-center gap-2">
+                ⚠️ Dose próxima ao limite da seringa
+              </p>
+            )}
           </div>
         </div>
       </details>
-
-      {/* Informação sobre a Seringa */}
-      <div className="text-xs text-center text-gray-500 px-4 py-2">
-        Capacidade da seringa: {syringeCapacity} UI
-        {result.ui > syringeCapacity * 0.8 && result.ui <= syringeCapacity && (
-          <p className="text-yellow-600 font-semibold mt-1">
-            ⚠️ Dose próxima ao limite da seringa
-          </p>
-        )}
-      </div>
     </div>
   )
 }

@@ -1,36 +1,54 @@
+@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap');
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
 @layer base {
   body {
-    @apply bg-tize-light text-gray-900 font-sans antialiased;
+    @apply bg-tize-dark-bg text-tize-text font-sans antialiased;
   }
 
   html {
     scroll-behavior: smooth;
   }
+
+  * {
+    @apply transition-colors duration-200;
+  }
 }
 
 @layer components {
   .btn-primary {
-    @apply px-4 py-2 bg-tize-blue hover:bg-tize-dark text-white font-semibold rounded-lg transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-tize-gold focus:ring-offset-2;
+    @apply px-6 py-2 bg-tize-purple hover:bg-tize-lilac-1 text-tize-text font-semibold rounded-10 transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-tize-lilac-2;
   }
 
   .btn-secondary {
-    @apply px-4 py-2 bg-gray-300 hover:bg-gray-400 text-gray-900 font-semibold rounded-lg transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-tize-blue focus:ring-offset-2;
+    @apply px-6 py-2 bg-glass hover:bg-glass-hover text-tize-text font-semibold rounded-10 transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-tize-purple border border-glass;
   }
 
   .input-field {
-    @apply w-full px-4 py-3 border-2 border-gray-300 rounded-lg focus:outline-none focus:border-tize-blue focus:ring-2 focus:ring-tize-blue focus:ring-opacity-50 transition-all duration-200;
+    @apply w-full px-4 py-3 bg-glass hover:bg-glass-hover border border-glass rounded-10 text-tize-text focus:outline-none focus:border-tize-purple focus:ring-2 focus:ring-tize-purple focus:ring-opacity-30 transition-all duration-200;
+  }
+
+  .input-field::placeholder {
+    @apply text-tize-text-secondary;
   }
 
   .select-field {
-    @apply input-field appearance-none bg-white cursor-pointer;
+    @apply input-field appearance-none cursor-pointer;
   }
 
   .card {
-    @apply bg-white rounded-lg shadow-md p-6 transition-shadow duration-200 hover:shadow-lg;
+    @apply bg-glass rounded-16 p-6 transition-all duration-200 hover:bg-glass-hover border border-glass;
+  }
+
+  .card-purple {
+    @apply bg-[rgba(124,92,191,0.12)] rounded-16 p-6 border border-[rgba(124,92,191,0.3)];
+  }
+
+  .label-base {
+    @apply block text-sm font-semibold text-tize-text mb-2 uppercase tracking-wide;
   }
 }
 

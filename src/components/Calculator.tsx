@@ -62,16 +62,18 @@ export default function Calculator() {
   }, [selectedAmpola, selectedDose, selectedSyringe])
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-8">
       {/* Seção de Entrada */}
-      <div className="card">
-        <h2 className="text-xl font-bold text-tize-blue mb-4">Informações</h2>
+      <div className="card space-y-6">
+        <h2 className="text-2xl font-jakarta font-700 text-tize-lilac-2">
+          Informações
+        </h2>
 
         {/* Campo 1: Ampola */}
-        <div className="mb-4">
+        <div>
           <label
             htmlFor="ampola"
-            className="block text-sm font-semibold text-gray-700 mb-2"
+            className="label-base text-tize-lilac-1"
           >
             Concentração da Ampola
           </label>
@@ -91,10 +93,10 @@ export default function Calculator() {
         </div>
 
         {/* Campo 2: Dose */}
-        <div className="mb-4">
+        <div>
           <label
             htmlFor="dose"
-            className="block text-sm font-semibold text-gray-700 mb-2"
+            className="label-base text-tize-lilac-1"
           >
             Dose Desejada
           </label>
@@ -114,10 +116,10 @@ export default function Calculator() {
         </div>
 
         {/* Campo 3: Seringa */}
-        <div className="mb-4">
+        <div>
           <label
             htmlFor="syringe"
-            className="block text-sm font-semibold text-gray-700 mb-2"
+            className="label-base text-tize-lilac-1"
           >
             Tipo de Seringa
           </label>
