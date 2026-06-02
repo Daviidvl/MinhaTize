@@ -5,89 +5,154 @@
 @tailwind utilities;
 
 @layer base {
+  :root {
+    --bg:           #E8EAF0;
+    --surface:      #FFFFFF;
+    --surface-2:    #F0F2F8;
+    --navy:         #1B3A7A;
+    --navy-mid:     #2B5BAA;
+    --gold:         #E8A820;
+    --gold-dark:    #C48A10;
+    --text-primary: #1B3A7A;
+    --text-muted:   #6B7A99;
+    --border:       rgba(27,58,122,0.12);
+    --warn-bg:      rgba(232,168,32,0.09);
+    --warn-border:  rgba(232,168,32,0.28);
+    --warn-text:    #7A6020;
+    --header-bg:    #1B3A7A;
+    --header-text:  #FFFFFF;
+    --header-sub:   rgba(255,255,255,0.5);
+    --result-bg:    #1B3A7A;
+  }
+
+  :root.dark {
+    --bg:           #0A1628;
+    --surface:      #112040;
+    --surface-2:    #1A2E50;
+    --navy:         #4A90D9;
+    --navy-mid:     #6AAEE8;
+    --gold:         #E8A820;
+    --gold-dark:    #F5C842;
+    --text-primary: #E8EDF5;
+    --text-muted:   #8FA3C4;
+    --border:       rgba(74,144,217,0.2);
+    --warn-bg:      rgba(232,168,32,0.08);
+    --warn-border:  rgba(232,168,32,0.3);
+    --warn-text:    #F0C84A;
+    --header-bg:    #061020;
+    --header-text:  #E8EDF5;
+    --header-sub:   rgba(232,237,245,0.45);
+    --result-bg:    #061020;
+  }
+
   body {
-    @apply bg-tize-dark-bg text-tize-text font-sans antialiased;
+    background-color: var(--bg);
+    color: var(--text-primary);
+    font-family: 'Plus Jakarta Sans', sans-serif;
+    -webkit-font-smoothing: antialiased;
+    transition: background-color 0.3s ease, color 0.3s ease;
   }
 
   html {
     scroll-behavior: smooth;
+    -webkit-overflow-scrolling: touch;
   }
 
   * {
-    @apply transition-colors duration-200;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  /* Evitar zoom no iOS ao focar inputs */
+  input, select, textarea {
+    font-size: 16px !important;
+  }
+
+  button {
+    min-height: 44px;
+    min-width: 44px;
   }
 }
 
 @layer components {
-  .btn-primary {
-    @apply px-6 py-2 bg-tize-purple hover:bg-tize-lilac-1 text-tize-text font-semibold rounded-10 transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-tize-lilac-2;
-  }
-
-  .btn-secondary {
-    @apply px-6 py-2 bg-glass hover:bg-glass-hover text-tize-text font-semibold rounded-10 transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-tize-purple border border-glass;
-  }
-
-  .input-field {
-    @apply w-full px-4 py-3 bg-glass hover:bg-glass-hover border border-glass rounded-10 text-tize-text focus:outline-none focus:border-tize-purple focus:ring-2 focus:ring-tize-purple focus:ring-opacity-30 transition-all duration-200;
-  }
-
-  .input-field::placeholder {
-    @apply text-tize-text-secondary;
-  }
-
-  .select-field {
-    @apply input-field appearance-none cursor-pointer;
-  }
-
   .card {
-    @apply bg-glass rounded-16 p-6 transition-all duration-200 hover:bg-glass-hover border border-glass;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 1.5rem;
+    box-shadow: 0 2px 12px rgba(0,0,0,0.06);
+    transition: background 0.3s ease, border-color 0.3s ease, box-shadow 0.3s ease;
   }
 
-  .card-purple {
-    @apply bg-[rgba(124,92,191,0.12)] rounded-16 p-6 border border-[rgba(124,92,191,0.3)];
+  .card-warning {
+    background: var(--warn-bg);
+    border: 1.5px solid var(--warn-border);
+    border-radius: 13px;
+    padding: 1.5rem;
+    transition: background 0.3s ease, border-color 0.3s ease;
   }
 
   .label-base {
-    @apply block text-sm font-semibold text-tize-text mb-2 uppercase tracking-wide;
+    display: block;
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--text-muted);
+    margin-bottom: 0.5rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    transition: color 0.3s ease;
+  }
+
+  .input-field {
+    width: 100%;
+    padding: 0.75rem 1rem;
+    background: var(--surface-2);
+    border: 1.5px solid var(--border);
+    border-radius: 10px;
+    color: var(--text-primary);
+    font-weight: 600;
+    font-size: 16px;
+    outline: none;
+    transition: background 0.3s ease, border-color 0.2s ease, box-shadow 0.2s ease, color 0.3s ease;
+  }
+
+  .input-field:focus {
+    border-color: var(--navy-mid);
+    box-shadow: 0 0 0 3px rgba(74,144,217,0.12);
+  }
+
+  .select-field {
+    @apply input-field;
+    appearance: none;
+    cursor: pointer;
+    color-scheme: light;
+  }
+
+  :root.dark .select-field {
+    color-scheme: dark;
   }
 }
 
-/* Animações personalizadas */
+/* Safe area para iPhone com notch */
+.header-safe {
+  padding-top: max(0.875rem, env(safe-area-inset-top));
+  padding-left: max(1.25rem, env(safe-area-inset-left));
+  padding-right: max(1.25rem, env(safe-area-inset-right));
+}
+
 @keyframes pulse-soft {
-  0%, 100% {
-    opacity: 1;
-  }
-  50% {
-    opacity: 0.8;
-  }
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.8; }
 }
 
 .animate-pulse-soft {
   animation: pulse-soft 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
 }
 
-/* Acessibilidade: Preferência de movimento reduzido */
 @media (prefers-reduced-motion: reduce) {
   * {
     animation-duration: 0.01ms !important;
     animation-iteration-count: 1 !important;
     transition-duration: 0.01ms !important;
     scroll-behavior: auto !important;
-  }
-}
-
-/* Suporte a tema escuro (futuro) */
-@media (prefers-color-scheme: dark) {
-  body {
-    @apply bg-gray-900 text-gray-100;
-  }
-
-  .card {
-    @apply bg-gray-800 border border-gray-700;
-  }
-
-  .input-field,
-  .select-field {
-    @apply bg-gray-800 border-gray-700 text-gray-100;
   }
 }
