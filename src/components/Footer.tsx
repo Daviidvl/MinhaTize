@@ -4,11 +4,11 @@ export default function Footer() {
       className="mt-16"
       style={{ borderTop: '1px solid var(--border)', transition: 'border-color 0.3s ease' }}
     >
-      <div className="max-w-4xl mx-auto px-6 py-10 space-y-6">
+      <div className="max-w-lg mx-auto px-4 py-8 space-y-6">
         <div className="card-warning">
           <h3
             className="font-jakarta font-700 text-sm mb-2 flex items-center gap-2"
-            style={{ color: 'var(--gold-dark)' }}
+            style={{ color: 'var(--warn-text)' }}
           >
             ⚠️ Aviso Legal Importante
           </h3>
@@ -16,10 +16,10 @@ export default function Footer() {
             className="text-xs font-jakarta leading-relaxed"
             style={{ color: 'var(--warn-text)' }}
           >
-            Esta calculadora possui finalidade exclusivamente educativa e informativa. Os
+            Esta ferramenta possui finalidade exclusivamente educativa e informativa. Os
             resultados apresentados são estimativas matemáticas baseadas nos dados
             informados pelo usuário. Qualquer ajuste de dose deve ser realizado com
-            acompanhamento médico. Minha Tize não substitui orientação médica,
+            acompanhamento médico. TizeTrack não substitui orientação médica,
             farmacêutica ou nutricional.
           </p>
         </div>
@@ -28,8 +28,8 @@ export default function Footer() {
           className="flex items-center justify-between text-[11px] font-jakarta"
           style={{ color: 'var(--text-muted)' }}
         >
-          <span>© 2026 Minha Tize. Todos os direitos reservados.</span>
-          <span>v1.0.0 · Junho 2026</span>
+          <span>© 2026 TizeTrack. Todos os direitos reservados.</span>
+          <span>v2.0.0 · Junho 2026</span>
         </div>
       </div>
     </footer>

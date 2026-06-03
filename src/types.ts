@@ -17,9 +17,26 @@ export interface SyringeOption {
 }
 
 export interface CalculationResult {
-  concentration: number // mg/mL
-  volume: number // mL
-  ui: number // UI arredondado
+  concentration: number
+  volume: number
+  ui: number
   isValid: boolean
   error?: string
 }
+
+export interface WeightEntry {
+  date: string
+  weight: number
+}
+
+export interface UserProfile {
+  name: string
+  startWeight: number
+  goalWeight: number
+  height: number
+  startDate: string
+  currentDose: number
+  weightHistory: WeightEntry[]
+}
+
+export type Tab = 'dashboard' | 'progress' | 'calculator'

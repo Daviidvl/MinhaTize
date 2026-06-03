@@ -58,7 +58,7 @@ export default function Result({ result, syringeCapacity }: ResultProps) {
         </div>
         <p
           className="font-jakarta font-800 leading-none"
-          style={{ fontSize: '76px', color: 'var(--gold)' }}
+          style={{ fontSize: '76px', color: '#FFFFFF' }}
           role="status"
           aria-live="polite"
           aria-label={`${result.ui} unidades`}
