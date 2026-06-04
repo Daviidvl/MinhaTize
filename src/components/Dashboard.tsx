@@ -1,233 +1,197 @@
 import { UserProfile } from '../types'
 import Achievements from './Achievements'
+import { Tab } from '../types'
 
 interface Props {
   profile: UserProfile
-  onNavigate: (tab: 'progress' | 'calculator' | 'health') => void
+  onNavigate: (tab: Tab) => void
   onUpdateProfile: (p: UserProfile) => void
 }
 
-function calcIMC(weight: number, height: number): string {
-  if (!height || !weight) return '--'
-  return (weight / ((height / 100) ** 2)).toFixed(1)
+function calcIMC(w: number, h: number) {
+  if (!h || !w) return null
+  return (w / ((h / 100) ** 2))
 }
 
-function imcLabel(imc: number): string {
-  if (imc < 18.5) return 'Abaixo do peso'
-  if (imc < 25)   return 'Peso normal'
-  if (imc < 30)   return 'Sobrepeso'
-  if (imc < 35)   return 'Obesidade I'
-  if (imc < 40)   return 'Obesidade II'
+function imcLabel(v: number) {
+  if (v < 18.5) return 'Abaixo do peso'
+  if (v < 25)   return 'Peso normal'
+  if (v < 30)   return 'Sobrepeso'
+  if (v < 35)   return 'Obesidade I'
+  if (v < 40)   return 'Obesidade II'
   return 'Obesidade III'
 }
 
-function daysSince(dateStr: string): number {
-  return Math.floor((Date.now() - new Date(dateStr).getTime()) / (1000 * 60 * 60 * 24))
+function daysSince(d: string) {
+  return Math.floor((Date.now() - new Date(d).getTime()) / 864e5)
 }
 
-function weeksSince(dateStr: string): number {
-  return Math.floor(daysSince(dateStr) / 7)
+function weeksSince(d: string) {
+  return Math.floor(daysSince(d) / 7)
 }
 
-const DOSE_PHASES = [
-  { dose: 2.5,  month: '1–2',  label: 'Fase inicial' },
-  { dose: 5,    month: '3–4',  label: 'Adaptação' },
-  { dose: 7.5,  month: '5–6',  label: 'Progresso' },
-  { dose: 10,   month: '7–8',  label: 'Consolidação' },
-  { dose: 12.5, month: '9–10', label: 'Avançado' },
-  { dose: 15,   month: '11+',  label: 'Dose máxima' },
-]
+const DOSE_PHASE: Record<number, string> = {
+  2.5: 'Fase inicial', 5: 'Adaptação', 7.5: 'Progresso',
+  10: 'Consolidação', 12.5: 'Avançado', 15: 'Dose máxima',
+}
+
+const FEELING_EMOJI: Record<string, string> = { great: '🤩', good: '😊', okay: '😐', hard: '😔' }
+const FEELING_LABEL: Record<string, string> = { great: 'Ótimo', good: 'Bem', okay: 'Regular', hard: 'Difícil' }
 
 export default function Dashboard({ profile, onNavigate, onUpdateProfile }: Props) {
-  const lastWeight = profile.weightHistory.length > 0
-    ? profile.weightHistory[profile.weightHistory.length - 1].weight
-    : profile.startWeight
-
-  const totalLost   = profile.startWeight - lastWeight
-  const toGoal      = lastWeight - profile.goalWeight
-  const hasProgress = profile.startWeight !== profile.goalWeight
-  const progressPct = hasProgress
+  const lastWeight = profile.weightHistory.at(-1)?.weight ?? profile.startWeight
+  const totalLost  = profile.startWeight - lastWeight
+  const toGoal     = lastWeight - profile.goalWeight
+  const hasGoal    = profile.startWeight !== profile.goalWeight
+  const pct        = hasGoal
     ? Math.min(100, Math.max(0, (totalLost / (profile.startWeight - profile.goalWeight)) * 100))
     : 0
-  const weeks   = weeksSince(profile.startDate)
-  const days    = daysSince(profile.startDate)
-  const imcVal  = parseFloat(calcIMC(lastWeight, profile.height))
+  const days   = daysSince(profile.startDate)
+  const weeks  = weeksSince(profile.startDate)
+  const imc    = calcIMC(lastWeight, profile.height)
 
   const lastDiary = (profile.diary ?? []).slice().sort((a, b) => b.date.localeCompare(a.date))[0]
-  const feelingEmoji: Record<string, string> = { great: '🤩', good: '😊', okay: '😐', hard: '😔' }
-  const feelingLabel: Record<string, string> = { great: 'Ótimo', good: 'Bem', okay: 'Regular', hard: 'Difícil' }
 
-  // Janela de aplicação
-  const lastApp = profile.lastApplication
-  const daysSinceApp = lastApp ? daysSince(lastApp) : null
-  const daysUntilNext = daysSinceApp !== null ? Math.max(0, 7 - daysSinceApp) : null
-  const appPct = daysSinceApp !== null ? Math.min(100, (daysSinceApp / 7) * 100) : 0
-
-  function registerApplication() {
-    onUpdateProfile({ ...profile, lastApplication: new Date().toISOString().split('T')[0] })
-  }
-
-  // Fase do protocolo
-  const currentPhase = DOSE_PHASES.find(p => p.dose === profile.currentDose)
+  const lastApp       = profile.lastApplication
+  const daysSinceApp  = lastApp ? daysSince(lastApp) : null
+  const daysUntilNext = daysSinceApp != null ? Math.max(0, 7 - daysSinceApp) : null
+  const appPct        = daysSinceApp != null ? Math.min(100, (daysSinceApp / 7) * 100) : 0
+  const appToday      = daysUntilNext === 0
 
   return (
-    <div className="space-y-5 fade-in">
+    <div className="fade-in" style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
 
-      {/* Saudação */}
-      <div>
-        <h1 style={{ fontSize: '22px', fontWeight: 800, color: 'var(--text-primary)', lineHeight: 1.2 }}>
-          Olá, {profile.name}! 👋
-        </h1>
-        <p style={{ color: 'var(--text-muted)', fontSize: '13px', marginTop: '4px' }}>
-          {days === 0
-            ? 'Primeiro dia de protocolo — bem-vindo!'
-            : `${weeks > 0 ? `${weeks} ${weeks === 1 ? 'semana' : 'semanas'}` : `${days} dias`} em protocolo`}
+      {/* Hero greeting */}
+      <div style={{ paddingTop: '4px' }}>
+        <p style={{ fontSize: '13px', fontWeight: 600, color: 'var(--text-muted)', marginBottom: '4px' }}>
+          {days === 0 ? 'Primeiro dia!' : `${weeks > 0 ? `${weeks} sem.` : `${days} dias`} em protocolo`}
         </p>
+        <h1 style={{
+          fontSize: '26px', fontWeight: 800, margin: 0,
+          color: 'var(--text-primary)', letterSpacing: '-0.5px', lineHeight: 1.15,
+        }}>
+          Olá, {profile.name} 👋
+        </h1>
       </div>
 
-      {/* Cards de estatísticas */}
+      {/* Stat grid */}
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
-        <div className="stat-card">
-          <p className="label-base" style={{ marginBottom: '6px' }}>Peso atual</p>
-          <p style={{ fontSize: '27px', fontWeight: 800, color: 'var(--primary)', lineHeight: 1 }}>
-            {lastWeight}
-            <span style={{ fontSize: '13px', fontWeight: 600, color: 'var(--text-muted)', marginLeft: '3px' }}>kg</span>
+
+        {/* Peso atual — destaque */}
+        <div className="stat-card" style={{
+          gridColumn: '1 / -1',
+          background: 'linear-gradient(135deg, var(--primary) 0%, #0D9488 100%)',
+          border: 'none', color: '#fff', padding: '1.25rem 1.375rem',
+          boxShadow: 'var(--shadow-green)',
+        }}>
+          <p style={{ fontSize: '11px', fontWeight: 700, opacity: 0.75, textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: '6px' }}>
+            Peso atual
           </p>
-          {profile.weightHistory.length === 0 && (
-            <p style={{ fontSize: '10px', color: 'var(--text-muted)', marginTop: '4px' }}>Peso inicial</p>
+          <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between' }}>
+            <p style={{ fontSize: '48px', fontWeight: 800, lineHeight: 1, letterSpacing: '-2px' }}>
+              {lastWeight}
+              <span style={{ fontSize: '18px', fontWeight: 600, opacity: 0.8, marginLeft: '4px' }}>kg</span>
+            </p>
+            <div style={{ textAlign: 'right' }}>
+              <p style={{ fontSize: '22px', fontWeight: 800, color: totalLost > 0 ? '#fff' : 'rgba(255,255,255,0.6)' }}>
+                {totalLost > 0 ? '−' : totalLost < 0 ? '+' : ''}{Math.abs(totalLost).toFixed(1)}kg
+              </p>
+              <p style={{ fontSize: '11px', opacity: 0.7, fontWeight: 600, marginTop: '1px' }}>total perdido</p>
+            </div>
+          </div>
+          {hasGoal && (
+            <div style={{ marginTop: '14px' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '5px' }}>
+                <span style={{ fontSize: '11px', opacity: 0.7, fontWeight: 600 }}>Meta: {profile.goalWeight}kg</span>
+                <span style={{ fontSize: '11px', fontWeight: 800, opacity: 0.95 }}>
+                  {toGoal <= 0 ? '🎉 Meta atingida!' : `Faltam ${toGoal.toFixed(1)}kg`}
+                </span>
+              </div>
+              <div style={{ background: 'rgba(255,255,255,0.25)', borderRadius: '99px', height: '5px', overflow: 'hidden' }}>
+                <div style={{
+                  width: `${pct}%`, height: '100%', background: '#fff', borderRadius: '99px',
+                  transition: 'width 0.9s cubic-bezier(0.22,1,0.36,1)',
+                }} />
+              </div>
+            </div>
           )}
         </div>
 
-        <div className="stat-card">
-          <p className="label-base" style={{ marginBottom: '6px' }}>Total perdido</p>
-          <p style={{
-            fontSize: '27px', fontWeight: 800, lineHeight: 1,
-            color: totalLost > 0 ? 'var(--primary)' : 'var(--text-muted)',
-          }}>
-            {totalLost !== 0 && (totalLost > 0 ? '−' : '+')}
-            {Math.abs(totalLost).toFixed(1)}
-            <span style={{ fontSize: '13px', fontWeight: 600, color: 'var(--text-muted)', marginLeft: '3px' }}>kg</span>
-          </p>
-          {totalLost === 0 && (
-            <p style={{ fontSize: '10px', color: 'var(--text-muted)', marginTop: '4px' }}>Registre seu peso</p>
-          )}
-        </div>
-
+        {/* IMC */}
         <div className="stat-card">
           <p className="label-base" style={{ marginBottom: '6px' }}>IMC atual</p>
-          <p style={{ fontSize: '24px', fontWeight: 800, color: 'var(--accent)', lineHeight: 1 }}>
-            {isNaN(imcVal) ? '--' : imcVal}
+          <p style={{ fontSize: '28px', fontWeight: 800, color: 'var(--accent)', lineHeight: 1, letterSpacing: '-1px' }}>
+            {imc ? imc.toFixed(1) : '--'}
           </p>
-          {!isNaN(imcVal) && (
-            <p style={{ fontSize: '10px', color: 'var(--text-muted)', marginTop: '4px', fontWeight: 600 }}>
-              {imcLabel(imcVal)}
-            </p>
-          )}
+          {imc && <p style={{ fontSize: '10px', color: 'var(--text-muted)', marginTop: '4px', fontWeight: 600 }}>{imcLabel(imc)}</p>}
         </div>
 
+        {/* Dose */}
         <div className="stat-card">
           <p className="label-base" style={{ marginBottom: '6px' }}>Dose atual</p>
-          <p style={{ fontSize: '24px', fontWeight: 800, color: 'var(--text-primary)', lineHeight: 1 }}>
+          <p style={{ fontSize: '28px', fontWeight: 800, color: 'var(--text-primary)', lineHeight: 1, letterSpacing: '-1px' }}>
             {profile.currentDose}
-            <span style={{ fontSize: '13px', fontWeight: 600, color: 'var(--text-muted)', marginLeft: '3px' }}>mg</span>
+            <span style={{ fontSize: '14px', fontWeight: 600, color: 'var(--text-muted)', marginLeft: '2px' }}>mg</span>
           </p>
-          {currentPhase && (
-            <p style={{ fontSize: '10px', color: 'var(--primary)', marginTop: '4px', fontWeight: 700 }}>
-              {currentPhase.label}
-            </p>
-          )}
+          <p style={{ fontSize: '10px', color: 'var(--primary)', marginTop: '4px', fontWeight: 700 }}>
+            {DOSE_PHASE[profile.currentDose] ?? ''}
+          </p>
         </div>
       </div>
 
-      {/* Barra de progresso para meta */}
-      {hasProgress && (
-        <div className="card" style={{ padding: '1.1rem 1.375rem' }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
-            <p style={{ fontWeight: 700, fontSize: '13px', color: 'var(--text-primary)' }}>
-              Progresso para a meta
-            </p>
-            <span style={{
-              fontWeight: 800, fontSize: '13px', color: 'var(--primary)',
-              background: 'var(--primary-light)', padding: '2px 10px', borderRadius: '99px',
-            }}>
-              {progressPct.toFixed(0)}%
-            </span>
-          </div>
-          <div style={{ background: 'var(--surface-2)', borderRadius: '99px', height: '8px', overflow: 'hidden' }}>
-            <div style={{
-              width: `${progressPct}%`, height: '100%',
-              background: 'linear-gradient(90deg, var(--primary), var(--accent))',
-              borderRadius: '99px', transition: 'width 0.8s cubic-bezier(0.22,1,0.36,1)',
-              minWidth: progressPct > 0 ? '8px' : '0',
-            }} />
-          </div>
-          <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '7px' }}>
-            <p style={{ fontSize: '11px', color: 'var(--text-muted)', fontWeight: 600 }}>{profile.startWeight}kg</p>
-            <p style={{ fontSize: '11px', color: toGoal <= 0 ? 'var(--primary)' : 'var(--text-muted)', fontWeight: 700 }}>
-              {toGoal <= 0 ? '🎉 Meta atingida!' : `Faltam ${toGoal.toFixed(1)}kg`}
-            </p>
-          </div>
-        </div>
-      )}
-
       {/* Janela de aplicação */}
-      <div className="card" style={{ padding: '1.1rem 1.375rem' }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
+      <div className="card" style={{ padding: '1rem 1.25rem' }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: lastApp ? '12px' : '0' }}>
           <div>
-            <p style={{ fontWeight: 700, fontSize: '13px', color: 'var(--text-primary)' }}>💉 Próxima aplicação</p>
-            {lastApp ? (
-              <p style={{ fontSize: '11px', color: 'var(--text-muted)', marginTop: '2px' }}>
-                {daysUntilNext === 0
-                  ? 'Hoje é o dia da aplicação!'
-                  : `Em ${daysUntilNext} dia${daysUntilNext !== 1 ? 's' : ''}`}
-              </p>
-            ) : (
-              <p style={{ fontSize: '11px', color: 'var(--text-muted)', marginTop: '2px' }}>
-                Registre sua última aplicação
-              </p>
-            )}
+            <p style={{ fontWeight: 700, fontSize: '14px', color: 'var(--text-primary)' }}>
+              💉 Próxima aplicação
+            </p>
+            <p style={{ fontSize: '12px', color: appToday ? 'var(--primary)' : 'var(--text-muted)', marginTop: '2px', fontWeight: appToday ? 700 : 500 }}>
+              {lastApp
+                ? appToday ? 'Hoje é o dia! ✓' : `Em ${daysUntilNext} dia${daysUntilNext !== 1 ? 's' : ''}`
+                : 'Registre sua última aplicação'}
+            </p>
           </div>
           <button
-            onClick={registerApplication}
+            onClick={() => onUpdateProfile({ ...profile, lastApplication: new Date().toISOString().split('T')[0] })}
             style={{
-              padding: '7px 14px', borderRadius: '9px', border: 'none',
-              background: daysUntilNext === 0 ? 'var(--primary)' : 'var(--primary-light)',
-              color: daysUntilNext === 0 ? '#fff' : 'var(--primary-dark)',
-              fontWeight: 700, fontSize: '12px', cursor: 'pointer',
+              padding: '8px 16px', borderRadius: '10px', border: 'none',
+              background: appToday ? 'var(--primary)' : 'var(--primary-light)',
+              color: appToday ? '#fff' : 'var(--primary)',
+              fontWeight: 700, fontSize: '12px',
               fontFamily: "'Plus Jakarta Sans', sans-serif",
-              transition: 'all 0.15s ease',
+              boxShadow: appToday ? 'var(--shadow-green)' : 'none',
+              transition: 'all 0.15s',
             }}
           >
-            {lastApp ? 'Aplicado hoje' : 'Registrar'}
+            {lastApp ? 'Aplicado ✓' : 'Registrar'}
           </button>
         </div>
         {lastApp && (
-          <div style={{ background: 'var(--surface-2)', borderRadius: '99px', height: '6px', overflow: 'hidden' }}>
-            <div style={{
-              width: `${appPct}%`, height: '100%', borderRadius: '99px',
-              background: daysUntilNext === 0
-                ? 'var(--primary)'
-                : `linear-gradient(90deg, var(--primary), ${appPct > 70 ? '#F59E0B' : 'var(--accent)'})`,
-              transition: 'width 0.6s ease',
+          <div className="progress-track" style={{ height: '6px' }}>
+            <div className="progress-fill" style={{
+              width: `${appPct}%`,
+              background: appPct > 85
+                ? 'linear-gradient(90deg, var(--primary), #F59E0B)'
+                : 'linear-gradient(90deg, var(--primary), var(--accent))',
             }} />
           </div>
         )}
       </div>
 
-      {/* Último humor do diário */}
+      {/* Último diário */}
       {lastDiary && (
         <div className="card" style={{
-          padding: '1rem 1.375rem',
+          padding: '1rem 1.25rem',
           display: 'flex', alignItems: 'center', gap: '14px',
+          border: '1px solid var(--primary-light)',
           background: 'linear-gradient(135deg, var(--primary-light), transparent)',
         }}>
-          <span style={{ fontSize: '32px' }}>{feelingEmoji[lastDiary.feeling]}</span>
+          <span style={{ fontSize: '36px', flexShrink: 0 }}>{FEELING_EMOJI[lastDiary.feeling]}</span>
           <div style={{ flex: 1, minWidth: 0 }}>
-            <p style={{ fontSize: '11px', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
-              Última semana
-            </p>
-            <p style={{ fontSize: '14px', fontWeight: 700, color: 'var(--text-primary)', marginTop: '2px' }}>
-              {lastDiary.dose}mg · {feelingLabel[lastDiary.feeling]}
+            <p className="label-base" style={{ marginBottom: '3px' }}>Última semana</p>
+            <p style={{ fontSize: '15px', fontWeight: 700, color: 'var(--text-primary)' }}>
+              {lastDiary.dose}mg · {FEELING_LABEL[lastDiary.feeling]}
             </p>
             {lastDiary.notes && (
               <p style={{ fontSize: '12px', color: 'var(--text-muted)', marginTop: '2px', overflow: 'hidden', whiteSpace: 'nowrap', textOverflow: 'ellipsis' }}>
@@ -239,28 +203,32 @@ export default function Dashboard({ profile, onNavigate, onUpdateProfile }: Prop
       )}
 
       {/* Ações rápidas */}
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '8px' }}>
-        {[
-          { icon: '⚖️', title: 'Peso',        sub: 'Registrar',     tab: 'progress'   as const },
-          { icon: '💉', title: 'Calcular',    sub: 'Dose',          tab: 'calculator' as const },
-          { icon: '🌿', title: 'Saúde',       sub: 'Guias',         tab: 'health'     as const },
-        ].map(action => (
-          <button
-            key={action.tab}
-            className="card"
-            onClick={() => onNavigate(action.tab)}
-            style={{
-              textAlign: 'center', cursor: 'pointer', padding: '1rem 0.5rem',
-              transition: 'transform 0.15s ease',
-            }}
-            onMouseEnter={e => { (e.currentTarget as HTMLElement).style.transform = 'translateY(-2px)' }}
-            onMouseLeave={e => { (e.currentTarget as HTMLElement).style.transform = 'translateY(0)' }}
-          >
-            <div style={{ fontSize: '20px', marginBottom: '5px' }}>{action.icon}</div>
-            <p style={{ fontWeight: 700, fontSize: '12px', color: 'var(--text-primary)' }}>{action.title}</p>
-            <p style={{ fontSize: '10px', color: 'var(--text-muted)', marginTop: '1px' }}>{action.sub}</p>
-          </button>
-        ))}
+      <div>
+        <p className="label-base" style={{ marginBottom: '10px' }}>Acesso rápido</p>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '8px' }}>
+          {([
+            { icon: '⚖️', title: 'Peso',     sub: 'Registrar',    tab: 'progress'   },
+            { icon: '💉', title: 'Calcular', sub: 'Dose',         tab: 'calculator' },
+            { icon: '🌿', title: 'Saúde',    sub: 'Guias',        tab: 'health'     },
+          ] as const).map(a => (
+            <button
+              key={a.tab}
+              className="card"
+              onClick={() => onNavigate(a.tab)}
+              style={{
+                textAlign: 'center', padding: '1rem 0.5rem', cursor: 'pointer',
+                transition: 'transform 0.15s, box-shadow 0.15s',
+                border: '1px solid var(--border)',
+              }}
+              onMouseEnter={e => (e.currentTarget.style.transform = 'translateY(-2px)')}
+              onMouseLeave={e => (e.currentTarget.style.transform = 'translateY(0)')}
+            >
+              <span style={{ fontSize: '22px', display: 'block', marginBottom: '6px' }}>{a.icon}</span>
+              <p style={{ fontWeight: 700, fontSize: '12px', color: 'var(--text-primary)' }}>{a.title}</p>
+              <p style={{ fontSize: '10px', color: 'var(--text-muted)', marginTop: '1px' }}>{a.sub}</p>
+            </button>
+          ))}
+        </div>
       </div>
 
       {/* Conquistas */}

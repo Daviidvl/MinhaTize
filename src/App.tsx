@@ -29,6 +29,14 @@ function loadProfile(): UserProfile {
   return DEFAULT_PROFILE
 }
 
+const TABS: { id: Tab; icon: string; label: string }[] = [
+  { id: 'dashboard',  icon: '🏠', label: 'Início'    },
+  { id: 'progress',   icon: '📊', label: 'Progresso' },
+  { id: 'calculator', icon: '💉', label: 'Calcular'  },
+  { id: 'health',     icon: '🌿', label: 'Saúde'     },
+  { id: 'settings',   icon: '⚙️', label: 'Perfil'    },
+]
+
 export default function App() {
   const { isDark, toggle } = useDarkMode()
   const [activeTab, setActiveTab] = useState<Tab>('dashboard')
@@ -40,28 +48,14 @@ export default function App() {
     localStorage.setItem('tizetrack_profile', JSON.stringify(profile))
   }, [profile])
 
-  function handleSetupComplete(newProfile: UserProfile) {
-    setProfile(newProfile)
+  if (isFirstAccess) {
+    return <ProfileSetup onComplete={setProfile} />
   }
-
-  const tabs: { id: Tab; label: string; icon: string }[] = [
-    { id: 'dashboard',  label: 'Início',    icon: '🏠' },
-    { id: 'progress',   label: 'Progresso', icon: '📊' },
-    { id: 'calculator', label: 'Calcular',  icon: '💉' },
-    { id: 'health',     label: 'Saúde',     icon: '🌿' },
-    { id: 'settings',   label: 'Perfil',    icon: '⚙️' },
-  ]
 
   function renderTab() {
     switch (activeTab) {
       case 'dashboard':
-        return (
-          <Dashboard
-            profile={profile}
-            onUpdateProfile={setProfile}
-            onNavigate={(tab) => setActiveTab(tab)}
-          />
-        )
+        return <Dashboard profile={profile} onUpdateProfile={setProfile} onNavigate={setActiveTab} />
       case 'progress':
         return <Progress profile={profile} onUpdateProfile={setProfile} />
       case 'calculator':
@@ -73,68 +67,31 @@ export default function App() {
     }
   }
 
-  if (isFirstAccess) {
-    return <ProfileSetup onComplete={handleSetupComplete} />
-  }
-
   return (
-    <div
-      className="min-h-screen flex flex-col"
-      style={{ background: 'var(--bg)', transition: 'background-color 0.3s ease' }}
-    >
+    <div style={{ minHeight: '100dvh', background: 'var(--bg)', transition: 'background 0.3s' }}>
       <Header isDark={isDark} onToggle={toggle} />
 
-      {/* Navegação por abas */}
-      <div style={{
-        background: 'var(--surface)',
-        borderBottom: '1px solid var(--border)',
-        padding: '6px 12px',
-        position: 'sticky',
-        top: '66px',
-        zIndex: 40,
-      }}>
-        <div style={{
-          display: 'flex', gap: '4px',
-          background: 'var(--surface-2)',
-          borderRadius: '12px', padding: '3px',
-          maxWidth: '480px', margin: '0 auto',
-        }}>
-          {tabs.map(tab => (
-            <button
-              key={tab.id}
-              className={`tab-btn${activeTab === tab.id ? ' active' : ''}`}
-              onClick={() => setActiveTab(tab.id)}
-              style={{ fontSize: '10px', padding: '6px 2px' }}
-            >
-              <span style={{ display: 'block', fontSize: '15px', marginBottom: '1px' }}>{tab.icon}</span>
-              {tab.label}
-            </button>
-          ))}
-        </div>
-      </div>
-
-      <main className="flex-grow max-w-lg w-full mx-auto px-4 py-6" key={activeTab}>
+      <main className="main-content" style={{ maxWidth: '520px', margin: '0 auto', padding: '20px 16px' }} key={activeTab}>
         {renderTab()}
       </main>
 
-      <Footer />
-    </div>
-  )
-}
-
-function Footer() {
-  return (
-    <footer style={{ borderTop: '1px solid var(--border)', marginTop: '32px' }}>
-      <div style={{ maxWidth: '512px', margin: '0 auto', padding: '24px 16px' }}>
-        <div className="card-warning">
-          <p style={{ fontSize: '12px', color: 'var(--warn-text)', lineHeight: 1.5 }}>
-            ⚠️ TizeTrack é uma ferramenta educativa e informativa. Não substitui orientação médica, farmacêutica ou nutricional. Qualquer ajuste de dose deve ser feito com acompanhamento profissional.
-          </p>
+      {/* Bottom Navigation */}
+      <nav className="bottom-nav">
+        <div className="bottom-nav-inner">
+          {TABS.map(tab => (
+            <button
+              key={tab.id}
+              className={`nav-tab${activeTab === tab.id ? ' active' : ''}`}
+              onClick={() => setActiveTab(tab.id)}
+              aria-label={tab.label}
+            >
+              <span className="nav-tab-icon">{tab.icon}</span>
+              <span className="nav-tab-label">{tab.label}</span>
+              <span className="nav-tab-dot" />
+            </button>
+          ))}
         </div>
-        <p style={{ fontSize: '11px', color: 'var(--text-muted)', marginTop: '12px', textAlign: 'center' }}>
-          © 2026 TizeTrack · v2.1.0
-        </p>
-      </div>
-    </footer>
+      </nav>
+    </div>
   )
 }

@@ -283,18 +283,8 @@ export default function ProfileSetup({ onComplete }: Props) {
         <div style={{ display: 'flex', gap: '10px', marginTop: '32px' }}>
           {step > 1 && (
             <button
+              className="btn-ghost"
               onClick={() => setStep(s => s - 1)}
-              style={{
-                padding: '0.75rem 1.25rem',
-                borderRadius: '10px',
-                border: '1.5px solid var(--border)',
-                background: 'transparent',
-                color: 'var(--text-muted)',
-                fontWeight: 700,
-                cursor: 'pointer',
-                fontFamily: "'Plus Jakarta Sans', sans-serif",
-                minHeight: '44px',
-              }}
             >
               Voltar
             </button>
