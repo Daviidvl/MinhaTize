@@ -23,7 +23,6 @@ export default function Progress({ profile, onUpdateProfile }: Props) {
     setSaved(true)
     setTimeout(() => setSaved(false), 2000)
   }
-
   const history = [...profile.weightHistory].reverse().slice(0, 10)
   const firstWeight = profile.startWeight
   const lastWeight = profile.weightHistory.length > 0
