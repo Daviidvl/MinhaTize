@@ -7,27 +7,23 @@ interface ResultProps {
   syringeCapacity: number
 }
 
-const stepBox = (accent = false): React.CSSProperties => accent
-  ? { background: 'rgba(232,168,32,0.08)', borderColor: 'rgba(232,168,32,0.3)', border: '1px solid rgba(232,168,32,0.3)', borderRadius: '10px', padding: '0.75rem' }
-  : { background: 'var(--surface-2)', border: '1px solid var(--border)', borderRadius: '10px', padding: '0.75rem', transition: 'background 0.3s, border-color 0.3s' }
-
 export default function Result({ result, syringeCapacity }: ResultProps) {
   if (!result.isValid) {
     return (
-      <div className="card-warning flex items-start gap-4">
-        <div
-          className="flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center font-bold text-lg mt-1"
-          style={{ background: 'rgba(232,168,32,0.2)', color: 'var(--gold-dark)' }}
-          aria-hidden="true"
-        >
-          ⚠
+      <div className="card-warning flex items-start gap-4 scale-in">
+        <div style={{
+          flexShrink: 0, width: '36px', height: '36px', borderRadius: '50%',
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          background: 'rgba(245,158,11,0.15)', fontSize: '18px',
+        }}>
+          ⚠️
         </div>
         <div>
-          <h3 className="font-jakarta font-700 text-lg" style={{ color: 'var(--gold-dark)' }}>Atenção</h3>
-          <p className="mt-1 text-sm leading-relaxed" style={{ color: 'var(--warn-text)' }} role="alert">
+          <h3 style={{ fontWeight: 700, fontSize: '16px', color: 'var(--warn-text)' }}>Atenção</h3>
+          <p style={{ marginTop: '4px', fontSize: '14px', lineHeight: 1.5, color: 'var(--warn-text)' }} role="alert">
             {result.error}
           </p>
-          <p className="text-xs mt-2 font-medium" style={{ color: 'var(--gold-dark)' }}>
+          <p style={{ fontSize: '12px', marginTop: '8px', fontWeight: 600, color: 'var(--warn-text)', opacity: 0.8 }}>
             Consulte seu médico para ajustar a dose.
           </p>
         </div>
@@ -36,123 +32,123 @@ export default function Result({ result, syringeCapacity }: ResultProps) {
   }
 
   const guidance = generateGuidance(result.ui)
+  const fillPct = Math.min(100, (result.ui / syringeCapacity) * 100)
+  const nearLimit = result.ui > syringeCapacity * 0.8
 
   return (
-    <div className="space-y-6">
-      {/* Card de Resultado */}
-      <div
-        className="rounded-16 p-8 text-center"
-        style={{
-          background: 'var(--result-bg)',
-          boxShadow: '0 8px 28px rgba(0,0,0,0.25)',
-          transition: 'background 0.3s ease',
-        }}
-      >
-        <div
-          className="inline-block px-3 py-1 rounded-full mb-3"
-          style={{ background: 'rgba(255,255,255,0.07)' }}
-        >
-          <p className="text-xs font-jakarta font-700 uppercase tracking-widest" style={{ color: 'rgba(255,255,255,0.5)' }}>
-            Resultado
-          </p>
-        </div>
+    <div className="space-y-4 scale-in">
+
+      {/* Card principal do resultado */}
+      <div style={{
+        background: 'var(--result-bg)',
+        borderRadius: '18px',
+        padding: '2rem',
+        textAlign: 'center',
+        boxShadow: '0 8px 32px rgba(5,150,105,0.3)',
+        position: 'relative',
+        overflow: 'hidden',
+      }}>
+        {/* Fundo decorativo */}
+        <div style={{
+          position: 'absolute', top: '-40px', right: '-40px',
+          width: '140px', height: '140px', borderRadius: '50%',
+          background: 'rgba(255,255,255,0.05)',
+          pointerEvents: 'none',
+        }} />
+        <div style={{
+          position: 'absolute', bottom: '-30px', left: '-30px',
+          width: '100px', height: '100px', borderRadius: '50%',
+          background: 'rgba(255,255,255,0.04)',
+          pointerEvents: 'none',
+        }} />
+
+        <p style={{
+          fontSize: '11px', fontWeight: 700, color: 'rgba(255,255,255,0.55)',
+          textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: '8px',
+        }}>
+          Resultado
+        </p>
         <p
-          className="font-jakarta font-800 leading-none"
-          style={{ fontSize: '76px', color: '#FFFFFF' }}
+          style={{ fontSize: '80px', fontWeight: 800, color: '#FFFFFF', lineHeight: 1, letterSpacing: '-2px' }}
           role="status"
           aria-live="polite"
-          aria-label={`${result.ui} unidades`}
         >
           {result.ui}
         </p>
-        <p className="text-sm font-jakarta font-600 mt-2" style={{ color: 'rgba(255,255,255,0.5)' }}>
+        <p style={{ fontSize: '16px', fontWeight: 600, color: 'rgba(255,255,255,0.6)', marginTop: '4px' }}>
           Unidades (UI)
         </p>
       </div>
 
-      {/* Como Aspirar */}
-      <div className="card space-y-3">
-        <h3
-          className="text-sm font-jakarta font-700 uppercase tracking-wide"
-          style={{ color: 'var(--navy-mid)' }}
-        >
-          💉 Como Aspirar
-        </h3>
-        <p
-          className="text-base font-jakarta font-500 leading-relaxed"
-          style={{ color: 'var(--text-primary)' }}
-          aria-label="Instrução de como aspirar na seringa"
-        >
+      {/* Barra da seringa */}
+      <div className="card" style={{ padding: '1rem 1.375rem' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+          <p style={{ fontSize: '12px', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+            Seringa {syringeCapacity} UI
+          </p>
+          <p style={{ fontSize: '12px', fontWeight: 800, color: nearLimit ? '#F59E0B' : 'var(--primary)' }}>
+            {fillPct.toFixed(0)}% da capacidade
+          </p>
+        </div>
+        <div style={{ background: 'var(--surface-2)', borderRadius: '99px', height: '8px', overflow: 'hidden' }}>
+          <div style={{
+            width: `${fillPct}%`, height: '100%', borderRadius: '99px',
+            background: nearLimit
+              ? 'linear-gradient(90deg, var(--primary), #F59E0B)'
+              : 'var(--primary)',
+            transition: 'width 0.6s cubic-bezier(0.22,1,0.36,1)',
+          }} />
+        </div>
+        {nearLimit && (
+          <p style={{ fontSize: '11px', color: '#F59E0B', fontWeight: 700, marginTop: '6px' }}>
+            ⚠️ Próximo ao limite da seringa
+          </p>
+        )}
+      </div>
+
+      {/* Como aspirar */}
+      <div className="card">
+        <p style={{
+          fontSize: '11px', fontWeight: 700, color: 'var(--primary)',
+          textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: '8px',
+        }}>
+          💉 Como aspirar
+        </p>
+        <p style={{ fontSize: '15px', fontWeight: 600, color: 'var(--text-primary)', lineHeight: 1.5 }}>
           {guidance}
         </p>
       </div>
 
-      {/* Accordion - Detalhes */}
-      <details className="card group">
-        <summary
-          className="font-jakarta font-600 select-none cursor-pointer flex items-center justify-between"
-          style={{ color: 'var(--navy-mid)' }}
-        >
-          <span>📊 Ver Detalhes do Cálculo</span>
-          <span
-            className="w-7 h-7 rounded-[7px] flex items-center justify-center text-sm group-open:rotate-180 transition-transform duration-300"
-            style={{ background: 'var(--surface-2)', color: 'var(--navy-mid)' }}
-          >
-            ▼
-          </span>
+      {/* Detalhes colapsáveis */}
+      <details className="card" style={{ padding: '1rem 1.375rem' }}>
+        <summary style={{
+          fontWeight: 700, fontSize: '13px', color: 'var(--text-muted)',
+          cursor: 'pointer', listStyle: 'none',
+          display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+          userSelect: 'none',
+        }}>
+          <span>📊 Ver detalhes do cálculo</span>
+          <span style={{ fontSize: '11px' }}>▼</span>
         </summary>
 
-        <div
-          className="mt-6 pt-6 space-y-6"
-          style={{ borderTop: '1px solid var(--border)' }}
-        >
+        <div style={{ marginTop: '14px', paddingTop: '14px', borderTop: '1px solid var(--border)', display: 'flex', flexDirection: 'column', gap: '8px' }}>
           {[
-            { label: 'Concentração', value: `${result.concentration.toFixed(1)} mg/mL`, accent: false },
-            { label: 'Volume',       value: `${result.volume.toFixed(3)} mL`,            accent: false },
-            { label: 'Resultado Final', value: `${result.ui} UI`,                        accent: true  },
-          ].map((step, i) => (
-            <div key={step.label} className="flex gap-4">
-              <div
-                className="w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0"
-                style={{ background: 'var(--navy)' }}
-              >
-                <span className="text-sm font-jakarta font-800" style={{ color: 'var(--gold)' }}>
-                  {i + 1}
-                </span>
-              </div>
-              <div className="flex-1">
-                <p
-                  className="text-xs font-jakarta font-700 uppercase tracking-wide mb-1"
-                  style={{ color: 'var(--text-muted)' }}
-                >
-                  {step.label}
-                </p>
-                <div style={stepBox(step.accent)}>
-                  <span className="font-mono text-sm font-bold" style={{ color: 'var(--text-primary)' }}>
-                    {step.value}
-                  </span>
-                </div>
-              </div>
+            { label: 'Concentração', value: `${result.concentration.toFixed(1)} mg/mL` },
+            { label: 'Volume',       value: `${result.volume.toFixed(3)} mL` },
+            { label: 'Resultado',    value: `${result.ui} UI`, highlight: true },
+          ].map(row => (
+            <div key={row.label} style={{
+              display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+              padding: '9px 12px', borderRadius: '10px',
+              background: row.highlight ? 'var(--primary-light)' : 'var(--surface-2)',
+              border: row.highlight ? '1px solid rgba(16,185,129,0.2)' : '1px solid var(--border)',
+            }}>
+              <span style={{ fontSize: '12px', color: 'var(--text-muted)', fontWeight: 600 }}>{row.label}</span>
+              <span style={{ fontSize: '13px', fontWeight: 800, color: row.highlight ? 'var(--primary-dark)' : 'var(--text-primary)', fontFamily: 'monospace' }}>
+                {row.value}
+              </span>
             </div>
           ))}
-
-          {/* Capacidade da Seringa */}
-          <div
-            className="rounded-[10px] p-4"
-            style={{ background: 'var(--surface-2)', border: '1px solid var(--border)', transition: 'background 0.3s, border-color 0.3s' }}
-          >
-            <p className="text-xs font-jakarta font-600 uppercase tracking-wide" style={{ color: 'var(--text-muted)' }}>
-              Capacidade da Seringa
-            </p>
-            <p className="text-base font-jakarta font-700 mt-2" style={{ color: 'var(--text-primary)' }}>
-              {syringeCapacity} UI
-            </p>
-            {result.ui > syringeCapacity * 0.8 && result.ui <= syringeCapacity && (
-              <p className="text-xs font-jakarta font-600 mt-3 flex items-center gap-2" style={{ color: 'var(--gold-dark)' }}>
-                ⚠️ Dose próxima ao limite da seringa
-              </p>
-            )}
-          </div>
         </div>
       </details>
     </div>

@@ -29,6 +29,19 @@ export interface WeightEntry {
   weight: number
 }
 
+export interface DiaryEntry {
+  date: string
+  dose: number
+  feeling: 'great' | 'good' | 'okay' | 'hard'
+  notes: string
+}
+
+export interface SideEffectEntry {
+  date: string
+  symptoms: { id: string; intensity: 0 | 1 | 2 | 3 }[]
+  notes: string
+}
+
 export interface UserProfile {
   name: string
   startWeight: number
@@ -37,6 +50,9 @@ export interface UserProfile {
   startDate: string
   currentDose: number
   weightHistory: WeightEntry[]
+  diary: DiaryEntry[]
+  sideEffects: SideEffectEntry[]
+  lastApplication?: string
 }
 
-export type Tab = 'dashboard' | 'progress' | 'calculator'
+export type Tab = 'dashboard' | 'progress' | 'calculator' | 'health' | 'settings'

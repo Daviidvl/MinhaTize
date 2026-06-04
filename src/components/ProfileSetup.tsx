@@ -45,6 +45,8 @@ export default function ProfileSetup({ onComplete }: Props) {
       currentDose: form.currentDose,
       startDate: form.startDate,
       weightHistory: [],
+      diary: [],
+      sideEffects: [],
     }
     onComplete(profile)
   }
