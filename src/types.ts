@@ -81,4 +81,4 @@ export interface UserProfile {
   stock?: StockInfo
 }
 
-export type Tab = 'dashboard' | 'progress' | 'calculator' | 'health' | 'settings'
+export type Tab = 'dashboard' | 'health' | 'calculator' | 'stock' | 'profile'

@@ -1,10 +1,10 @@
 import { useState, useEffect, useRef } from 'react'
 import Header from './components/Header'
 import Dashboard from './components/Dashboard'
-import Progress from './components/Progress'
 import Calculator from './components/Calculator'
 import HealthHub from './components/HealthHub'
-import Settings from './components/Settings'
+import ProfilePage from './components/ProfilePage'
+import StockPage from './components/StockPage'
 import ProfileSetup from './components/ProfileSetup'
 import { useDarkMode } from './hooks/useDarkMode'
 import { Tab, UserProfile } from './types'
@@ -32,17 +32,17 @@ function loadProfile(): UserProfile {
 }
 
 const TABS: { id: Tab; icon: string; label: string }[] = [
-  { id: 'dashboard',  icon: '🏠', label: 'Início'    },
-  { id: 'progress',   icon: '📊', label: 'Progresso' },
-  { id: 'calculator', icon: '💉', label: 'Calcular'  },
-  { id: 'health',     icon: '🌿', label: 'Saúde'     },
-  { id: 'settings',   icon: '⚙️', label: 'Perfil'    },
+  { id: 'dashboard', icon: '🏠', label: 'Início'   },
+  { id: 'health',    icon: '🌿', label: 'Saúde'    },
+  { id: 'calculator',icon: '💉', label: 'Calcular' },
+  { id: 'stock',     icon: '📦', label: 'Estoque'  },
+  { id: 'profile',   icon: '👤', label: 'Perfil'   },
 ]
 
 export default function App() {
   const { isDark, toggle } = useDarkMode()
   const [activeTab, setActiveTab] = useState<Tab>('dashboard')
-  const [profile, setProfile] = useState<UserProfile>(loadProfile)
+  const [profile, setProfile]     = useState<UserProfile>(loadProfile)
   const [navVisible, setNavVisible] = useState(true)
   const lastScrollY = useRef(0)
 
@@ -55,10 +55,10 @@ export default function App() {
   useEffect(() => {
     function onScroll() {
       const current = window.scrollY
-      const delta = current - lastScrollY.current
-      if (current < 40)        setNavVisible(true)
-      else if (delta > 6)      setNavVisible(false)
-      else if (delta < -6)     setNavVisible(true)
+      const delta   = current - lastScrollY.current
+      if (current < 40)    setNavVisible(true)
+      else if (delta > 6)  setNavVisible(false)
+      else if (delta < -6) setNavVisible(true)
       lastScrollY.current = current
     }
     window.addEventListener('scroll', onScroll, { passive: true })
@@ -73,14 +73,14 @@ export default function App() {
     switch (activeTab) {
       case 'dashboard':
         return <Dashboard profile={profile} onUpdateProfile={setProfile} onNavigate={setActiveTab} />
-      case 'progress':
-        return <Progress profile={profile} onUpdateProfile={setProfile} />
-      case 'calculator':
-        return <Calculator />
       case 'health':
         return <HealthHub profile={profile} onUpdateProfile={setProfile} />
-      case 'settings':
-        return <Settings profile={profile} onUpdateProfile={setProfile} />
+      case 'calculator':
+        return <Calculator />
+      case 'stock':
+        return <StockPage profile={profile} onUpdateProfile={setProfile} />
+      case 'profile':
+        return <ProfilePage profile={profile} onUpdateProfile={setProfile} />
     }
   }
 
@@ -92,7 +92,6 @@ export default function App() {
         {renderTab()}
       </main>
 
-      {/* Bottom Navigation */}
       <nav className={`bottom-nav${navVisible ? '' : ' nav-hidden'}`}>
         <div className="bottom-nav-inner">
           {TABS.map(tab => (
