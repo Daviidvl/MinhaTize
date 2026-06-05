@@ -42,17 +42,43 @@ export interface SideEffectEntry {
   notes: string
 }
 
+export interface StockInfo {
+  amouleMg: number
+  ampouleML: number
+  ampouleCount: number
+}
+
+export type Medication = 'tirzepatida' | 'semaglutida' | 'ozempic' | 'wegovy' | 'mounjaro'
+export type Sex = 'female' | 'male' | 'other'
+
+export const MEDICATION_LABELS: Record<Medication, string> = {
+  tirzepatida: 'Tirzepatida',
+  semaglutida: 'Semaglutida',
+  ozempic: 'Ozempic',
+  wegovy: 'Wegovy',
+  mounjaro: 'Mounjaro',
+}
+
+export const WEEK_DAYS = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb']
+export const WEEK_DAYS_FULL = ['Domingo', 'Segunda', 'Terça', 'Quarta', 'Quinta', 'Sexta', 'Sábado']
+
 export interface UserProfile {
   name: string
+  age?: number
+  sex?: Sex
+  medication: Medication
   startWeight: number
+  currentWeight?: number
   goalWeight: number
   height: number
   startDate: string
   currentDose: number
+  applicationDay?: number
   weightHistory: WeightEntry[]
   diary: DiaryEntry[]
   sideEffects: SideEffectEntry[]
   lastApplication?: string
+  stock?: StockInfo
 }
 
 export type Tab = 'dashboard' | 'progress' | 'calculator' | 'health' | 'settings'

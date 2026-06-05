@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import Header from './components/Header'
 import Dashboard from './components/Dashboard'
 import Progress from './components/Progress'
@@ -11,11 +11,13 @@ import { Tab, UserProfile } from './types'
 
 const DEFAULT_PROFILE: UserProfile = {
   name: '',
+  medication: 'tirzepatida',
   startWeight: 90,
   goalWeight: 70,
   height: 170,
   startDate: new Date().toISOString().split('T')[0],
   currentDose: 2.5,
+  applicationDay: new Date().getDay(),
   weightHistory: [],
   diary: [],
   sideEffects: [],
@@ -41,12 +43,27 @@ export default function App() {
   const { isDark, toggle } = useDarkMode()
   const [activeTab, setActiveTab] = useState<Tab>('dashboard')
   const [profile, setProfile] = useState<UserProfile>(loadProfile)
+  const [navVisible, setNavVisible] = useState(true)
+  const lastScrollY = useRef(0)
 
   const isFirstAccess = !profile.name
 
   useEffect(() => {
     localStorage.setItem('tizetrack_profile', JSON.stringify(profile))
   }, [profile])
+
+  useEffect(() => {
+    function onScroll() {
+      const current = window.scrollY
+      const delta = current - lastScrollY.current
+      if (current < 40)        setNavVisible(true)
+      else if (delta > 6)      setNavVisible(false)
+      else if (delta < -6)     setNavVisible(true)
+      lastScrollY.current = current
+    }
+    window.addEventListener('scroll', onScroll, { passive: true })
+    return () => window.removeEventListener('scroll', onScroll)
+  }, [])
 
   if (isFirstAccess) {
     return <ProfileSetup onComplete={setProfile} />
@@ -76,7 +93,7 @@ export default function App() {
       </main>
 
       {/* Bottom Navigation */}
-      <nav className="bottom-nav">
+      <nav className={`bottom-nav${navVisible ? '' : ' nav-hidden'}`}>
         <div className="bottom-nav-inner">
           {TABS.map(tab => (
             <button

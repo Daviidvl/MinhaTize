@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { UserProfile } from '../types'
+import { Medication, Sex, UserProfile, WEEK_DAYS_FULL } from '../types'
 
 interface Props {
   onComplete: (profile: UserProfile) => void
@@ -7,22 +7,36 @@ interface Props {
 
 const DOSES = [2.5, 5, 7.5, 10, 12.5, 15]
 
+const MEDICATIONS: { value: Medication; label: string; emoji: string }[] = [
+  { value: 'tirzepatida', label: 'Tirzepatida',  emoji: '💊' },
+  { value: 'semaglutida', label: 'Semaglutida',  emoji: '💉' },
+  { value: 'ozempic',     label: 'Ozempic',      emoji: '🟣' },
+  { value: 'wegovy',      label: 'Wegovy',        emoji: '🔵' },
+  { value: 'mounjaro',    label: 'Mounjaro',      emoji: '🟢' },
+]
+
 const STEPS = [
-  { id: 1, title: 'Bem-vindo ao TizeTrack', subtitle: 'Vamos configurar seu perfil em 4 passos rápidos.' },
-  { id: 2, title: 'Seus dados', subtitle: 'Usaremos para calcular seu IMC e acompanhar sua evolução.' },
-  { id: 3, title: 'Seu objetivo', subtitle: 'Defina sua meta de peso. Você pode alterar depois.' },
-  { id: 4, title: 'Seu protocolo', subtitle: 'Qual dose você está usando atualmente?' },
+  { id: 1, title: 'Bem-vindo ao TizeTrack',  subtitle: 'Vamos configurar seu perfil em 5 passos rápidos.' },
+  { id: 2, title: 'Dados corporais',          subtitle: 'Para calcular IMC e acompanhar sua evolução.' },
+  { id: 3, title: 'Sua meta',                 subtitle: 'Defina onde você quer chegar. Pode alterar depois.' },
+  { id: 4, title: 'Seu medicamento',          subtitle: 'Qual GLP-1 você está usando atualmente?' },
+  { id: 5, title: 'Dia da aplicação',         subtitle: 'Qual dia da semana você aplica sua dose?' },
 ]
 
 export default function ProfileSetup({ onComplete }: Props) {
   const [step, setStep] = useState(1)
   const [form, setForm] = useState({
     name: '',
+    age: '',
+    sex: '' as Sex | '',
+    medication: 'tirzepatida' as Medication,
     height: '',
     startWeight: '',
+    currentWeight: '',
     goalWeight: '',
     currentDose: 2.5,
     startDate: new Date().toISOString().split('T')[0],
+    applicationDay: new Date().getDay(),
   })
 
   function set(field: string, value: string | number) {
@@ -32,19 +46,25 @@ export default function ProfileSetup({ onComplete }: Props) {
   function canAdvance() {
     if (step === 1) return form.name.trim().length >= 2
     if (step === 2) return parseFloat(form.height) > 0 && parseFloat(form.startWeight) > 0
-    if (step === 3) return parseFloat(form.goalWeight) > 0
+    if (step === 3) return parseFloat(form.goalWeight) > 0 && parseFloat(form.goalWeight) < parseFloat(form.startWeight)
+    if (step === 4) return true
     return true
   }
 
   function handleFinish() {
     const profile: UserProfile = {
       name: form.name.trim(),
+      age: form.age ? parseInt(form.age) : undefined,
+      sex: form.sex || undefined,
+      medication: form.medication,
       height: parseFloat(form.height),
       startWeight: parseFloat(form.startWeight),
+      currentWeight: form.currentWeight ? parseFloat(form.currentWeight) : undefined,
       goalWeight: parseFloat(form.goalWeight),
       currentDose: form.currentDose,
       startDate: form.startDate,
-      weightHistory: [],
+      applicationDay: form.applicationDay,
+      weightHistory: form.currentWeight ? [{ date: new Date().toISOString().split('T')[0], weight: parseFloat(form.currentWeight) }] : [],
       diary: [],
       sideEffects: [],
     }
@@ -53,175 +73,151 @@ export default function ProfileSetup({ onComplete }: Props) {
 
   const progress = ((step - 1) / (STEPS.length - 1)) * 100
 
+  // helpers de estilo
+  const selBtn = (active: boolean, color = 'var(--primary)') => ({
+    padding: '12px 8px', borderRadius: '11px', border: 'none', cursor: 'pointer',
+    background: active ? `linear-gradient(135deg, ${color}, #0D9488)` : 'var(--surface-2)',
+    color: active ? '#fff' : 'var(--text-primary)',
+    fontWeight: 700, fontSize: '13px', transition: 'all 0.15s',
+    fontFamily: "'Plus Jakarta Sans', sans-serif",
+    boxShadow: active ? 'var(--shadow-green)' : 'none',
+    outline: active ? 'none' : '1px solid var(--border)',
+  })
+
   return (
-    <div
-      style={{
-        minHeight: '100dvh',
-        display: 'flex',
-        flexDirection: 'column',
-        background: 'var(--bg)',
-        padding: '0',
-      }}
-    >
-      {/* Barra de progresso no topo */}
-      <div style={{ height: '4px', background: 'var(--surface-2)' }}>
-        <div
-          style={{
-            height: '100%',
-            width: `${progress}%`,
-            background: 'linear-gradient(90deg, var(--primary), var(--accent))',
-            transition: 'width 0.4s ease',
-          }}
-        />
+    <div style={{ minHeight: '100dvh', display: 'flex', flexDirection: 'column', background: 'var(--bg)' }}>
+
+      {/* Progress bar */}
+      <div style={{ height: '3px', background: 'var(--surface-2)' }}>
+        <div style={{
+          height: '100%', width: `${progress}%`,
+          background: 'linear-gradient(90deg, var(--primary), var(--accent))',
+          transition: 'width 0.4s ease',
+        }} />
       </div>
 
-      <div
-        style={{
-          flex: 1,
-          display: 'flex',
-          flexDirection: 'column',
-          maxWidth: '440px',
-          width: '100%',
-          margin: '0 auto',
-          padding: '32px 24px 24px',
-        }}
-      >
+      <div style={{
+        flex: 1, display: 'flex', flexDirection: 'column',
+        maxWidth: '440px', width: '100%', margin: '0 auto',
+        padding: '28px 20px 24px',
+      }}>
         {/* Logo */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '40px' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '32px' }}>
           <div style={{
-            width: '36px', height: '36px', borderRadius: '9px',
-            background: 'var(--primary-light)', border: '1.5px solid rgba(16,185,129,0.3)',
-            display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '18px',
-          }}>
-            📈
-          </div>
-          <span style={{ fontWeight: 800, fontSize: '17px', color: 'var(--text-primary)' }}>TizeTrack</span>
+            width: '34px', height: '34px', borderRadius: '10px', flexShrink: 0,
+            background: 'linear-gradient(135deg, rgba(16,185,129,0.25), rgba(124,58,237,0.15))',
+            border: '1px solid rgba(16,185,129,0.3)',
+            display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '17px',
+          }}>📈</div>
+          <span style={{ fontWeight: 800, fontSize: '16px', color: 'var(--text-primary)' }}>TizeTrack</span>
         </div>
 
-        {/* Indicador de passos */}
-        <div style={{ display: 'flex', gap: '6px', marginBottom: '32px' }}>
+        {/* Step dots */}
+        <div style={{ display: 'flex', gap: '5px', marginBottom: '28px' }}>
           {STEPS.map(s => (
-            <div
-              key={s.id}
-              style={{
-                flex: 1, height: '4px', borderRadius: '99px',
-                background: s.id <= step ? 'var(--primary)' : 'var(--surface-2)',
-                transition: 'background 0.3s ease',
-              }}
-            />
+            <div key={s.id} style={{
+              flex: 1, height: '3px', borderRadius: '99px',
+              background: s.id <= step ? 'var(--primary)' : 'var(--surface-2)',
+              transition: 'background 0.3s',
+            }} />
           ))}
         </div>
 
-        {/* Conteúdo do passo */}
+        {/* Step content */}
         <div style={{ flex: 1 }} className="fade-in" key={step}>
-          <p style={{ fontSize: '12px', fontWeight: 700, color: 'var(--primary)', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: '8px' }}>
+          <p style={{ fontSize: '11px', fontWeight: 700, color: 'var(--primary)', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: '6px' }}>
             Passo {step} de {STEPS.length}
           </p>
-          <h2 style={{ fontSize: '24px', fontWeight: 800, color: 'var(--text-primary)', lineHeight: 1.2, marginBottom: '8px' }}>
+          <h2 style={{ fontSize: '22px', fontWeight: 800, color: 'var(--text-primary)', lineHeight: 1.2, marginBottom: '6px' }}>
             {STEPS[step - 1].title}
           </h2>
-          <p style={{ fontSize: '14px', color: 'var(--text-muted)', marginBottom: '32px', lineHeight: 1.5 }}>
+          <p style={{ fontSize: '13px', color: 'var(--text-muted)', marginBottom: '28px', lineHeight: 1.5 }}>
             {STEPS[step - 1].subtitle}
           </p>
 
-          {/* PASSO 1 — Nome */}
+          {/* ── PASSO 1: Nome + Sexo + Idade ── */}
           {step === 1 && (
-            <div className="space-y-4">
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
               <div>
                 <label className="label-base">Como você quer ser chamado?</label>
-                <input
-                  type="text"
-                  className="input-field"
-                  placeholder="Seu nome ou apelido"
-                  value={form.name}
-                  onChange={e => set('name', e.target.value)}
-                  autoFocus
-                  maxLength={40}
-                />
+                <input type="text" className="input-field" placeholder="Seu nome ou apelido"
+                  value={form.name} onChange={e => set('name', e.target.value)} autoFocus maxLength={40} />
               </div>
-              <div style={{
-                padding: '14px 16px',
-                background: 'var(--primary-light)',
-                borderRadius: '12px',
-                border: '1px solid rgba(16,185,129,0.2)',
-              }}>
-                <p style={{ fontSize: '13px', color: 'var(--primary-dark)', fontWeight: 600, lineHeight: 1.5 }}>
-                  Seus dados ficam salvos apenas no seu dispositivo. Nenhuma informação é enviada a servidores.
+
+              <div>
+                <label className="label-base">Sexo (opcional)</label>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '8px' }}>
+                  {([
+                    { v: 'female', l: 'Feminino', e: '👩' },
+                    { v: 'male',   l: 'Masculino', e: '👨' },
+                    { v: 'other',  l: 'Outro',     e: '🧑' },
+                  ] as const).map(o => (
+                    <button key={o.v} style={selBtn(form.sex === o.v)} onClick={() => set('sex', o.v)}>
+                      <span style={{ display: 'block', fontSize: '20px', marginBottom: '4px' }}>{o.e}</span>
+                      {o.l}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              <div>
+                <label className="label-base">Idade (opcional)</label>
+                <input type="number" className="input-field" placeholder="Ex: 35"
+                  value={form.age} onChange={e => set('age', e.target.value)} min={10} max={120} />
+              </div>
+
+              <div style={{ padding: '12px 14px', background: 'var(--primary-light)', borderRadius: '11px', border: '1px solid rgba(16,185,129,0.2)' }}>
+                <p style={{ fontSize: '12px', color: 'var(--primary)', fontWeight: 600, lineHeight: 1.5 }}>
+                  🔒 Seus dados ficam salvos apenas neste dispositivo.
                 </p>
               </div>
             </div>
           )}
 
-          {/* PASSO 2 — Altura e peso */}
+          {/* ── PASSO 2: Dados corporais ── */}
           {step === 2 && (
-            <div className="space-y-5">
-              <div>
-                <label className="label-base">Altura (cm)</label>
-                <input
-                  type="number"
-                  className="input-field"
-                  placeholder="Ex: 168"
-                  value={form.height}
-                  onChange={e => set('height', e.target.value)}
-                  min={100}
-                  max={250}
-                  autoFocus
-                />
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
+                <div>
+                  <label className="label-base">Altura (cm)</label>
+                  <input type="number" className="input-field" placeholder="Ex: 168"
+                    value={form.height} onChange={e => set('height', e.target.value)} min={100} max={250} autoFocus />
+                </div>
+                <div>
+                  <label className="label-base">Peso inicial (kg)</label>
+                  <input type="number" className="input-field" placeholder="Ex: 92"
+                    value={form.startWeight} onChange={e => set('startWeight', e.target.value)} min={20} max={300} step={0.1} />
+                </div>
               </div>
               <div>
-                <label className="label-base">Peso no início do protocolo (kg)</label>
-                <input
-                  type="number"
-                  className="input-field"
-                  placeholder="Ex: 92.5"
-                  value={form.startWeight}
-                  onChange={e => set('startWeight', e.target.value)}
-                  min={20}
-                  max={300}
-                  step={0.1}
-                />
+                <label className="label-base">Peso atual (kg) <span style={{ fontWeight: 400, textTransform: 'none', letterSpacing: 0 }}>— se diferente do inicial</span></label>
+                <input type="number" className="input-field" placeholder="Ex: 88.5"
+                  value={form.currentWeight} onChange={e => set('currentWeight', e.target.value)} min={20} max={300} step={0.1} />
               </div>
               <div>
-                <label className="label-base">Quando você começou?</label>
-                <input
-                  type="date"
-                  className="input-field"
-                  value={form.startDate}
-                  onChange={e => set('startDate', e.target.value)}
-                  max={new Date().toISOString().split('T')[0]}
-                />
+                <label className="label-base">Início do protocolo</label>
+                <input type="date" className="input-field"
+                  value={form.startDate} onChange={e => set('startDate', e.target.value)}
+                  max={new Date().toISOString().split('T')[0]} />
               </div>
             </div>
           )}
 
-          {/* PASSO 3 — Meta */}
+          {/* ── PASSO 3: Meta ── */}
           {step === 3 && (
-            <div className="space-y-5">
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
               <div>
                 <label className="label-base">Peso que você quer atingir (kg)</label>
-                <input
-                  type="number"
-                  className="input-field"
-                  placeholder="Ex: 70"
-                  value={form.goalWeight}
-                  onChange={e => set('goalWeight', e.target.value)}
-                  min={20}
-                  max={300}
-                  step={0.1}
-                  autoFocus
-                />
+                <input type="number" className="input-field" placeholder="Ex: 70"
+                  value={form.goalWeight} onChange={e => set('goalWeight', e.target.value)}
+                  min={20} max={300} step={0.1} autoFocus />
               </div>
               {form.startWeight && form.goalWeight && parseFloat(form.goalWeight) < parseFloat(form.startWeight) && (
-                <div style={{
-                  padding: '14px 16px',
-                  background: 'var(--primary-light)',
-                  borderRadius: '12px',
-                  border: '1px solid rgba(16,185,129,0.2)',
-                }}>
-                  <p style={{ fontSize: '13px', color: 'var(--primary-dark)', fontWeight: 700 }}>
+                <div style={{ padding: '14px', background: 'var(--primary-light)', borderRadius: '12px', border: '1px solid rgba(16,185,129,0.2)' }}>
+                  <p style={{ fontSize: '15px', fontWeight: 800, color: 'var(--primary)' }}>
                     Meta: perder {(parseFloat(form.startWeight) - parseFloat(form.goalWeight)).toFixed(1)}kg
                   </p>
-                  <p style={{ fontSize: '12px', color: 'var(--text-muted)', marginTop: '2px' }}>
+                  <p style={{ fontSize: '12px', color: 'var(--text-muted)', marginTop: '4px' }}>
                     Você está no caminho certo. Vamos juntos!
                   </p>
                 </div>
@@ -236,57 +232,68 @@ export default function ProfileSetup({ onComplete }: Props) {
             </div>
           )}
 
-          {/* PASSO 4 — Dose */}
+          {/* ── PASSO 4: Medicamento + Dose ── */}
           {step === 4 && (
-            <div className="space-y-4">
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
               <div>
-                <label className="label-base">Dose atual de Tirzepatida</label>
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '8px', marginTop: '4px' }}>
-                  {DOSES.map(dose => (
-                    <button
-                      key={dose}
-                      onClick={() => set('currentDose', dose)}
+                <label className="label-base">Medicamento</label>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '7px' }}>
+                  {MEDICATIONS.map(m => (
+                    <button key={m.value} onClick={() => set('medication', m.value)}
                       style={{
-                        padding: '14px 8px',
-                        borderRadius: '10px',
-                        border: `2px solid ${form.currentDose === dose ? 'var(--primary)' : 'var(--border)'}`,
-                        background: form.currentDose === dose ? 'var(--primary-light)' : 'var(--surface)',
-                        color: form.currentDose === dose ? 'var(--primary-dark)' : 'var(--text-primary)',
-                        fontWeight: 700,
-                        fontSize: '15px',
-                        cursor: 'pointer',
-                        transition: 'all 0.15s ease',
-                        fontFamily: "'Plus Jakarta Sans', sans-serif",
-                      }}
-                    >
-                      {dose}mg
+                        ...selBtn(form.medication === m.value),
+                        textAlign: 'left', padding: '12px 14px',
+                        display: 'flex', alignItems: 'center', gap: '10px',
+                      }}>
+                      <span style={{ fontSize: '20px' }}>{m.emoji}</span>
+                      <span>{m.label}</span>
                     </button>
                   ))}
                 </div>
               </div>
-              <div style={{
-                padding: '14px 16px',
-                background: 'var(--primary-light)',
-                borderRadius: '12px',
-                border: '1px solid rgba(16,185,129,0.2)',
-                marginTop: '8px',
-              }}>
-                <p style={{ fontSize: '13px', color: 'var(--primary-dark)', fontWeight: 600, lineHeight: 1.5 }}>
-                  Você poderá atualizar sua dose a qualquer momento no seu perfil.
-                </p>
+              <div>
+                <label className="label-base">Dose atual</label>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '7px' }}>
+                  {DOSES.map(d => (
+                    <button key={d} style={selBtn(form.currentDose === d)} onClick={() => set('currentDose', d)}>
+                      {d}mg
+                    </button>
+                  ))}
+                </div>
               </div>
+            </div>
+          )}
+
+          {/* ── PASSO 5: Dia da aplicação ── */}
+          {step === 5 && (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+              <div>
+                <label className="label-base">Dia da semana</label>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '7px' }}>
+                  {WEEK_DAYS_FULL.map((day, i) => (
+                    <button key={i} style={{ ...selBtn(form.applicationDay === i), textAlign: 'left', padding: '12px 14px' }}
+                      onClick={() => set('applicationDay', i)}>
+                      {day}
+                    </button>
+                  ))}
+                </div>
+              </div>
+              {form.applicationDay !== undefined && (
+                <div style={{ padding: '12px 14px', background: 'var(--primary-light)', borderRadius: '11px', border: '1px solid rgba(16,185,129,0.2)' }}>
+                  <p style={{ fontSize: '13px', color: 'var(--primary)', fontWeight: 600 }}>
+                    ✓ Você aplica toda {WEEK_DAYS_FULL[form.applicationDay]}. O TizeTrack vai acompanhar isso pra você.
+                  </p>
+                </div>
+              )}
             </div>
           )}
         </div>
 
-        {/* Botões de navegação */}
-        <div style={{ display: 'flex', gap: '10px', marginTop: '32px' }}>
+        {/* Navigation buttons */}
+        <div style={{ display: 'flex', gap: '10px', marginTop: '28px' }}>
           {step > 1 && (
-            <button
-              className="btn-ghost"
-              onClick={() => setStep(s => s - 1)}
-            >
-              Voltar
+            <button className="btn-ghost" onClick={() => setStep(s => s - 1)}>
+              ← Voltar
             </button>
           )}
           <button
@@ -298,7 +305,7 @@ export default function ProfileSetup({ onComplete }: Props) {
               else handleFinish()
             }}
           >
-            {step < STEPS.length ? 'Continuar →' : 'Entrar no TizeTrack 🚀'}
+            {step < STEPS.length ? 'Continuar →' : '🚀 Entrar no TizeTrack'}
           </button>
         </div>
       </div>

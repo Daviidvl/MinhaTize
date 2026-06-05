@@ -1,5 +1,6 @@
 import { useState } from 'react'
-import { UserProfile } from '../types'
+import { Medication, Sex, UserProfile, MEDICATION_LABELS, WEEK_DAYS_FULL } from '../types'
+import StockControl from './StockControl'
 
 interface Props {
   profile: UserProfile
@@ -7,15 +8,20 @@ interface Props {
 }
 
 const DOSES = [2.5, 5, 7.5, 10, 12.5, 15]
+const MEDICATIONS = Object.entries(MEDICATION_LABELS) as [Medication, string][]
 
 export default function Settings({ profile, onUpdateProfile }: Props) {
   const [form, setForm] = useState({
-    name: profile.name,
-    height: profile.height.toString(),
-    startWeight: profile.startWeight.toString(),
-    goalWeight: profile.goalWeight.toString(),
-    currentDose: profile.currentDose,
-    startDate: profile.startDate,
+    name:           profile.name,
+    age:            profile.age?.toString() ?? '',
+    sex:            profile.sex ?? '' as Sex | '',
+    medication:     profile.medication ?? 'tirzepatida' as Medication,
+    height:         profile.height.toString(),
+    startWeight:    profile.startWeight.toString(),
+    goalWeight:     profile.goalWeight.toString(),
+    currentDose:    profile.currentDose,
+    startDate:      profile.startDate,
+    applicationDay: profile.applicationDay ?? new Date().getDay(),
   })
   const [saved, setSaved] = useState(false)
   const [showReset, setShowReset] = useState(false)
@@ -25,24 +31,24 @@ export default function Settings({ profile, onUpdateProfile }: Props) {
   }
 
   function canSave() {
-    return (
-      form.name.trim().length >= 2 &&
-      parseFloat(form.height) > 0 &&
-      parseFloat(form.startWeight) > 0 &&
-      parseFloat(form.goalWeight) > 0
-    )
+    return form.name.trim().length >= 2 && parseFloat(form.height) > 0
+      && parseFloat(form.startWeight) > 0 && parseFloat(form.goalWeight) > 0
   }
 
   function handleSave() {
     if (!canSave()) return
     onUpdateProfile({
       ...profile,
-      name: form.name.trim(),
-      height: parseFloat(form.height),
-      startWeight: parseFloat(form.startWeight),
-      goalWeight: parseFloat(form.goalWeight),
-      currentDose: form.currentDose,
-      startDate: form.startDate,
+      name:           form.name.trim(),
+      age:            form.age ? parseInt(form.age) : undefined,
+      sex:            form.sex || undefined,
+      medication:     form.medication,
+      height:         parseFloat(form.height),
+      startWeight:    parseFloat(form.startWeight),
+      goalWeight:     parseFloat(form.goalWeight),
+      currentDose:    form.currentDose,
+      startDate:      form.startDate,
+      applicationDay: form.applicationDay,
     })
     setSaved(true)
     setTimeout(() => setSaved(false), 2500)
@@ -53,173 +59,151 @@ export default function Settings({ profile, onUpdateProfile }: Props) {
     window.location.reload()
   }
 
+  const selBtn = (active: boolean) => ({
+    padding: '10px 6px', borderRadius: '10px', border: 'none', cursor: 'pointer',
+    background: active ? 'linear-gradient(135deg, var(--primary), #0D9488)' : 'var(--surface-2)',
+    color: active ? '#fff' : 'var(--text-primary)',
+    fontWeight: 700, fontSize: '12px', transition: 'all 0.15s',
+    fontFamily: "'Plus Jakarta Sans', sans-serif",
+    boxShadow: active ? 'var(--shadow-green)' : 'none',
+    outline: active ? 'none' : '1px solid var(--border)',
+  })
+
   return (
-    <div className="space-y-6 fade-in">
+    <div className="fade-in" style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+
       <div>
-        <h2 style={{ fontSize: '20px', fontWeight: 800, color: 'var(--text-primary)' }}>
-          Configurações
-        </h2>
-        <p style={{ color: 'var(--text-muted)', fontSize: '13px', marginTop: '4px' }}>
-          Edite seus dados a qualquer momento
-        </p>
+        <h2 style={{ fontSize: '20px', fontWeight: 800, color: 'var(--text-primary)' }}>Perfil</h2>
+        <p style={{ color: 'var(--text-muted)', fontSize: '13px', marginTop: '4px' }}>Edite suas informações a qualquer momento</p>
       </div>
 
       {/* Dados pessoais */}
-      <div className="card space-y-4">
-        <h3 style={{ fontWeight: 700, fontSize: '14px', color: 'var(--text-primary)', marginBottom: '4px' }}>
-          Dados pessoais
-        </h3>
+      <div className="card" style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+        <p style={{ fontWeight: 700, fontSize: '14px', color: 'var(--text-primary)' }}>Dados pessoais</p>
 
         <div>
           <label className="label-base">Nome</label>
-          <input
-            type="text"
-            className="input-field"
-            value={form.name}
-            onChange={e => set('name', e.target.value)}
-            maxLength={40}
-          />
+          <input type="text" className="input-field" value={form.name} onChange={e => set('name', e.target.value)} maxLength={40} />
         </div>
 
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
           <div>
-            <label className="label-base">Altura (cm)</label>
-            <input
-              type="number"
-              className="input-field"
-              value={form.height}
-              onChange={e => set('height', e.target.value)}
-              min={100} max={250}
-            />
+            <label className="label-base">Idade</label>
+            <input type="number" className="input-field" placeholder="--"
+              value={form.age} onChange={e => set('age', e.target.value)} min={10} max={120} />
           </div>
           <div>
-            <label className="label-base">Início do protocolo</label>
-            <input
-              type="date"
-              className="input-field"
-              value={form.startDate}
-              onChange={e => set('startDate', e.target.value)}
-              max={new Date().toISOString().split('T')[0]}
-            />
+            <label className="label-base">Sexo</label>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '5px' }}>
+              {([['female','F'],['male','M'],['other','O']] as const).map(([v, l]) => (
+                <button key={v} style={selBtn(form.sex === v)} onClick={() => set('sex', v)}>{l}</button>
+              ))}
+            </div>
           </div>
         </div>
       </div>
 
-      {/* Pesos */}
-      <div className="card space-y-4">
-        <h3 style={{ fontWeight: 700, fontSize: '14px', color: 'var(--text-primary)', marginBottom: '4px' }}>
-          Pesos
-        </h3>
-
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+      {/* Corpo */}
+      <div className="card" style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+        <p style={{ fontWeight: 700, fontSize: '14px', color: 'var(--text-primary)' }}>Dados corporais</p>
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
+          <div>
+            <label className="label-base">Altura (cm)</label>
+            <input type="number" className="input-field" value={form.height} onChange={e => set('height', e.target.value)} min={100} max={250} />
+          </div>
+          <div>
+            <label className="label-base">Início (data)</label>
+            <input type="date" className="input-field" value={form.startDate} onChange={e => set('startDate', e.target.value)} max={new Date().toISOString().split('T')[0]} />
+          </div>
           <div>
             <label className="label-base">Peso inicial (kg)</label>
-            <input
-              type="number"
-              className="input-field"
-              value={form.startWeight}
-              onChange={e => set('startWeight', e.target.value)}
-              min={20} max={300} step={0.1}
-            />
+            <input type="number" className="input-field" value={form.startWeight} onChange={e => set('startWeight', e.target.value)} min={20} max={300} step={0.1} />
           </div>
           <div>
             <label className="label-base">Meta de peso (kg)</label>
-            <input
-              type="number"
-              className="input-field"
-              value={form.goalWeight}
-              onChange={e => set('goalWeight', e.target.value)}
-              min={20} max={300} step={0.1}
-            />
+            <input type="number" className="input-field" value={form.goalWeight} onChange={e => set('goalWeight', e.target.value)} min={20} max={300} step={0.1} />
           </div>
         </div>
       </div>
 
-      {/* Dose */}
-      <div className="card">
-        <h3 style={{ fontWeight: 700, fontSize: '14px', color: 'var(--text-primary)', marginBottom: '16px' }}>
-          Dose atual
-        </h3>
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '8px' }}>
-          {DOSES.map(dose => (
-            <button
-              key={dose}
-              onClick={() => set('currentDose', dose)}
-              style={{
-                padding: '12px 8px',
-                borderRadius: '10px',
-                border: `2px solid ${form.currentDose === dose ? 'var(--primary)' : 'var(--border)'}`,
-                background: form.currentDose === dose ? 'var(--primary-light)' : 'var(--surface)',
-                color: form.currentDose === dose ? 'var(--primary-dark)' : 'var(--text-primary)',
-                fontWeight: 700,
-                fontSize: '14px',
-                cursor: 'pointer',
-                transition: 'all 0.15s ease',
-                fontFamily: "'Plus Jakarta Sans', sans-serif",
-              }}
-            >
-              {dose}mg
+      {/* Medicamento */}
+      <div className="card" style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+        <p style={{ fontWeight: 700, fontSize: '14px', color: 'var(--text-primary)' }}>Medicamento</p>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+          {MEDICATIONS.map(([v, l]) => (
+            <button key={v} style={{ ...selBtn(form.medication === v), textAlign: 'left', padding: '11px 14px' }}
+              onClick={() => set('medication', v)}>
+              {l}
             </button>
           ))}
         </div>
       </div>
 
-      {/* Botão salvar */}
-      <button
-        className="btn-primary"
-        style={{ width: '100%', opacity: canSave() ? 1 : 0.4, cursor: canSave() ? 'pointer' : 'not-allowed' }}
-        onClick={handleSave}
-        disabled={!canSave()}
-      >
+      {/* Dose */}
+      <div className="card" style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+        <p style={{ fontWeight: 700, fontSize: '14px', color: 'var(--text-primary)' }}>Dose atual</p>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '7px' }}>
+          {DOSES.map(d => (
+            <button key={d} style={selBtn(form.currentDose === d)} onClick={() => set('currentDose', d)}>
+              {d}mg
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {/* Dia da aplicação */}
+      <div className="card" style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+        <p style={{ fontWeight: 700, fontSize: '14px', color: 'var(--text-primary)' }}>Dia da aplicação</p>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '6px' }}>
+          {WEEK_DAYS_FULL.map((day, i) => (
+            <button key={i} style={{ ...selBtn(form.applicationDay === i), textAlign: 'left', padding: '10px 12px' }}
+              onClick={() => set('applicationDay', i)}>
+              {day}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {/* Controle de estoque */}
+      <div className="card" style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+        <p style={{ fontWeight: 700, fontSize: '14px', color: 'var(--text-primary)' }}>📦 Controle de Estoque</p>
+        <p style={{ fontSize: '12px', color: 'var(--text-muted)' }}>
+          Informe as ampolas disponíveis e calcule quantas semanas de tratamento você tem.
+        </p>
+        <StockControl profile={profile} onUpdateProfile={onUpdateProfile} />
+      </div>
+
+      {/* Salvar */}
+      <button className="btn-primary" style={{ width: '100%', opacity: canSave() ? 1 : 0.4 }}
+        onClick={handleSave} disabled={!canSave()}>
         {saved ? '✓ Salvo com sucesso!' : 'Salvar alterações'}
       </button>
 
-      {/* Zona de perigo */}
-      <div style={{ marginTop: '8px' }}>
-        {!showReset ? (
-          <button
-            onClick={() => setShowReset(true)}
-            style={{
-              width: '100%', padding: '12px', borderRadius: '10px',
-              border: '1.5px solid rgba(239,68,68,0.3)', background: 'transparent',
-              color: '#EF4444', fontWeight: 600, fontSize: '13px',
-              cursor: 'pointer', fontFamily: "'Plus Jakarta Sans', sans-serif",
-            }}
-          >
-            Resetar todos os dados
-          </button>
-        ) : (
-          <div className="card" style={{ border: '1.5px solid rgba(239,68,68,0.4)' }}>
-            <p style={{ fontSize: '13px', color: '#EF4444', fontWeight: 700, marginBottom: '12px' }}>
-              Tem certeza? Isso apagará todo o histórico e não pode ser desfeito.
-            </p>
-            <div style={{ display: 'flex', gap: '8px' }}>
-              <button
-                onClick={() => setShowReset(false)}
-                style={{
-                  flex: 1, padding: '10px', borderRadius: '8px',
-                  border: '1.5px solid var(--border)', background: 'transparent',
-                  color: 'var(--text-muted)', fontWeight: 600, cursor: 'pointer',
-                  fontFamily: "'Plus Jakarta Sans', sans-serif",
-                }}
-              >
-                Cancelar
-              </button>
-              <button
-                onClick={handleReset}
-                style={{
-                  flex: 1, padding: '10px', borderRadius: '8px',
-                  border: 'none', background: '#EF4444',
-                  color: '#fff', fontWeight: 700, cursor: 'pointer',
-                  fontFamily: "'Plus Jakarta Sans', sans-serif",
-                }}
-              >
-                Sim, resetar
-              </button>
-            </div>
+      {/* Reset */}
+      {!showReset ? (
+        <button onClick={() => setShowReset(true)} style={{
+          width: '100%', padding: '12px', borderRadius: '10px',
+          border: '1.5px solid rgba(239,68,68,0.3)', background: 'transparent',
+          color: '#EF4444', fontWeight: 600, fontSize: '13px', cursor: 'pointer',
+          fontFamily: "'Plus Jakarta Sans', sans-serif",
+        }}>
+          Resetar todos os dados
+        </button>
+      ) : (
+        <div className="card" style={{ border: '1.5px solid rgba(239,68,68,0.4)' }}>
+          <p style={{ fontSize: '13px', color: '#EF4444', fontWeight: 700, marginBottom: '12px' }}>
+            Tem certeza? Todo o histórico será apagado permanentemente.
+          </p>
+          <div style={{ display: 'flex', gap: '8px' }}>
+            <button onClick={() => setShowReset(false)} className="btn-ghost" style={{ flex: 1 }}>Cancelar</button>
+            <button onClick={handleReset} style={{
+              flex: 1, padding: '10px', borderRadius: '8px', border: 'none',
+              background: '#EF4444', color: '#fff', fontWeight: 700, cursor: 'pointer',
+              fontFamily: "'Plus Jakarta Sans', sans-serif",
+            }}>Sim, resetar</button>
           </div>
-        )}
-      </div>
+        </div>
+      )}
     </div>
   )
 }
