@@ -1,38 +1,90 @@
 import { useState } from 'react'
-import {
-  UserProfile, Medication, Sex, WeightEntry,
-  MEDICATION_LABELS, WEEK_DAYS_FULL,
-} from '../types'
-import Achievements from './Achievements'
+import { UserProfile, Medication, Sex, MEDICATION_LABELS, WEEK_DAYS_FULL } from '../types'
 import ApplicationCalendar from './ApplicationCalendar'
-import Diary from './Diary'
+import StockControl from './StockControl'
 
 interface Props {
   profile: UserProfile
   onUpdateProfile: (p: UserProfile) => void
+  onBack: () => void
 }
 
-type InnerTab = 'evolution' | 'diary' | 'achievements' | 'calendar'
+type ProfileTab = 'achievements' | 'history' | 'stock' | 'edit'
 
-const DOSES = [2.5, 5, 7.5, 10, 12.5, 15]
-const MEDS = Object.entries(MEDICATION_LABELS) as [Medication, string][]
-
-const INNER_TABS: { id: InnerTab; icon: string; label: string }[] = [
-  { id: 'evolution',    icon: '📊', label: 'Evolução'   },
-  { id: 'diary',        icon: '📓', label: 'Diário'     },
+const PROFILE_TABS: { id: ProfileTab; icon: string; label: string }[] = [
   { id: 'achievements', icon: '🏅', label: 'Conquistas' },
-  { id: 'calendar',     icon: '📅', label: 'Calendário' },
+  { id: 'history',      icon: '📅', label: 'Histórico'  },
+  { id: 'stock',        icon: '📦', label: 'Estoque'    },
+  { id: 'edit',         icon: '⚙️', label: 'Editar'     },
 ]
 
-export default function ProfilePage({ profile, onUpdateProfile }: Props) {
-  const [editing, setEditing]     = useState(false)
-  const [innerTab, setInnerTab]   = useState<InnerTab>('evolution')
-  const [showReset, setShowReset] = useState(false)
-  const [newWeight, setNewWeight] = useState('')
-  const [weightSaved, setWeightSaved] = useState(false)
-  const [formSaved, setFormSaved]     = useState(false)
+const DOSES = [2.5, 5, 7.5, 10, 12.5, 15]
+const MEDS  = Object.entries(MEDICATION_LABELS) as [Medication, string][]
 
-  const makeForm = () => ({
+interface Achievement {
+  id: string; icon: string; title: string; phrase: string; unlocked: boolean
+}
+
+function buildAchievements(profile: UserProfile): Achievement[] {
+  const days   = Math.floor((Date.now() - new Date(profile.startDate).getTime()) / 864e5)
+  const lastW  = profile.weightHistory.at(-1)?.weight ?? profile.startWeight
+  const lost   = profile.startWeight - lastW
+  const entries = profile.weightHistory.length
+  const reachedGoal = lastW <= profile.goalWeight && profile.goalWeight < profile.startWeight
+
+  return [
+    {
+      id: 'start', icon: '🚀', title: 'Primeiro passo',
+      phrase: 'Você deu o primeiro passo — o mais difícil de todos.',
+      unlocked: !!profile.name,
+    },
+    {
+      id: 'week1', icon: '📅', title: '1ª semana',
+      phrase: 'Uma semana inteira de comprometimento. Continue!',
+      unlocked: days >= 7,
+    },
+    {
+      id: 'month1', icon: '🗓️', title: '1 mês',
+      phrase: 'Um mês de protocolo. Os resultados estão chegando.',
+      unlocked: days >= 30,
+    },
+    {
+      id: 'month2', icon: '🏅', title: '2 meses',
+      phrase: '60 dias. Você já criou um hábito real.',
+      unlocked: days >= 60,
+    },
+    {
+      id: 'track3', icon: '📊', title: 'Comprometido',
+      phrase: 'Monitorar é o segredo de quem chega lá.',
+      unlocked: entries >= 3,
+    },
+    {
+      id: 'lost2', icon: '⚖️', title: '2kg a menos',
+      phrase: 'Os primeiros 2kg são os mais significativos.',
+      unlocked: lost >= 2,
+    },
+    {
+      id: 'lost5', icon: '🔥', title: '5kg a menos',
+      phrase: 'Seu corpo está respondendo. 5kg é transformação.',
+      unlocked: lost >= 5,
+    },
+    {
+      id: 'lost10', icon: '💪', title: '10kg a menos',
+      phrase: '10kg! Uma conquista que muda a vida.',
+      unlocked: lost >= 10,
+    },
+    {
+      id: 'goal', icon: '🎯', title: 'Meta atingida!',
+      phrase: 'Meta atingida. Você é um exemplo de dedicação.',
+      unlocked: reachedGoal,
+    },
+  ]
+}
+
+export default function ProfilePage({ profile, onUpdateProfile, onBack }: Props) {
+  const [activeTab, setActiveTab] = useState<ProfileTab>('achievements')
+
+  const [form, setForm] = useState({
     name:           profile.name,
     age:            profile.age?.toString() ?? '',
     sex:            (profile.sex ?? '') as Sex | '',
@@ -44,20 +96,14 @@ export default function ProfilePage({ profile, onUpdateProfile }: Props) {
     startDate:      profile.startDate,
     applicationDay: profile.applicationDay ?? new Date().getDay(),
   })
-  const [form, setForm] = useState(makeForm)
+  const [saved, setSaved]         = useState(false)
+  const [showReset, setShowReset] = useState(false)
 
-  const initials = profile.name.split(' ').map(w => w[0]).slice(0, 2).join('').toUpperCase()
-  const days  = Math.floor((Date.now() - new Date(profile.startDate).getTime()) / 864e5)
-  const weeks = Math.floor(days / 7)
-
-  const firstWeight  = profile.startWeight
-  const lastWeight   = profile.weightHistory.at(-1)?.weight ?? firstWeight
-  const totalLost    = firstWeight - lastWeight
-  const chartPoints  = [{ date: profile.startDate, weight: firstWeight }, ...profile.weightHistory]
-  const maxW         = Math.max(...chartPoints.map(e => e.weight))
-  const minW         = Math.min(...chartPoints.map(e => e.weight))
-  const range        = maxW - minW || 1
-  const history      = [...profile.weightHistory].reverse().slice(0, 10)
+  const initials   = profile.name.split(' ').map(w => w[0]).slice(0, 2).join('').toUpperCase()
+  const days       = Math.floor((Date.now() - new Date(profile.startDate).getTime()) / 864e5)
+  const weeks      = Math.floor(days / 7)
+  const lastWeight = profile.weightHistory.at(-1)?.weight ?? profile.startWeight
+  const totalLost  = profile.startWeight - lastWeight
 
   function setF(field: string, value: string | number) {
     setForm(f => ({ ...f, [field]: value }))
@@ -85,27 +131,12 @@ export default function ProfilePage({ profile, onUpdateProfile }: Props) {
       startDate:      form.startDate,
       applicationDay: form.applicationDay,
     })
-    setFormSaved(true)
-    setTimeout(() => { setFormSaved(false); setEditing(false) }, 1500)
-  }
-
-  function addWeight() {
-    const w = parseFloat(newWeight)
-    if (!w || w < 20 || w > 300) return
-    const entry: WeightEntry = { date: new Date().toISOString().split('T')[0], weight: w }
-    onUpdateProfile({ ...profile, weightHistory: [...profile.weightHistory, entry] })
-    setNewWeight('')
-    setWeightSaved(true)
-    setTimeout(() => setWeightSaved(false), 2000)
-  }
-
-  function handleReset() {
-    localStorage.removeItem('tizetrack_profile')
-    window.location.reload()
+    setSaved(true)
+    setTimeout(() => setSaved(false), 2000)
   }
 
   const selBtn = (active: boolean): React.CSSProperties => ({
-    padding: '10px 6px', borderRadius: '10px', border: 'none', cursor: 'pointer',
+    padding: '10px 8px', borderRadius: '10px', border: 'none', cursor: 'pointer',
     background: active ? 'linear-gradient(135deg, var(--primary), #0D9488)' : 'var(--surface-2)',
     color: active ? '#fff' : 'var(--text-primary)',
     fontWeight: 700, fontSize: '12px', transition: 'all 0.15s',
@@ -114,373 +145,366 @@ export default function ProfilePage({ profile, onUpdateProfile }: Props) {
     outline: active ? 'none' : '1px solid var(--border)',
   })
 
-  /* ── EDIT MODE ───────────────────────────────────────────────────── */
-  if (editing) {
-    return (
-      <div className="fade-in" style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+  const achievements = buildAchievements(profile)
+  const unlocked     = achievements.filter(a => a.unlocked).length
 
-        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-          <button
-            onClick={() => { setEditing(false); setForm(makeForm()) }}
-            style={{
-              width: '42px', height: '42px', borderRadius: '50%',
-              background: 'var(--surface-2)', border: '1px solid var(--border)',
-              cursor: 'pointer', fontSize: '20px',
-              display: 'flex', alignItems: 'center', justifyContent: 'center',
-            }}
-          >←</button>
-          <div>
-            <h2 style={{ fontSize: '18px', fontWeight: 800, color: 'var(--text-primary)', margin: 0 }}>Editar perfil</h2>
-            <p style={{ fontSize: '12px', color: 'var(--text-muted)', marginTop: '2px' }}>Atualize suas informações</p>
-          </div>
-        </div>
-
-        {/* Pessoal */}
-        <div className="card" style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
-          <p style={{ fontWeight: 700, fontSize: '14px', color: 'var(--text-primary)' }}>Dados pessoais</p>
-          <div>
-            <label className="label-base">Nome</label>
-            <input type="text" className="input-field" value={form.name}
-              onChange={e => setF('name', e.target.value)} maxLength={40} />
-          </div>
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
-            <div>
-              <label className="label-base">Idade</label>
-              <input type="number" className="input-field" placeholder="--"
-                value={form.age} onChange={e => setF('age', e.target.value)} min={10} max={120} />
-            </div>
-            <div>
-              <label className="label-base">Sexo</label>
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '5px' }}>
-                {([['female','F'],['male','M'],['other','O']] as const).map(([v, l]) => (
-                  <button key={v} style={selBtn(form.sex === v)} onClick={() => setF('sex', v)}>{l}</button>
-                ))}
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {/* Corporal */}
-        <div className="card" style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
-          <p style={{ fontWeight: 700, fontSize: '14px', color: 'var(--text-primary)' }}>Dados corporais</p>
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
-            <div>
-              <label className="label-base">Altura (cm)</label>
-              <input type="number" className="input-field" value={form.height}
-                onChange={e => setF('height', e.target.value)} min={100} max={250} />
-            </div>
-            <div>
-              <label className="label-base">Início</label>
-              <input type="date" className="input-field" value={form.startDate}
-                onChange={e => setF('startDate', e.target.value)}
-                max={new Date().toISOString().split('T')[0]} />
-            </div>
-            <div>
-              <label className="label-base">Peso inicial (kg)</label>
-              <input type="number" className="input-field" value={form.startWeight}
-                onChange={e => setF('startWeight', e.target.value)} min={20} max={300} step={0.1} />
-            </div>
-            <div>
-              <label className="label-base">Meta de peso (kg)</label>
-              <input type="number" className="input-field" value={form.goalWeight}
-                onChange={e => setF('goalWeight', e.target.value)} min={20} max={300} step={0.1} />
-            </div>
-          </div>
-        </div>
-
-        {/* Medicamento */}
-        <div className="card" style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-          <p style={{ fontWeight: 700, fontSize: '14px', color: 'var(--text-primary)' }}>Medicamento</p>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-            {MEDS.map(([v, l]) => (
-              <button key={v}
-                style={{ ...selBtn(form.medication === v), textAlign: 'left', padding: '11px 14px' }}
-                onClick={() => setF('medication', v)}>
-                {l}
-              </button>
-            ))}
-          </div>
-        </div>
-
-        {/* Dose */}
-        <div className="card" style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-          <p style={{ fontWeight: 700, fontSize: '14px', color: 'var(--text-primary)' }}>Dose atual</p>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '7px' }}>
-            {DOSES.map(d => (
-              <button key={d} style={selBtn(form.currentDose === d)} onClick={() => setF('currentDose', d)}>
-                {d}mg
-              </button>
-            ))}
-          </div>
-        </div>
-
-        {/* Dia da aplicação */}
-        <div className="card" style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-          <p style={{ fontWeight: 700, fontSize: '14px', color: 'var(--text-primary)' }}>Dia da aplicação</p>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '6px' }}>
-            {WEEK_DAYS_FULL.map((day, i) => (
-              <button key={i}
-                style={{ ...selBtn(form.applicationDay === i), textAlign: 'left', padding: '10px 12px' }}
-                onClick={() => setF('applicationDay', i)}>
-                {day}
-              </button>
-            ))}
-          </div>
-        </div>
-
-        <button
-          className="btn-primary"
-          style={{ width: '100%', opacity: canSave() ? 1 : 0.4 }}
-          onClick={handleSave}
-          disabled={!canSave()}
-        >
-          {formSaved ? '✓ Salvo com sucesso!' : 'Salvar alterações'}
-        </button>
-
-        {!showReset ? (
-          <button onClick={() => setShowReset(true)} style={{
-            width: '100%', padding: '12px', borderRadius: '10px',
-            border: '1.5px solid rgba(239,68,68,0.3)', background: 'transparent',
-            color: '#EF4444', fontWeight: 600, fontSize: '13px', cursor: 'pointer',
-            fontFamily: "'Plus Jakarta Sans', sans-serif",
-          }}>
-            Resetar todos os dados
-          </button>
-        ) : (
-          <div className="card" style={{ border: '1.5px solid rgba(239,68,68,0.4)' }}>
-            <p style={{ fontSize: '13px', color: '#EF4444', fontWeight: 700, marginBottom: '12px' }}>
-              Tem certeza? Todo o histórico será apagado permanentemente.
-            </p>
-            <div style={{ display: 'flex', gap: '8px' }}>
-              <button onClick={() => setShowReset(false)} className="btn-ghost" style={{ flex: 1 }}>Cancelar</button>
-              <button onClick={handleReset} style={{
-                flex: 1, padding: '10px', borderRadius: '8px', border: 'none',
-                background: '#EF4444', color: '#fff', fontWeight: 700, cursor: 'pointer',
-                fontFamily: "'Plus Jakarta Sans', sans-serif",
-              }}>Sim, resetar</button>
-            </div>
-          </div>
-        )}
-      </div>
-    )
-  }
-
-  /* ── VIEW MODE ───────────────────────────────────────────────────── */
+  // Estoque
+  const stock    = profile.stock
+  const appsLeft = stock ? Math.floor(stock.amouleMg / profile.currentDose) * stock.ampouleCount : null
+  const stockLow = appsLeft != null && appsLeft < 4
   return (
-    <div className="fade-in" style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+    <div className="fade-in" style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
 
-      {/* Avatar header */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: '16px', padding: '4px 0' }}>
+      {/* Header */}
+      <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
         <button
-          onClick={() => setEditing(true)}
-          style={{ position: 'relative', background: 'none', border: 'none', cursor: 'pointer', padding: 0, flexShrink: 0 }}
-          aria-label="Editar perfil"
-        >
-          <div style={{
-            width: '68px', height: '68px', borderRadius: '50%',
-            background: 'linear-gradient(135deg, var(--primary) 0%, var(--accent) 100%)',
+          onClick={onBack}
+          style={{
+            width: '40px', height: '40px', borderRadius: '50%', flexShrink: 0,
+            background: 'var(--surface-2)', border: '1px solid var(--border)',
+            cursor: 'pointer', fontSize: '18px',
             display: 'flex', alignItems: 'center', justifyContent: 'center',
-            fontSize: '24px', fontWeight: 800, color: '#fff', letterSpacing: '-1px',
-            boxShadow: '0 4px 20px var(--primary-glow)',
-          }}>
-            {initials}
-          </div>
-          <div style={{
-            position: 'absolute', bottom: '1px', right: '1px',
-            width: '22px', height: '22px', borderRadius: '50%',
-            background: 'var(--surface)', border: '1.5px solid var(--border-strong)',
-            display: 'flex', alignItems: 'center', justifyContent: 'center',
-            fontSize: '10px',
-          }}>✏️</div>
-        </button>
+          }}
+        >←</button>
+        <div style={{ flex: 1 }}>
+          <h2 style={{ fontSize: '18px', fontWeight: 800, color: 'var(--text-primary)', margin: 0 }}>Perfil</h2>
+        </div>
+      </div>
 
+      {/* Card de resumo */}
+      <div style={{
+        background: 'linear-gradient(135deg, var(--primary) 0%, var(--accent) 100%)',
+        borderRadius: '18px', padding: '18px 20px', color: '#fff',
+        display: 'flex', alignItems: 'center', gap: '16px',
+        boxShadow: 'var(--shadow-green)',
+      }}>
+        <div style={{
+          width: '56px', height: '56px', borderRadius: '50%', flexShrink: 0,
+          background: 'rgba(255,255,255,0.2)', border: '2px solid rgba(255,255,255,0.3)',
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          fontSize: '20px', fontWeight: 800, letterSpacing: '-1px',
+        }}>
+          {initials}
+        </div>
         <div style={{ flex: 1, minWidth: 0 }}>
-          <h2 style={{ fontSize: '20px', fontWeight: 800, color: 'var(--text-primary)', margin: 0, letterSpacing: '-0.3px' }}>
-            {profile.name}
-          </h2>
-          <p style={{ fontSize: '12px', color: 'var(--text-muted)', marginTop: '2px' }}>
+          <p style={{ fontWeight: 800, fontSize: '18px', margin: 0, letterSpacing: '-0.3px' }}>{profile.name}</p>
+          <p style={{ fontSize: '12px', opacity: 0.8, marginTop: '2px' }}>
             {MEDICATION_LABELS[profile.medication]} · {profile.currentDose}mg
           </p>
-          <p style={{ fontSize: '11px', color: 'var(--primary)', fontWeight: 700, marginTop: '2px' }}>
-            {weeks} {weeks === 1 ? 'semana' : 'semanas'} em protocolo
+          <p style={{ fontSize: '11px', opacity: 0.65, marginTop: '2px' }}>
+            {weeks} semanas · {unlocked}/{achievements.length} conquistas
           </p>
         </div>
-
-        <button
-          onClick={() => setEditing(true)}
-          style={{
-            padding: '8px 14px', borderRadius: '10px',
-            border: '1.5px solid var(--border-strong)',
-            background: 'var(--surface-2)', color: 'var(--text-secondary)',
-            fontWeight: 600, fontSize: '12px', cursor: 'pointer',
-            fontFamily: "'Plus Jakarta Sans', sans-serif", flexShrink: 0,
-          }}
-        >
-          Editar
-        </button>
+        <div style={{ textAlign: 'right', flexShrink: 0 }}>
+          <p style={{ fontSize: '22px', fontWeight: 800, margin: 0, lineHeight: 1 }}>
+            {totalLost > 0 ? `-${totalLost.toFixed(1)}` : `${totalLost.toFixed(1)}`}kg
+          </p>
+          <p style={{ fontSize: '10px', opacity: 0.65, marginTop: '2px' }}>perdido</p>
+        </div>
       </div>
 
-      {/* Stats resumo */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '8px' }}>
-        {[
-          { label: 'Início',  value: `${firstWeight}kg` },
-          { label: 'Atual',   value: `${lastWeight}kg` },
-          { label: 'Perdido', value: `${totalLost > 0 ? '-' : totalLost < 0 ? '+' : ''}${Math.abs(totalLost).toFixed(1)}kg`, highlight: totalLost > 0 },
-        ].map(s => (
-          <div key={s.label} className="stat-card" style={{ textAlign: 'center', padding: '1rem 0.5rem' }}>
-            <p className="label-base" style={{ marginBottom: '4px', textAlign: 'center' }}>{s.label}</p>
-            <p style={{ fontWeight: 800, fontSize: '15px', color: s.highlight ? 'var(--primary)' : 'var(--text-primary)' }}>
-              {s.value}
-            </p>
-          </div>
-        ))}
-      </div>
-
-      {/* Inner tabs */}
+      {/* Inner tab bar */}
       <div style={{
-        display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '4px',
+        display: 'flex', gap: '5px',
         background: 'var(--surface-2)', borderRadius: '14px', padding: '4px',
       }}>
-        {INNER_TABS.map(t => (
+        {PROFILE_TABS.map(t => (
           <button
             key={t.id}
-            onClick={() => setInnerTab(t.id)}
+            onClick={() => setActiveTab(t.id)}
             style={{
-              padding: '8px 4px', borderRadius: '10px', border: 'none',
-              background: innerTab === t.id ? 'var(--primary)' : 'transparent',
-              color: innerTab === t.id ? '#fff' : 'var(--text-muted)',
+              flex: 1, padding: '9px 3px', borderRadius: '10px', border: 'none',
+              background: activeTab === t.id ? 'var(--primary)' : 'transparent',
+              color: activeTab === t.id ? '#fff' : 'var(--text-muted)',
               fontWeight: 700, fontSize: '10px', cursor: 'pointer',
               transition: 'all 0.2s ease',
               fontFamily: "'Plus Jakarta Sans', sans-serif",
-              boxShadow: innerTab === t.id ? '0 2px 8px rgba(16,185,129,0.3)' : 'none',
+              boxShadow: activeTab === t.id ? '0 2px 8px rgba(16,185,129,0.3)' : 'none',
+              display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '2px',
             }}
           >
-            <span style={{ display: 'block', fontSize: '15px', marginBottom: '2px' }}>{t.icon}</span>
-            {t.label}
+            <span style={{ fontSize: '14px' }}>{t.icon}</span>
+            <span>{t.label}</span>
           </button>
         ))}
       </div>
 
       {/* Tab content */}
-      <div key={innerTab} className="fade-in">
+      <div key={activeTab} className="fade-in">
 
-        {/* ── EVOLUÇÃO ── */}
-        {innerTab === 'evolution' && (
+        {/* ── CONQUISTAS ── */}
+        {activeTab === 'achievements' && (
           <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
-            {chartPoints.length > 1 ? (
-              <div className="card">
-                <p className="label-base" style={{ marginBottom: '14px' }}>Evolução do peso</p>
-                <div style={{ position: 'relative', height: '100px', display: 'flex', alignItems: 'flex-end', gap: '5px' }}>
-                  {chartPoints.map((entry, i) => {
-                    const heightPct = ((entry.weight - minW) / range) * 80 + 10
-                    const isLast = i === chartPoints.length - 1
-                    return (
-                      <div key={i} style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '4px' }}>
-                        <span style={{ fontSize: '9px', color: isLast ? 'var(--primary)' : 'var(--text-muted)', fontWeight: 700 }}>
-                          {entry.weight}
-                        </span>
-                        <div style={{
-                          width: '100%', height: `${heightPct}px`,
-                          background: isLast
-                            ? 'var(--primary)'
-                            : `rgba(16,185,129,${0.2 + (i / chartPoints.length) * 0.4})`,
-                          borderRadius: '5px 5px 0 0', transition: 'height 0.4s ease',
-                        }} />
-                      </div>
-                    )
-                  })}
-                </div>
-                <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '6px' }}>
-                  <span style={{ fontSize: '10px', color: 'var(--text-muted)' }}>Início</span>
-                  <span style={{ fontSize: '10px', color: 'var(--primary)', fontWeight: 700 }}>Atual</span>
-                </div>
-              </div>
-            ) : (
-              <div style={{ textAlign: 'center', padding: '24px 0' }}>
-                <p style={{ fontSize: '36px', marginBottom: '10px' }}>📉</p>
-                <p style={{ fontWeight: 700, color: 'var(--text-primary)', fontSize: '14px' }}>Nenhum registro ainda</p>
-                <p style={{ color: 'var(--text-muted)', fontSize: '12px', marginTop: '4px' }}>
-                  Registre sua primeira pesagem abaixo
-                </p>
-              </div>
-            )}
-
-            <div className="card" style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
-              <h3 style={{ fontWeight: 700, fontSize: '15px', color: 'var(--text-primary)' }}>Registrar pesagem</h3>
-              <div>
-                <label className="label-base">Seu peso hoje (kg)</label>
-                <input
-                  type="number" className="input-field" placeholder="Ex: 84.5"
-                  value={newWeight} onChange={e => setNewWeight(e.target.value)}
-                  min={20} max={300} step={0.1}
-                />
-              </div>
-              <button
-                className="btn-primary"
-                style={{ width: '100%', opacity: newWeight ? 1 : 0.5 }}
-                onClick={addWeight}
-                disabled={!newWeight}
-              >
-                {weightSaved ? '✓ Salvo!' : 'Salvar pesagem'}
-              </button>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+              <p style={{ fontWeight: 700, fontSize: '14px', color: 'var(--text-primary)', margin: 0 }}>
+                {unlocked} de {achievements.length} desbloqueadas
+              </p>
+              <span className="badge badge-green">{Math.round((unlocked / achievements.length) * 100)}%</span>
             </div>
 
-            {history.length > 0 && (
-              <div className="card">
-                <h3 style={{ fontWeight: 700, fontSize: '15px', color: 'var(--text-primary)', marginBottom: '12px' }}>
-                  Histórico recente
-                </h3>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                  {history.map((entry, i) => {
-                    const prev = history[i + 1]
-                    const diff = prev ? entry.weight - prev.weight : null
-                    return (
-                      <div key={entry.date + i} style={{
-                        display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-                        padding: '10px 12px', borderRadius: '10px', background: 'var(--surface-2)',
-                      }}>
-                        <span style={{ fontSize: '13px', color: 'var(--text-muted)', fontWeight: 600 }}>
-                          {new Date(entry.date + 'T12:00:00').toLocaleDateString('pt-BR', { day: '2-digit', month: 'short' })}
-                        </span>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                          {diff !== null && (
-                            <span style={{
-                              fontSize: '11px', fontWeight: 700,
-                              color: diff < 0 ? 'var(--primary)' : diff > 0 ? '#EF4444' : 'var(--text-muted)',
-                            }}>
-                              {diff < 0 ? '▼' : diff > 0 ? '▲' : '='} {Math.abs(diff).toFixed(1)}kg
-                            </span>
-                          )}
-                          <span style={{ fontSize: '15px', fontWeight: 800, color: 'var(--text-primary)' }}>
-                            {entry.weight}kg
-                          </span>
-                        </div>
-                      </div>
-                    )
-                  })}
+            {/* Scroll horizontal */}
+            <div style={{
+              display: 'flex', gap: '12px', overflowX: 'auto', paddingBottom: '8px',
+              scrollbarWidth: 'none', WebkitOverflowScrolling: 'touch',
+            }}>
+              {achievements.map(a => (
+                <div
+                  key={a.id}
+                  style={{
+                    flexShrink: 0, width: '150px',
+                    padding: '16px 12px', borderRadius: '16px',
+                    border: `1.5px solid ${a.unlocked ? 'rgba(16,185,129,0.3)' : 'var(--border)'}`,
+                    background: a.unlocked
+                      ? 'linear-gradient(135deg, var(--primary-light), var(--accent-light))'
+                      : 'var(--surface)',
+                    opacity: a.unlocked ? 1 : 0.45,
+                    boxShadow: a.unlocked ? '0 0 16px var(--primary-glow)' : 'var(--shadow-card)',
+                    display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center', gap: '8px',
+                  }}
+                >
+                  <span style={{
+                    fontSize: '34px',
+                    filter: a.unlocked ? 'none' : 'grayscale(1) opacity(0.4)',
+                  }}>
+                    {a.icon}
+                  </span>
+                  <p style={{
+                    fontWeight: 800, fontSize: '12px', lineHeight: 1.3, margin: 0,
+                    color: a.unlocked ? 'var(--primary)' : 'var(--text-muted)',
+                  }}>
+                    {a.title}
+                  </p>
+                  <p style={{
+                    fontSize: '10px', lineHeight: 1.4, margin: 0,
+                    color: a.unlocked ? 'var(--text-secondary)' : 'var(--text-muted)',
+                    fontStyle: a.unlocked ? 'italic' : 'normal',
+                  }}>
+                    {a.unlocked ? `"${a.phrase}"` : 'Continue para desbloquear'}
+                  </p>
                 </div>
-              </div>
-            )}
+              ))}
+            </div>
           </div>
         )}
 
-        {/* ── DIÁRIO ── */}
-        {innerTab === 'diary' && (
-          <Diary profile={profile} onUpdateProfile={onUpdateProfile} />
-        )}
-
-        {/* ── CONQUISTAS ── */}
-        {innerTab === 'achievements' && (
-          <Achievements profile={profile} />
-        )}
-
-        {/* ── CALENDÁRIO ── */}
-        {innerTab === 'calendar' && (
+        {/* ── HISTÓRICO ── */}
+        {activeTab === 'history' && (
           <div className="card">
             <p style={{ fontWeight: 700, fontSize: '14px', color: 'var(--text-primary)', marginBottom: '14px' }}>
-              📅 Calendário de Aplicações
+              📅 Histórico de aplicações
             </p>
             <ApplicationCalendar profile={profile} onUpdateProfile={onUpdateProfile} />
+          </div>
+        )}
+
+        {/* ── ESTOQUE ── */}
+        {activeTab === 'stock' && (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+
+            {/* Gauge hero */}
+            <div style={{
+              background: 'linear-gradient(135deg, var(--primary) 0%, #0D9488 100%)',
+              borderRadius: '18px', padding: '18px 20px', color: '#fff',
+              boxShadow: 'var(--shadow-green)',
+            }}>
+              <p style={{ fontSize: '11px', fontWeight: 700, opacity: 0.7, textTransform: 'uppercase', letterSpacing: '0.07em', marginBottom: '6px' }}>
+                Estoque disponível
+              </p>
+              <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', marginBottom: '12px' }}>
+                <div>
+                  <p style={{ fontSize: '44px', fontWeight: 800, lineHeight: 1, letterSpacing: '-2px' }}>
+                    {appsLeft ?? '--'}
+                    {appsLeft != null && (
+                      <span style={{ fontSize: '15px', opacity: 0.8, marginLeft: '6px' }}>
+                        {appsLeft === 1 ? 'aplicação' : 'aplicações'}
+                      </span>
+                    )}
+                  </p>
+                  {appsLeft != null && (
+                    <p style={{ fontSize: '12px', opacity: 0.75, marginTop: '4px' }}>
+                      ≈ {Math.round(appsLeft / 4)} {Math.round(appsLeft / 4) === 1 ? 'mês' : 'meses'} de tratamento
+                    </p>
+                  )}
+                </div>
+              </div>
+              {appsLeft != null && (
+                <>
+                  <div style={{ background: 'rgba(255,255,255,0.2)', borderRadius: '99px', height: '6px', overflow: 'hidden', marginBottom: '8px' }}>
+                    <div style={{
+                      width: `${Math.min(100, (appsLeft / 12) * 100)}%`,
+                      height: '100%', background: '#fff', borderRadius: '99px', transition: 'width 0.9s ease',
+                    }} />
+                  </div>
+                  <p style={{ fontSize: '12px', opacity: 0.8, fontWeight: 700 }}>
+                    {stockLow ? '⚠️ Estoque baixo — reponha em breve' : '✓ Estoque confortável'}
+                  </p>
+                </>
+              )}
+            </div>
+
+            <div className="card" style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <p style={{ fontWeight: 700, fontSize: '14px', color: 'var(--text-primary)', flex: 1, margin: 0 }}>
+                  Informe suas ampolas
+                </p>
+                <span style={{
+                  fontSize: '11px', color: 'var(--primary)', fontWeight: 700,
+                  background: 'var(--primary-light)', padding: '3px 8px', borderRadius: '99px',
+                }}>
+                  Dose: {profile.currentDose}mg
+                </span>
+              </div>
+              <StockControl profile={profile} onUpdateProfile={onUpdateProfile} />
+            </div>
+
+            <div className="card-warning">
+              <p style={{ fontSize: '12px', color: 'var(--warn-text)', lineHeight: 1.6 }}>
+                💡 Mantenha ao menos <strong>4 semanas</strong> de estoque. O medicamento pode demorar alguns dias após o pedido.
+              </p>
+            </div>
+          </div>
+        )}
+
+        {/* ── EDITAR ── */}
+        {activeTab === 'edit' && (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+
+            {/* Dados pessoais */}
+            <div className="card" style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+              <p style={{ fontWeight: 700, fontSize: '13px', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.06em', margin: 0 }}>
+                Dados pessoais
+              </p>
+              <div>
+                <label className="label-base">Nome</label>
+                <input type="text" className="input-field" value={form.name}
+                  onChange={e => setF('name', e.target.value)} maxLength={40} />
+              </div>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
+                <div>
+                  <label className="label-base">Idade</label>
+                  <input type="number" className="input-field" placeholder="--"
+                    value={form.age} onChange={e => setF('age', e.target.value)} min={10} max={120} />
+                </div>
+                <div>
+                  <label className="label-base">Sexo</label>
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '5px' }}>
+                    {([['female','F'],['male','M'],['other','O']] as const).map(([v, l]) => (
+                      <button key={v} style={selBtn(form.sex === v)} onClick={() => setF('sex', v)}>{l}</button>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Dados corporais */}
+            <div className="card" style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+              <p style={{ fontWeight: 700, fontSize: '13px', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.06em', margin: 0 }}>
+                Dados corporais
+              </p>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
+                <div>
+                  <label className="label-base">Altura (cm)</label>
+                  <input type="number" className="input-field" value={form.height}
+                    onChange={e => setF('height', e.target.value)} min={100} max={250} />
+                </div>
+                <div>
+                  <label className="label-base">Início do protocolo</label>
+                  <input type="date" className="input-field" value={form.startDate}
+                    onChange={e => setF('startDate', e.target.value)}
+                    max={new Date().toISOString().split('T')[0]} />
+                </div>
+                <div>
+                  <label className="label-base">Peso inicial (kg)</label>
+                  <input type="number" className="input-field" value={form.startWeight}
+                    onChange={e => setF('startWeight', e.target.value)} min={20} max={300} step={0.1} />
+                </div>
+                <div>
+                  <label className="label-base">Meta de peso (kg)</label>
+                  <input type="number" className="input-field" value={form.goalWeight}
+                    onChange={e => setF('goalWeight', e.target.value)} min={20} max={300} step={0.1} />
+                </div>
+              </div>
+            </div>
+
+            {/* Medicamento */}
+            <div className="card" style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+              <p style={{ fontWeight: 700, fontSize: '13px', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.06em', margin: 0 }}>
+                Medicamento
+              </p>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                {MEDS.map(([v, l]) => (
+                  <button key={v}
+                    style={{ ...selBtn(form.medication === v), textAlign: 'left', padding: '11px 14px' }}
+                    onClick={() => setF('medication', v)}>
+                    {l}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Dose */}
+            <div className="card" style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+              <p style={{ fontWeight: 700, fontSize: '13px', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.06em', margin: 0 }}>
+                Dose atual
+              </p>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '7px' }}>
+                {DOSES.map(d => (
+                  <button key={d} style={selBtn(form.currentDose === d)} onClick={() => setF('currentDose', d)}>
+                    {d}mg
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Dia da aplicação */}
+            <div className="card" style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+              <p style={{ fontWeight: 700, fontSize: '13px', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.06em', margin: 0 }}>
+                Dia da aplicação
+              </p>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '6px' }}>
+                {WEEK_DAYS_FULL.map((day, i) => (
+                  <button key={i}
+                    style={{ ...selBtn(form.applicationDay === i), textAlign: 'left', padding: '10px 12px' }}
+                    onClick={() => setF('applicationDay', i)}>
+                    {day}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Salvar */}
+            <button
+              className="btn-primary" style={{ width: '100%', opacity: canSave() ? 1 : 0.4 }}
+              onClick={handleSave} disabled={!canSave()}
+            >
+              {saved ? '✓ Salvo com sucesso!' : 'Salvar alterações'}
+            </button>
+
+            {/* Reset */}
+            {!showReset ? (
+              <button onClick={() => setShowReset(true)} style={{
+                width: '100%', padding: '12px', borderRadius: '10px',
+                border: '1.5px solid rgba(239,68,68,0.3)', background: 'transparent',
+                color: '#EF4444', fontWeight: 600, fontSize: '13px', cursor: 'pointer',
+                fontFamily: "'Plus Jakarta Sans', sans-serif",
+              }}>
+                Resetar todos os dados
+              </button>
+            ) : (
+              <div className="card" style={{ border: '1.5px solid rgba(239,68,68,0.4)' }}>
+                <p style={{ fontSize: '13px', color: '#EF4444', fontWeight: 700, marginBottom: '12px' }}>
+                  Tem certeza? Todo o histórico será apagado permanentemente.
+                </p>
+                <div style={{ display: 'flex', gap: '8px' }}>
+                  <button onClick={() => setShowReset(false)} className="btn-ghost" style={{ flex: 1 }}>Cancelar</button>
+                  <button onClick={() => { localStorage.removeItem('tizetrack_profile'); window.location.reload() }} style={{
+                    flex: 1, padding: '10px', borderRadius: '8px', border: 'none',
+                    background: '#EF4444', color: '#fff', fontWeight: 700, cursor: 'pointer',
+                    fontFamily: "'Plus Jakarta Sans', sans-serif",
+                  }}>Sim, resetar</button>
+                </div>
+              </div>
+            )}
           </div>
         )}
       </div>
