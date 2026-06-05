@@ -4,6 +4,7 @@ import Dashboard from './components/Dashboard'
 import ProgressHub from './components/ProgressHub'
 import Calculator from './components/Calculator'
 import HealthHub from './components/HealthHub'
+import Laboratory from './components/Laboratory'
 import ProfilePage from './components/ProfilePage'
 import ProfileSetup from './components/ProfileSetup'
 import { useDarkMode } from './hooks/useDarkMode'
@@ -32,10 +33,11 @@ function loadProfile(): UserProfile {
 }
 
 const NAV_TABS: { id: Tab; icon: string; label: string }[] = [
-  { id: 'dashboard', icon: '🏠', label: 'Início'    },
-  { id: 'progress',  icon: '📊', label: 'Progresso' },
-  { id: 'health',    icon: '🌿', label: 'Saúde'     },
-  { id: 'calculator',icon: '💉', label: 'Calcular'  },
+  { id: 'dashboard',  icon: '🏠', label: 'Início'    },
+  { id: 'progress',   icon: '📊', label: 'Progresso' },
+  { id: 'health',     icon: '🌿', label: 'Saúde'     },
+  { id: 'calculator', icon: '💉', label: 'Calcular'  },
+  { id: 'laboratory', icon: '🧪', label: 'Lab'       },
 ]
 
 export default function App() {
@@ -87,9 +89,11 @@ export default function App() {
       case 'progress':
         return <ProgressHub profile={profile} onUpdateProfile={setProfile} />
       case 'health':
-        return <HealthHub profile={profile} />
+        return <HealthHub profile={profile} onUpdateProfile={setProfile} />
       case 'calculator':
         return <Calculator />
+      case 'laboratory':
+        return <Laboratory profile={profile} onUpdateProfile={setProfile} />
       default:
         return <Dashboard profile={profile} onUpdateProfile={setProfile} onNavigate={setActiveTab} />
     }

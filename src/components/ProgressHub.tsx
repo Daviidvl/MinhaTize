@@ -1,18 +1,16 @@
 import { useState } from 'react'
 import { UserProfile, WeightEntry } from '../types'
-import SideEffects from './SideEffects'
 
 interface Props {
   profile: UserProfile
   onUpdateProfile: (p: UserProfile) => void
 }
 
-type InnerTab = 'evolution' | 'symptoms' | 'summary'
+type InnerTab = 'evolution' | 'summary'
 
 const TABS: { id: InnerTab; label: string }[] = [
-  { id: 'evolution', label: '📈 Evolução'  },
-  { id: 'symptoms',  label: '🩺 Sintomas'  },
-  { id: 'summary',   label: '📋 Resumo'    },
+  { id: 'evolution', label: '📈 Evolução' },
+  { id: 'summary',   label: '📋 Resumo'   },
 ]
 
 function calcIMC(w: number, h: number) {
@@ -246,11 +244,6 @@ export default function ProgressHub({ profile, onUpdateProfile }: Props) {
               </div>
             )}
           </div>
-        )}
-
-        {/* ── SINTOMAS ── */}
-        {tab === 'symptoms' && (
-          <SideEffects profile={profile} onUpdateProfile={onUpdateProfile} />
         )}
 
         {/* ── RESUMO ── */}
