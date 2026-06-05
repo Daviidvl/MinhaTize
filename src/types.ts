@@ -62,6 +62,12 @@ export const MEDICATION_LABELS: Record<Medication, string> = {
 export const WEEK_DAYS = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb']
 export const WEEK_DAYS_FULL = ['Domingo', 'Segunda', 'Terça', 'Quarta', 'Quinta', 'Sexta', 'Sábado']
 
+export interface LabResult {
+  examId: string
+  value: number
+  date: string
+}
+
 export interface UserProfile {
   name: string
   age?: number
@@ -79,6 +85,7 @@ export interface UserProfile {
   sideEffects: SideEffectEntry[]
   lastApplication?: string
   stock?: StockInfo
+  labResults?: LabResult[]
 }
 
-export type Tab = 'dashboard' | 'progress' | 'health' | 'calculator' | 'profile'
+export type Tab = 'dashboard' | 'progress' | 'health' | 'calculator' | 'profile' | 'laboratory'
