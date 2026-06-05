@@ -1,6 +1,4 @@
 import { UserProfile, Tab, MEDICATION_LABELS, WEEK_DAYS_FULL } from '../types'
-import Achievements from './Achievements'
-import ApplicationCalendar from './ApplicationCalendar'
 
 interface Props {
   profile: UserProfile
@@ -70,7 +68,6 @@ export default function Dashboard({ profile, onNavigate, onUpdateProfile }: Prop
 
   const lastDiary = (profile.diary ?? []).slice().sort((a, b) => b.date.localeCompare(a.date))[0]
 
-  // Janela de aplicação
   const lastApp       = profile.lastApplication
   const appDay        = profile.applicationDay
   const daysSinceApp  = lastApp ? daysSince(lastApp) : null
@@ -80,10 +77,17 @@ export default function Dashboard({ profile, onNavigate, onUpdateProfile }: Prop
 
   const motivation = getMotivation(profile, totalLost, toGoal, weeks, days)
 
+  // Stock indicator
+  const stock = profile.stock
+  const stockWeeks = stock
+    ? Math.floor(stock.amouleMg / profile.currentDose) * stock.ampouleCount
+    : null
+  const stockLow = stockWeeks != null && stockWeeks < 4
+
   return (
     <div className="fade-in" style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
 
-      {/* Saudação + motivação */}
+      {/* Saudação */}
       <div style={{ paddingTop: '4px' }}>
         <p style={{ fontSize: '12px', fontWeight: 600, color: 'var(--text-muted)', marginBottom: '3px' }}>
           {weeks === 0 ? 'Início do protocolo' : `${weeks} ${weeks === 1 ? 'semana' : 'semanas'} de protocolo`}
@@ -93,7 +97,7 @@ export default function Dashboard({ profile, onNavigate, onUpdateProfile }: Prop
           Olá, {profile.name} 👋
         </h1>
 
-        {/* Mensagem motivacional */}
+        {/* Motivação */}
         <div style={{
           marginTop: '12px', padding: '12px 14px', borderRadius: '12px',
           background: 'linear-gradient(135deg, var(--primary-light), transparent)',
@@ -231,43 +235,70 @@ export default function Dashboard({ profile, onNavigate, onUpdateProfile }: Prop
         </div>
       )}
 
-      {/* Calendário de aplicações */}
-      {appDay !== undefined && (
-        <div className="card">
-          <p style={{ fontWeight: 700, fontSize: '14px', color: 'var(--text-primary)', marginBottom: '14px' }}>
-            📅 Calendário de Aplicações
-          </p>
-          <ApplicationCalendar profile={profile} onUpdateProfile={onUpdateProfile} />
-        </div>
-      )}
-
-      {/* Ações rápidas */}
+      {/* Acesso rápido */}
       <div>
         <p className="label-base" style={{ marginBottom: '8px' }}>Acesso rápido</p>
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '8px' }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '8px' }}>
           {([
-            { icon: '⚖️', title: 'Peso',     sub: 'Registrar',  tab: 'progress'   },
+            { icon: '⚖️', title: 'Peso',     sub: 'Registrar',  tab: 'profile'    },
             { icon: '💉', title: 'Calcular', sub: 'Dose',       tab: 'calculator' },
             { icon: '🌿', title: 'Saúde',    sub: 'Guias',      tab: 'health'     },
+            { icon: '📦', title: 'Estoque',  sub: 'Ampolas',    tab: 'stock'      },
           ] as const).map(a => (
             <button
               key={a.tab}
               className="card"
               onClick={() => onNavigate(a.tab)}
-              style={{ textAlign: 'center', padding: '1rem 0.5rem', cursor: 'pointer', transition: 'transform 0.15s' }}
+              style={{ textAlign: 'center', padding: '0.9rem 0.25rem', cursor: 'pointer', transition: 'transform 0.15s' }}
               onMouseEnter={e => (e.currentTarget.style.transform = 'translateY(-2px)')}
               onMouseLeave={e => (e.currentTarget.style.transform = 'translateY(0)')}
             >
-              <span style={{ fontSize: '20px', display: 'block', marginBottom: '5px' }}>{a.icon}</span>
-              <p style={{ fontWeight: 700, fontSize: '12px', color: 'var(--text-primary)' }}>{a.title}</p>
-              <p style={{ fontSize: '10px', color: 'var(--text-muted)', marginTop: '1px' }}>{a.sub}</p>
+              <span style={{ fontSize: '18px', display: 'block', marginBottom: '4px' }}>{a.icon}</span>
+              <p style={{ fontWeight: 700, fontSize: '11px', color: 'var(--text-primary)' }}>{a.title}</p>
+              <p style={{ fontSize: '9px', color: 'var(--text-muted)', marginTop: '1px' }}>{a.sub}</p>
             </button>
           ))}
         </div>
       </div>
 
-      {/* Conquistas */}
-      <Achievements profile={profile} />
+      {/* Indicador de estoque (sutil) */}
+      <button
+        onClick={() => onNavigate('stock')}
+        style={{ width: '100%', background: 'none', border: 'none', cursor: 'pointer', padding: 0, textAlign: 'left' }}
+      >
+        <div style={{
+          display: 'flex', alignItems: 'center', gap: '12px',
+          padding: '12px 14px', borderRadius: '12px',
+          background: stockLow
+            ? 'rgba(239,68,68,0.06)'
+            : 'var(--surface-2)',
+          border: stockLow
+            ? '1px solid rgba(239,68,68,0.25)'
+            : stock
+              ? '1px solid var(--border)'
+              : '1.5px dashed var(--border-strong)',
+        }}>
+          <span style={{ fontSize: '18px', flexShrink: 0 }}>📦</span>
+          <div style={{ flex: 1, minWidth: 0 }}>
+            {stockWeeks != null ? (
+              <>
+                <p style={{ fontSize: '12px', fontWeight: 700, color: stockLow ? '#EF4444' : 'var(--text-primary)' }}>
+                  Estoque: {stockWeeks} {stockWeeks === 1 ? 'semana' : 'semanas'} restante{stockWeeks !== 1 ? 's' : ''}
+                </p>
+                <p style={{ fontSize: '11px', color: stockLow ? '#EF4444' : 'var(--text-muted)', marginTop: '1px' }}>
+                  {stockLow ? '⚠️ Estoque baixo — toque para gerenciar' : 'Estoque ok · toque para detalhes'}
+                </p>
+              </>
+            ) : (
+              <p style={{ fontSize: '12px', color: 'var(--text-muted)', fontWeight: 600 }}>
+                Configure o controle de estoque →
+              </p>
+            )}
+          </div>
+          <span style={{ fontSize: '14px', color: 'var(--text-muted)', flexShrink: 0 }}>›</span>
+        </div>
+      </button>
+
     </div>
   )
 }
