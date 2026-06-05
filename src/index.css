@@ -318,8 +318,8 @@
 
 .bottom-nav-inner {
   display: flex;
-  padding: 5px 6px;
-  gap: 2px;
+  padding: 5px 8px;
+  gap: 4px;
 }
 
 .nav-tab {

@@ -14,11 +14,12 @@ interface Answers {
   q6?: 'yes' | 'no'
 }
 
-// ─── Pontuação ───────────────────────────────────────────────────────
+// ─── Pontuação (fome = maior peso: até 4 pontos) ─────────────────────
 function calcScore(a: Answers): number {
   let s = 0
   if (a.q2 === '>60')              s += 3
   else if (a.q2 === '30-60')       s += 2
+  // Fome — variável mais importante
   if (a.q3 === 'very-controlled')  s += 4
   else if (a.q3 === 'controlled')  s += 3
   else if (a.q3 === 'moderate')    s += 1
@@ -32,28 +33,27 @@ function calcScore(a: Answers): number {
   return s
 }
 
-// ─── Classificação ───────────────────────────────────────────────────
+// ─── Níveis ──────────────────────────────────────────────────────────
 const LEVELS = [
   {
-    emoji: '🔴', color: '#EF4444', bg: 'rgba(239,68,68,0.08)', border: 'rgba(239,68,68,0.2)',
-    label: 'Baixa prontidão para desmame',
-    message: 'Seu organismo pode ainda depender da medicação para manutenção dos resultados. Neste momento, pode ser interessante consolidar hábitos e evitar novas reduções sem orientação médica.',
+    emoji: '🔴', color: '#EF4444', bg: 'rgba(239,68,68,0.08)', border: 'rgba(239,68,68,0.25)',
+    label: 'Baixa prontidão',
+    message: 'Seu organismo ainda necessita do suporte medicamentoso. Evite qualquer redução de dose sem orientação médica.',
   },
   {
-    emoji: '🟡', color: '#F59E0B', bg: 'rgba(245,158,11,0.08)', border: 'rgba(245,158,11,0.2)',
+    emoji: '🟡', color: '#F59E0B', bg: 'rgba(245,158,11,0.08)', border: 'rgba(245,158,11,0.25)',
     label: 'Prontidão intermediária',
-    message: 'Você já apresenta alguns sinais positivos. Considere permanecer mais tempo na etapa atual antes de avançar no processo de desmame.',
+    message: 'Você já apresenta alguns sinais positivos, mas ainda há aspectos a fortalecer. Permaneça mais tempo na etapa atual antes de avançar.',
   },
   {
-    emoji: '🟢', color: '#10B981', bg: 'rgba(16,185,129,0.08)', border: 'rgba(16,185,129,0.2)',
-    label: 'Boa prontidão para manutenção',
-    message: 'Seu perfil sugere estabilidade. Converse com seu médico sobre estratégias graduais de manutenção e monitoramento.',
+    emoji: '🟢', color: '#10B981', bg: 'rgba(16,185,129,0.08)', border: 'rgba(16,185,129,0.25)',
+    label: 'Boa prontidão',
+    message: 'Você apresenta sinais favoráveis para o desmame.\n\nMantenha seus hábitos atuais e converse com seu médico sobre os próximos passos da redução gradual.',
   },
   {
-    emoji: '🔵', color: '#6366F1', bg: 'rgba(99,102,241,0.08)', border: 'rgba(99,102,241,0.2)',
-    label: 'Possível candidato à retirada gradual',
-    message: 'Você apresenta características frequentemente associadas a uma fase avançada de manutenção: peso estabilizado, fome controlada, hábitos alimentares consolidados e rotina de atividade física. Converse com seu médico sobre estratégias graduais de transição.',
-    bullets: ['Peso estabilizado', 'Fome controlada', 'Hábitos alimentares consolidados', 'Rotina de atividade física'],
+    emoji: '🔵', color: '#6366F1', bg: 'rgba(99,102,241,0.08)', border: 'rgba(99,102,241,0.25)',
+    label: 'Prontidão avançada',
+    message: 'Você apresenta sinais favoráveis para o desmame.\n\nMantenha seus hábitos atuais e converse com seu médico sobre os próximos passos da redução gradual.',
   },
 ]
 
@@ -63,12 +63,51 @@ function getLevel(score: number, answers: Answers): number {
   else if (score <= 8)  lvl = 1
   else if (score <= 12) lvl = 2
   else                  lvl = 3
-  // Regra 1: fome voltou forte → máximo intermediária
+  // Fome voltou forte → máximo intermediária
   if (answers.q3 === 'strong') lvl = Math.min(lvl, 1)
   return lvl
 }
 
-// ─── Componente de opção ─────────────────────────────────────────────
+// ─── Pontos de atenção ────────────────────────────────────────────────
+interface AttentionPoint { id: string; text: string }
+
+function getAttentionPoints(a: Answers): AttentionPoint[] {
+  const pts: AttentionPoint[] = []
+
+  if (a.q2 === '<30')
+    pts.push({
+      id: 'stability',
+      text: 'Seu peso ainda possui pouco tempo de estabilidade. Pode ser interessante consolidar esse período antes de avançar no desmame.',
+    })
+
+  if (a.q3 === 'moderate')
+    pts.push({
+      id: 'hunger-moderate',
+      text: 'Sua fome já apresenta sinais de aumento. Pode ser interessante permanecer mais tempo na etapa atual antes de novas reduções.',
+    })
+
+  if (a.q3 === 'strong')
+    pts.push({
+      id: 'hunger-strong',
+      text: 'O retorno importante da fome pode indicar que seu organismo ainda não está preparado para novas etapas do desmame.',
+    })
+
+  if (a.q5 === 'partial' || a.q5 === 'no')
+    pts.push({
+      id: 'diet',
+      text: 'Sua alimentação ainda não está totalmente estruturada. A manutenção dos resultados após o desmame depende fortemente da consolidação dos hábitos alimentares.',
+    })
+
+  if (a.q6 === 'no')
+    pts.push({
+      id: 'exercise',
+      text: 'Você ainda não possui uma rotina regular de atividade física. A prática de exercícios contribui para manutenção do peso e da massa muscular após a redução da medicação.',
+    })
+
+  return pts
+}
+
+// ─── Opção de resposta ────────────────────────────────────────────────
 function Option({ label, selected, onClick }: { label: string; selected: boolean; onClick: () => void }) {
   return (
     <button
@@ -86,9 +125,7 @@ function Option({ label, selected, onClick }: { label: string; selected: boolean
         outline: selected ? 'none' : '1px solid var(--border)',
       }}
     >
-      <span style={{ marginRight: '10px', fontSize: '16px' }}>
-        {selected ? '✓' : '○'}
-      </span>
+      <span style={{ marginRight: '10px', fontSize: '16px' }}>{selected ? '✓' : '○'}</span>
       {label}
     </button>
   )
@@ -116,11 +153,13 @@ export default function Weaning({ profile }: Props) {
     setAnswers({ q4: profile.currentDose as Answers['q4'] })
   }
 
-  const score = calcScore(answers)
-  const level = getLevel(score, answers)
-  const classif = LEVELS[level]
+  const score     = calcScore(answers)
+  const level     = getLevel(score, answers)
+  const classif   = LEVELS[level]
+  const attnPts   = getAttentionPoints(answers)
+  const hasRisk   = attnPts.length >= 2
 
-  // Regra 2: dose mínima + estabilidade > 60d + fome controlada
+  // Destaque especial: dose mínima + >60d + fome controlada
   const rule2 = answers.q4 === 2.5
     && answers.q2 === '>60'
     && (answers.q3 === 'controlled' || answers.q3 === 'very-controlled')
@@ -133,7 +172,7 @@ export default function Weaning({ profile }: Props) {
         <h2 style={{ fontSize: '18px', fontWeight: 800, color: 'var(--text-primary)' }}>
           Assistente de Desmame
         </h2>
-        <p style={{ color: 'var(--text-muted)', fontSize: '13px', marginTop: '4px', lineHeight: 1.5 }}>
+        <p style={{ color: 'var(--text-muted)', fontSize: '13px', marginTop: '4px' }}>
           Avaliação de prontidão — exclusivamente educativa
         </p>
       </div>
@@ -145,7 +184,7 @@ export default function Weaning({ profile }: Props) {
         </div>
       )}
 
-      {/* ── INTRO ───────────────────────────────────────────────────── */}
+      {/* ── INTRO ──────────────────────────────────────────────────── */}
       {phase === 'intro' && (
         <div className="fade-in" style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
           <div className="card" style={{
@@ -182,7 +221,7 @@ export default function Weaning({ profile }: Props) {
         </div>
       )}
 
-      {/* ── PERGUNTA 1 ───────────────────────────────────────────────── */}
+      {/* ── PERGUNTA 1 ─────────────────────────────────────────────── */}
       {phase === 'q1' && (
         <div className="fade-in" style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
           <div>
@@ -203,7 +242,7 @@ export default function Weaning({ profile }: Props) {
         </div>
       )}
 
-      {/* ── BLOQUEIO (respondeu NÃO na Q1) ─────────────────────────── */}
+      {/* ── BLOQUEIO ───────────────────────────────────────────────── */}
       {phase === 'blocked' && (
         <div className="fade-in" style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
           <div className="card" style={{
@@ -223,7 +262,7 @@ export default function Weaning({ profile }: Props) {
           </div>
           <div className="card-warning">
             <p style={{ fontSize: '12px', color: 'var(--warn-text)', lineHeight: 1.5 }}>
-              ⚕️ Esta ferramenta possui finalidade exclusivamente educativa e informativa. Os resultados não substituem avaliação médica. Qualquer ajuste de dose deve ser realizado com acompanhamento profissional.
+              ⚕️ Finalidade exclusivamente educativa. Não substitui avaliação médica.
             </p>
           </div>
           <button className="btn-ghost" style={{ width: '100%' }} onClick={restart}>
@@ -232,7 +271,7 @@ export default function Weaning({ profile }: Props) {
         </div>
       )}
 
-      {/* ── PERGUNTA 2 ───────────────────────────────────────────────── */}
+      {/* ── PERGUNTA 2 ─────────────────────────────────────────────── */}
       {phase === 'q2' && (
         <div className="fade-in" style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
           <div>
@@ -259,7 +298,7 @@ export default function Weaning({ profile }: Props) {
         </div>
       )}
 
-      {/* ── PERGUNTA 3 ───────────────────────────────────────────────── */}
+      {/* ── PERGUNTA 3 — FOME (mais importante) ────────────────────── */}
       {phase === 'q3' && (
         <div className="fade-in" style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
           <div>
@@ -269,9 +308,17 @@ export default function Weaning({ profile }: Props) {
             <p style={{ fontSize: '20px', fontWeight: 800, color: 'var(--text-primary)', lineHeight: 1.3 }}>
               Como está sua fome atualmente?
             </p>
-            <p style={{ fontSize: '12px', color: 'var(--primary)', fontWeight: 600, marginTop: '6px' }}>
-              ★ Esta é uma das perguntas mais importantes
-            </p>
+            <div style={{
+              marginTop: '8px', display: 'inline-flex', alignItems: 'center', gap: '6px',
+              padding: '5px 12px', borderRadius: '99px',
+              background: 'linear-gradient(135deg, var(--primary-light), var(--accent-light))',
+              border: '1px solid rgba(16,185,129,0.2)',
+            }}>
+              <span style={{ fontSize: '12px' }}>★</span>
+              <span style={{ fontSize: '11px', fontWeight: 700, color: 'var(--primary)' }}>
+                Variável mais importante desta avaliação
+              </span>
+            </div>
           </div>
           <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginTop: '4px' }}>
             {([
@@ -290,7 +337,7 @@ export default function Weaning({ profile }: Props) {
         </div>
       )}
 
-      {/* ── PERGUNTA 4 ───────────────────────────────────────────────── */}
+      {/* ── PERGUNTA 4 ─────────────────────────────────────────────── */}
       {phase === 'q4' && (
         <div className="fade-in" style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
           <div>
@@ -328,7 +375,7 @@ export default function Weaning({ profile }: Props) {
         </div>
       )}
 
-      {/* ── PERGUNTA 5 ───────────────────────────────────────────────── */}
+      {/* ── PERGUNTA 5 ─────────────────────────────────────────────── */}
       {phase === 'q5' && (
         <div className="fade-in" style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
           <div>
@@ -364,7 +411,7 @@ export default function Weaning({ profile }: Props) {
         </div>
       )}
 
-      {/* ── PERGUNTA 6 ───────────────────────────────────────────────── */}
+      {/* ── PERGUNTA 6 ─────────────────────────────────────────────── */}
       {phase === 'q6' && (
         <div className="fade-in" style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
           <div>
@@ -387,48 +434,88 @@ export default function Weaning({ profile }: Props) {
         </div>
       )}
 
-      {/* ── RESULTADO ───────────────────────────────────────────────── */}
+      {/* ── RESULTADO ──────────────────────────────────────────────── */}
       {phase === 'result' && (
         <div className="fade-in" style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
 
-          {/* Card de classificação */}
+          {/* Classificação principal */}
           <div className="card" style={{
-            background: classif.bg, border: `1.5px solid ${classif.border}`,
+            background: classif.bg,
+            border: `1.5px solid ${classif.border}`,
             padding: '1.5rem',
           }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '14px' }}>
-              <span style={{ fontSize: '40px' }}>{classif.emoji}</span>
+              <span style={{ fontSize: '38px' }}>{classif.emoji}</span>
               <div>
                 <p style={{ fontSize: '11px', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: '3px' }}>
                   Sua classificação
                 </p>
-                <p style={{ fontSize: '16px', fontWeight: 800, color: classif.color, lineHeight: 1.2 }}>
+                <p style={{ fontSize: '17px', fontWeight: 800, color: classif.color, lineHeight: 1.2 }}>
                   {classif.label}
                 </p>
               </div>
             </div>
+            {classif.message.split('\n\n').map((p, i) => (
+              <p key={i} style={{ fontSize: '14px', color: 'var(--text-primary)', lineHeight: 1.6, marginBottom: i < classif.message.split('\n\n').length - 1 ? '10px' : 0 }}>
+                {p}
+              </p>
+            ))}
+          </div>
 
-            {classif.bullets ? (
-              <div>
-                <p style={{ fontSize: '14px', color: 'var(--text-primary)', lineHeight: 1.6, marginBottom: '10px' }}>
-                  Você apresenta características frequentemente associadas a uma fase avançada de manutenção:
-                </p>
-                {classif.bullets.map(b => (
-                  <div key={b} style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '5px' }}>
-                    <span style={{ color: classif.color, fontWeight: 700, fontSize: '14px' }}>•</span>
-                    <span style={{ fontSize: '13px', color: 'var(--text-primary)', fontWeight: 600 }}>{b}</span>
-                  </div>
-                ))}
-                <p style={{ fontSize: '14px', color: 'var(--text-primary)', lineHeight: 1.6, marginTop: '10px' }}>
-                  Converse com seu médico sobre estratégias graduais de transição.
+          {/* Destaque especial — dose mínima + estabilidade + fome controlada */}
+          {rule2 && (
+            <div style={{
+              padding: '14px 16px', borderRadius: '14px',
+              background: 'linear-gradient(135deg, var(--primary-light), var(--accent-light))',
+              border: '1.5px solid rgba(16,185,129,0.3)',
+              display: 'flex', gap: '12px', alignItems: 'flex-start',
+            }}>
+              <span style={{ fontSize: '20px', flexShrink: 0 }}>✨</span>
+              <p style={{ fontSize: '13px', fontWeight: 600, color: 'var(--text-primary)', lineHeight: 1.6 }}>
+                Você já se encontra na menor dose disponível e apresenta sinais favoráveis de estabilidade.
+              </p>
+            </div>
+          )}
+
+          {/* Indicador de risco de reganho (2+ pontos de atenção) */}
+          {hasRisk && (
+            <div style={{
+              padding: '14px 16px', borderRadius: '14px',
+              background: 'rgba(239,68,68,0.07)',
+              border: '1.5px solid rgba(239,68,68,0.3)',
+            }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px' }}>
+                <span style={{ fontSize: '18px' }}>🔴</span>
+                <p style={{ fontSize: '13px', fontWeight: 800, color: '#EF4444', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+                  Risco aumentado de reganho
                 </p>
               </div>
-            ) : (
-              <p style={{ fontSize: '14px', color: 'var(--text-primary)', lineHeight: 1.6 }}>
-                {classif.message}
+              <p style={{ fontSize: '13px', color: 'var(--text-primary)', lineHeight: 1.6 }}>
+                Você apresenta fatores que podem aumentar a probabilidade de recuperação de peso após a redução da medicação.
+                Considere fortalecer esses pilares antes de avançar no processo de desmame.
               </p>
-            )}
-          </div>
+            </div>
+          )}
+
+          {/* Pontos de atenção */}
+          {attnPts.length > 0 && (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+              <p style={{ fontSize: '12px', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
+                Pontos de atenção
+              </p>
+              {attnPts.map(pt => (
+                <div key={pt.id} style={{
+                  padding: '12px 14px', borderRadius: '12px',
+                  background: 'rgba(245,158,11,0.07)',
+                  border: '1px solid rgba(245,158,11,0.22)',
+                  display: 'flex', gap: '10px', alignItems: 'flex-start',
+                }}>
+                  <span style={{ fontSize: '14px', flexShrink: 0, marginTop: '1px' }}>⚠</span>
+                  <p style={{ fontSize: '13px', color: 'var(--text-primary)', lineHeight: 1.6 }}>{pt.text}</p>
+                </div>
+              ))}
+            </div>
+          )}
 
           {/* Pontuação */}
           <div className="card" style={{ padding: '1rem 1.25rem' }}>
@@ -448,23 +535,7 @@ export default function Weaning({ profile }: Props) {
             </div>
           </div>
 
-          {/* Regra 2 — dose mínima + estabilidade + fome controlada */}
-          {rule2 && (
-            <div className="card" style={{
-              background: 'linear-gradient(135deg, var(--primary-light), var(--accent-light))',
-              border: '1.5px solid rgba(16,185,129,0.25)',
-              padding: '1rem 1.25rem',
-            }}>
-              <p style={{ fontSize: '13px', fontWeight: 700, color: 'var(--primary)', marginBottom: '4px' }}>
-                ✨ Observação especial
-              </p>
-              <p style={{ fontSize: '13px', color: 'var(--text-primary)', lineHeight: 1.6 }}>
-                Você já se encontra na menor dose disponível e apresenta sinais favoráveis de estabilidade.
-              </p>
-            </div>
-          )}
-
-          {/* Regra 3 — lembrete sempre visível */}
+          {/* Não force velocidade */}
           <div style={{
             padding: '12px 14px', borderRadius: '12px', textAlign: 'center',
             background: 'var(--surface-2)', border: '1px solid var(--border)',
@@ -477,7 +548,7 @@ export default function Weaning({ profile }: Props) {
           {/* Aviso legal */}
           <div className="card-warning">
             <p style={{ fontSize: '12px', color: 'var(--warn-text)', lineHeight: 1.6 }}>
-              ⚕️ Esta ferramenta possui finalidade exclusivamente educativa e informativa. Os resultados não substituem avaliação médica. Qualquer ajuste de dose deve ser realizado com acompanhamento profissional.
+              ⚕️ Esta ferramenta possui finalidade exclusivamente educativa. Os resultados não substituem avaliação médica. Qualquer ajuste de dose deve ser realizado com acompanhamento profissional.
             </p>
           </div>
 
