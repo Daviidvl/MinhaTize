@@ -1,5 +1,4 @@
 interface Props { isDark: boolean; onToggle: () => void }
-
 export default function DarkModeToggle({ isDark, onToggle }: Props) {
   return (
     <button
