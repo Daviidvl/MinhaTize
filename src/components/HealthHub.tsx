@@ -9,7 +9,7 @@ interface Props {
   onUpdateProfile: (p: UserProfile) => void
 }
 
-type HealthTab = 'symptoms' | 'food' | 'exercise' | 'weaning'
+type HealthTab = 'symptoms' | 'food' | 'exercise' | 'weaning' | 'supplementation'
 
 // ── Symptom tips mapping ──────────────────────────────────────────────────────
 const SYMPTOM_TIPS: Record<string, { emoji: string; title: string; tips: string[] }> = {
@@ -178,6 +178,66 @@ const WEEKLY_SCHEDULE = [
   { day: 'Dom', activity: '😌', label: 'Repouso', color: 'var(--text-muted)', bg: 'var(--surface-2)'  },
 ]
 
+// ── Supplementation levels ────────────────────────────────────────────────────
+const SUPP_LEVELS = [
+  {
+    level: 1,
+    title: 'Essenciais',
+    subtitle: 'Quase todo paciente',
+    gradient: 'linear-gradient(135deg, #059669 0%, #10B981 100%)',
+    bg: 'rgba(5,150,105,0.06)',
+    border: 'rgba(5,150,105,0.2)',
+    badgeBg: 'rgba(5,150,105,0.12)',
+    badgeColor: '#059669',
+    iconBg: 'rgba(5,150,105,0.1)',
+    iconColor: '#059669',
+    items: [
+      { icon: '🥩', name: 'Proteína Adequada',  detail: 'Whey, caseína ou fontes alimentares — 1,2–1,6g/kg' },
+      { icon: '⚡', name: 'Creatina',           detail: '3–5g/dia — preserva e aumenta massa muscular' },
+      { icon: '💊', name: 'Multivitamínico',    detail: 'Suporte geral de micronutrientes na restrição calórica' },
+      { icon: '🌙', name: 'Magnésio',           detail: 'Qualidade do sono, cãibras e função muscular' },
+    ],
+    note: 'Esses são os suplementos mais frequentemente utilizados para ajudar na manutenção da massa magra, recuperação muscular e suporte nutricional durante o processo de emagrecimento.',
+  },
+  {
+    level: 2,
+    title: 'Importantes',
+    subtitle: 'Guiados por exames',
+    gradient: 'linear-gradient(135deg, #D97706 0%, #F59E0B 100%)',
+    bg: 'rgba(217,119,6,0.06)',
+    border: 'rgba(217,119,6,0.2)',
+    badgeBg: 'rgba(217,119,6,0.12)',
+    badgeColor: '#D97706',
+    iconBg: 'rgba(217,119,6,0.1)',
+    iconColor: '#D97706',
+    items: [
+      { icon: '☀️', name: 'Vitamina D',  detail: 'Essencial para imunidade, ossos e humor' },
+      { icon: '🔴', name: 'Vitamina B12', detail: 'Produção de energia e saúde neurológica' },
+      { icon: '🩸', name: 'Ferro',       detail: 'Prevenção de anemia, especialmente em mulheres' },
+      { icon: '🔧', name: 'Zinco',       detail: 'Sistema imune, cicatrização e metabolismo' },
+    ],
+    note: 'Esses nutrientes idealmente devem ser avaliados através de exames laboratoriais antes da utilização.',
+  },
+  {
+    level: 3,
+    title: 'Opcionais / Estéticos',
+    subtitle: 'Conforme prioridade e orçamento',
+    gradient: 'linear-gradient(135deg, #7C3AED 0%, #6D28D9 100%)',
+    bg: 'rgba(124,58,237,0.05)',
+    border: 'rgba(124,58,237,0.2)',
+    badgeBg: 'rgba(124,58,237,0.1)',
+    badgeColor: '#7C3AED',
+    iconBg: 'rgba(124,58,237,0.1)',
+    iconColor: '#7C3AED',
+    items: [
+      { icon: '🐟', name: 'Ômega 3',              detail: 'Anti-inflamatório e saúde cardiovascular' },
+      { icon: '✨', name: 'Colágeno Hidrolisado',  detail: 'Pele, articulações e tecido conjuntivo' },
+      { icon: '💅', name: 'Biotina',               detail: 'Cabelo, pele e unhas' },
+    ],
+    note: 'Podem ser utilizados em situações específicas, mas normalmente não possuem prioridade maior que os itens dos níveis anteriores.',
+  },
+]
+
 function getMondayOf(d: Date) {
   const date = new Date(d)
   const day  = date.getDay()
@@ -230,6 +290,15 @@ const SECTION_CARDS: {
     gradient: 'linear-gradient(135deg, #2563EB 0%, #4F46E5 100%)',
     shadow: '0 8px 24px rgba(37,99,235,0.28)',
     accentColor: '#2563EB',
+  },
+  {
+    id: 'supplementation',
+    icon: '💊',
+    title: 'Suplementação',
+    subtitle: 'O que priorizar durante o tratamento',
+    gradient: 'linear-gradient(135deg, #0F766E 0%, #059669 100%)',
+    shadow: '0 8px 24px rgba(15,118,110,0.28)',
+    accentColor: '#0F766E',
   },
 ]
 
@@ -523,6 +592,92 @@ export default function HealthHub({ profile, onUpdateProfile }: Props) {
           {activeSection === 'weaning' && (
             <Weaning profile={profile} />
           )}
+
+          {/* ── SUPLEMENTAÇÃO ──────────────────────────────────────────── */}
+          {activeSection === 'supplementation' && (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+
+              {SUPP_LEVELS.map(lvl => (
+                <div key={lvl.level} style={{
+                  borderRadius: '20px', overflow: 'hidden',
+                  border: `1.5px solid ${lvl.border}`,
+                  background: 'var(--surface)',
+                  boxShadow: 'var(--shadow-card)',
+                }}>
+                  {/* Level header */}
+                  <div style={{
+                    background: lvl.gradient,
+                    padding: '14px 16px',
+                    display: 'flex', alignItems: 'center', gap: '10px',
+                  }}>
+                    <div style={{
+                      width: '28px', height: '28px', borderRadius: '8px', flexShrink: 0,
+                      background: 'rgba(255,255,255,0.25)',
+                      display: 'flex', alignItems: 'center', justifyContent: 'center',
+                      fontSize: '12px', fontWeight: 800, color: '#fff',
+                    }}>
+                      {lvl.level}
+                    </div>
+                    <div>
+                      <p style={{ fontWeight: 800, fontSize: '15px', color: '#fff', margin: 0, lineHeight: 1.2 }}>
+                        {lvl.title}
+                      </p>
+                      <p style={{ fontSize: '11px', color: 'rgba(255,255,255,0.75)', margin: 0, marginTop: '2px' }}>
+                        {lvl.subtitle}
+                      </p>
+                    </div>
+                  </div>
+
+                  {/* Items */}
+                  <div style={{ padding: '12px 14px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                    {lvl.items.map((item, i) => (
+                      <div key={i} style={{
+                        display: 'flex', alignItems: 'flex-start', gap: '11px',
+                        padding: '10px 12px', borderRadius: '12px',
+                        background: lvl.bg,
+                        border: `1px solid ${lvl.border}`,
+                      }}>
+                        <div style={{
+                          width: '36px', height: '36px', borderRadius: '10px', flexShrink: 0,
+                          background: lvl.iconBg,
+                          display: 'flex', alignItems: 'center', justifyContent: 'center',
+                          fontSize: '18px',
+                        }}>
+                          {item.icon}
+                        </div>
+                        <div style={{ flex: 1, minWidth: 0 }}>
+                          <p style={{ fontWeight: 800, fontSize: '13px', color: 'var(--text-primary)', margin: 0 }}>
+                            {item.name}
+                          </p>
+                          <p style={{ fontSize: '11px', color: 'var(--text-muted)', margin: 0, marginTop: '3px', lineHeight: 1.4 }}>
+                            {item.detail}
+                          </p>
+                        </div>
+                      </div>
+                    ))}
+
+                    {/* Support text */}
+                    <div style={{
+                      display: 'flex', gap: '8px', alignItems: 'flex-start',
+                      padding: '10px 12px', borderRadius: '10px',
+                      background: 'var(--surface-2)',
+                    }}>
+                      <span style={{ fontSize: '14px', flexShrink: 0, marginTop: '1px' }}>💡</span>
+                      <p style={{ fontSize: '11px', color: 'var(--text-muted)', lineHeight: 1.5, margin: 0 }}>
+                        {lvl.note}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              ))}
+
+              <div className="card-warning">
+                <p style={{ fontSize: '11px', color: 'var(--warn-text)', lineHeight: 1.5 }}>
+                  ⚕️ Esta seção possui caráter educativo e não substitui orientação médica ou nutricional. A necessidade de suplementação deve ser avaliada individualmente.
+                </p>
+              </div>
+            </div>
+          )}
         </div>
       </div>
     )
@@ -570,67 +725,82 @@ export default function HealthHub({ profile, onUpdateProfile }: Props) {
         <span style={{ fontSize: '12px', color: 'var(--text-muted)', fontWeight: 700 }}>Ver →</span>
       </button>
 
-      {/* 2×2 Card grid */}
+      {/* Card grid: 2×2 + last card full width */}
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
-        {SECTION_CARDS.map(card => (
-          <button
-            key={card.id}
-            onClick={() => setActiveSection(card.id)}
-            style={{
-              background: card.gradient,
-              borderRadius: '20px',
-              padding: '20px 16px 18px',
-              border: 'none',
-              cursor: 'pointer',
-              textAlign: 'left',
-              boxShadow: card.shadow,
-              display: 'flex',
-              flexDirection: 'column',
-              gap: '10px',
-              minHeight: '130px',
-              fontFamily: "'Plus Jakarta Sans', sans-serif",
-              transition: 'transform 0.15s ease, box-shadow 0.15s ease',
-              position: 'relative',
-              overflow: 'hidden',
-            }}
-            onMouseDown={e => (e.currentTarget.style.transform = 'scale(0.97)')}
-            onMouseUp={e => (e.currentTarget.style.transform = 'scale(1)')}
-            onTouchStart={e => (e.currentTarget.style.transform = 'scale(0.97)')}
-            onTouchEnd={e => (e.currentTarget.style.transform = 'scale(1)')}
-          >
-            {/* Decorative circle */}
-            <div style={{
-              position: 'absolute', top: '-18px', right: '-18px',
-              width: '80px', height: '80px', borderRadius: '50%',
-              background: 'rgba(255,255,255,0.1)',
-              pointerEvents: 'none',
-            }} />
+        {SECTION_CARDS.map(card => {
+          const isWide = card.id === 'supplementation'
+          return (
+            <button
+              key={card.id}
+              onClick={() => setActiveSection(card.id)}
+              style={{
+                gridColumn: isWide ? '1 / -1' : undefined,
+                background: card.gradient,
+                borderRadius: '20px',
+                padding: isWide ? '18px 20px' : '20px 16px 18px',
+                border: 'none',
+                cursor: 'pointer',
+                textAlign: 'left',
+                boxShadow: card.shadow,
+                display: 'flex',
+                flexDirection: isWide ? 'row' : 'column',
+                alignItems: isWide ? 'center' : undefined,
+                gap: isWide ? '16px' : '10px',
+                minHeight: isWide ? '72px' : '130px',
+                fontFamily: "'Plus Jakarta Sans', sans-serif",
+                transition: 'transform 0.15s ease, box-shadow 0.15s ease',
+                position: 'relative',
+                overflow: 'hidden',
+              }}
+              onMouseDown={e => (e.currentTarget.style.transform = 'scale(0.97)')}
+              onMouseUp={e => (e.currentTarget.style.transform = 'scale(1)')}
+              onTouchStart={e => (e.currentTarget.style.transform = 'scale(0.97)')}
+              onTouchEnd={e => (e.currentTarget.style.transform = 'scale(1)')}
+            >
+              {/* Decorative circle */}
+              <div style={{
+                position: 'absolute', top: '-18px', right: '-18px',
+                width: isWide ? '100px' : '80px', height: isWide ? '100px' : '80px',
+                borderRadius: '50%', background: 'rgba(255,255,255,0.1)',
+                pointerEvents: 'none',
+              }} />
 
-            <span style={{ fontSize: '32px', lineHeight: 1, display: 'block' }}>{card.icon}</span>
-
-            <div>
-              <p style={{ fontSize: '15px', fontWeight: 800, color: '#fff', margin: 0, letterSpacing: '-0.2px' }}>
-                {card.title}
-              </p>
-              <p style={{ fontSize: '10px', color: 'rgba(255,255,255,0.72)', margin: 0, marginTop: '4px', lineHeight: 1.4 }}>
-                {card.subtitle}
-              </p>
-            </div>
-
-            {/* Sintomas card: show live badge */}
-            {card.id === 'symptoms' && activeSymptoms.length > 0 && (
               <span style={{
-                display: 'inline-flex', alignItems: 'center', gap: '4px',
-                padding: '3px 8px', borderRadius: '99px',
-                background: 'rgba(255,255,255,0.2)',
-                fontSize: '10px', fontWeight: 700, color: '#fff',
-                alignSelf: 'flex-start',
+                fontSize: isWide ? '28px' : '32px',
+                lineHeight: 1, display: 'block', flexShrink: 0,
               }}>
-                {symptomBadge.dot} {symptomBadge.label}
+                {card.icon}
               </span>
-            )}
-          </button>
-        ))}
+
+              <div style={{ flex: isWide ? 1 : undefined, minWidth: 0 }}>
+                <p style={{ fontSize: isWide ? '14px' : '15px', fontWeight: 800, color: '#fff', margin: 0, letterSpacing: '-0.2px' }}>
+                  {card.title}
+                </p>
+                <p style={{ fontSize: '10px', color: 'rgba(255,255,255,0.72)', margin: 0, marginTop: '4px', lineHeight: 1.4 }}>
+                  {card.subtitle}
+                </p>
+              </div>
+
+              {/* Sintomas card: show live badge */}
+              {card.id === 'symptoms' && activeSymptoms.length > 0 && (
+                <span style={{
+                  display: 'inline-flex', alignItems: 'center', gap: '4px',
+                  padding: '3px 8px', borderRadius: '99px',
+                  background: 'rgba(255,255,255,0.2)',
+                  fontSize: '10px', fontWeight: 700, color: '#fff',
+                  alignSelf: 'flex-start',
+                }}>
+                  {symptomBadge.dot} {symptomBadge.label}
+                </span>
+              )}
+
+              {/* Supplementation: right arrow */}
+              {isWide && (
+                <span style={{ fontSize: '14px', color: 'rgba(255,255,255,0.7)', flexShrink: 0 }}>→</span>
+              )}
+            </button>
+          )
+        })}
       </div>
     </div>
   )

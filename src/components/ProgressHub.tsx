@@ -1,16 +1,18 @@
 import { useState } from 'react'
 import { UserProfile, WeightEntry } from '../types'
+import AntiPlato from './AntiPlato'
 
 interface Props {
   profile: UserProfile
   onUpdateProfile: (p: UserProfile) => void
 }
 
-type InnerTab = 'evolution' | 'summary'
+type InnerTab = 'evolution' | 'summary' | 'antiplato'
 
 const TABS: { id: InnerTab; label: string }[] = [
-  { id: 'evolution', label: '📈 Evolução' },
-  { id: 'summary',   label: '📋 Resumo'   },
+  { id: 'evolution', label: '📈 Evolução'   },
+  { id: 'summary',   label: '📋 Resumo'     },
+  { id: 'antiplato', label: '🚧 Anti-Platô' },
 ]
 
 function calcIMC(w: number, h: number) {
@@ -360,6 +362,10 @@ export default function ProgressHub({ profile, onUpdateProfile }: Props) {
 
           </div>
         )}
+
+        {/* ── ANTI-PLATÔ ── */}
+        {tab === 'antiplato' && <AntiPlato />}
+
       </div>
     </div>
   )

@@ -411,57 +411,6 @@ const EXAMS: ExamDef[] = [
   },
 ]
 
-// ── Print HTML generator ─────────────────────────────────────────────────────
-function generatePrintHTML(): string {
-  const today = new Date().toLocaleDateString('pt-BR', { day: '2-digit', month: 'long', year: 'numeric' })
-
-  const sections = CATEGORIES.map(cat => {
-    const catExams = EXAMS.filter(e => e.category === cat.id)
-    const rows = catExams.map(exam => {
-      const ref = typeof exam.refDisplay === 'function'
-        ? `F: ${exam.refDisplay('female')} · M: ${exam.refDisplay('male')}`
-        : exam.refDisplay
-      return `<tr><td>${exam.name}</td><td>${exam.unit || '—'}</td><td>${ref}</td></tr>`
-    }).join('')
-    return `
-      <h2>${cat.icon} ${cat.title}</h2>
-      <table>
-        <thead><tr><th>Exame</th><th>Unidade</th><th>Referência (plataforma)</th></tr></thead>
-        <tbody>${rows}</tbody>
-      </table>`
-  }).join('')
-
-  return `<!DOCTYPE html>
-<html lang="pt-BR">
-<head>
-  <meta charset="UTF-8">
-  <title>Lista de Exames — Minha Tize</title>
-  <style>
-    *{box-sizing:border-box}
-    body{font-family:'Segoe UI',Arial,sans-serif;max-width:800px;margin:0 auto;padding:24px;color:#111;line-height:1.5}
-    h1{color:#059669;font-size:22px;margin-bottom:2px}
-    .sub{color:#6b7280;font-size:12px;margin-bottom:28px}
-    h2{color:#374151;font-size:15px;border-bottom:2px solid #e5e7eb;padding-bottom:5px;margin-top:24px;margin-bottom:10px}
-    table{width:100%;border-collapse:collapse;margin-bottom:4px;font-size:12px}
-    thead tr{background:#f0fdf4}
-    th{text-align:left;padding:7px 10px;font-size:10px;color:#374151;text-transform:uppercase;letter-spacing:.05em;font-weight:700}
-    td{padding:6px 10px;border-bottom:1px solid #f3f4f6}
-    tr:last-child td{border-bottom:none}
-    .disc{font-size:11px;color:#6b7280;border-top:2px solid #e5e7eb;padding-top:14px;margin-top:28px;line-height:1.6}
-    @media print{body{padding:12px}h2{page-break-before:auto}table{page-break-inside:avoid}}
-  </style>
-</head>
-<body>
-  <h1>🧪 Minha Tize — Lista de Exames</h1>
-  <p class="sub">Gerado em ${today} · Leve ao seu médico, nutricionista ou laboratório</p>
-  ${sections}
-  <div class="disc">
-    <strong>Aviso importante:</strong> A Minha Tize não substitui avaliação médica. Os valores de referência são gerais, baseados em literatura científica, e podem variar entre laboratórios, métodos analíticos, equipamentos, sexo, idade e contexto clínico. Sempre que houver divergência entre a plataforma e o laudo laboratorial, prevalece o valor de referência informado pelo laboratório. Esta plataforma fornece apenas orientação educativa — não realiza diagnóstico, não sugere tratamento, não sugere medicamentos e não sugere suplementação específica.
-  </div>
-</body>
-</html>`
-}
-
 // ── Status helpers ───────────────────────────────────────────────────────────
 const STATUS_LABEL: Record<ExamStatus, string> = { normal: '✓ Normal', low: '↓ Baixo', high: '↑ Alto' }
 
@@ -549,9 +498,84 @@ export default function Laboratory({ profile, onUpdateProfile }: Props) {
 
   // ── Download ─────────────────────────────────────────────────────────────
   function downloadList() {
+    const today = new Date().toLocaleDateString('pt-BR', { day: '2-digit', month: 'long', year: 'numeric' })
+
+    const statusColor: Record<ExamStatus, string> = {
+      normal: '#059669', low: '#B45309', high: '#DC2626',
+    }
+    const statusLabel: Record<ExamStatus, string> = {
+      normal: '✓ Normal', low: '↓ Baixo', high: '↑ Alto',
+    }
+
+    const sections = CATEGORIES.map(cat => {
+      const catExams = EXAMS.filter(e => e.category === cat.id)
+      const rows = catExams.map(exam => {
+        const ref = typeof exam.refDisplay === 'function'
+          ? (sex
+              ? exam.refDisplay(sex)
+              : `F: ${exam.refDisplay('female')} · M: ${exam.refDisplay('male')}`)
+          : exam.refDisplay
+        const raw    = inputs[exam.id]
+        const value  = raw ? parseFloat(raw) : null
+        const status = value !== null ? exam.getStatus(value, sex) : null
+        const valueCell = value !== null
+          ? `<span style="font-weight:700;color:${statusColor[status!]}">${raw} ${exam.unit}</span>`
+          : `<span style="color:#9ca3af">—</span>`
+        const statusCell = status !== null
+          ? `<span style="font-weight:700;color:${statusColor[status]}">${statusLabel[status]}</span>`
+          : `<span style="color:#d1d5db">—</span>`
+        return `<tr>
+          <td>${exam.name}</td>
+          <td>${valueCell}</td>
+          <td>${ref}</td>
+          <td>${statusCell}</td>
+        </tr>`
+      }).join('')
+
+      return `
+        <h2>${cat.icon} ${cat.title}</h2>
+        <table>
+          <thead><tr><th>Exame</th><th>Resultado</th><th>Referência (plataforma)</th><th>Status</th></tr></thead>
+          <tbody>${rows}</tbody>
+        </table>`
+    }).join('')
+
+    const filledCount = Object.values(inputs).filter(v => v !== '').length
+
+    const html = `<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <title>Resultados de Exames — Minha Tize</title>
+  <style>
+    *{box-sizing:border-box}
+    body{font-family:'Segoe UI',Arial,sans-serif;max-width:820px;margin:0 auto;padding:24px;color:#111;line-height:1.5}
+    h1{color:#059669;font-size:22px;margin-bottom:2px}
+    .sub{color:#6b7280;font-size:12px;margin-bottom:28px}
+    h2{color:#374151;font-size:15px;border-bottom:2px solid #e5e7eb;padding-bottom:5px;margin-top:24px;margin-bottom:10px}
+    table{width:100%;border-collapse:collapse;margin-bottom:4px;font-size:12px}
+    thead tr{background:#f0fdf4}
+    th{text-align:left;padding:7px 10px;font-size:10px;color:#374151;text-transform:uppercase;letter-spacing:.05em;font-weight:700}
+    td{padding:7px 10px;border-bottom:1px solid #f3f4f6;vertical-align:middle}
+    tr:last-child td{border-bottom:none}
+    tr:hover td{background:#fafafa}
+    .disc{font-size:11px;color:#6b7280;border-top:2px solid #e5e7eb;padding-top:14px;margin-top:28px;line-height:1.6}
+    @media print{body{padding:12px}h2{page-break-before:auto}table{page-break-inside:avoid}}
+  </style>
+</head>
+<body>
+  <h1>🧪 Minha Tize — Resultados de Exames</h1>
+  <p class="sub">Gerado em ${today} · ${filledCount} exame${filledCount !== 1 ? 's' : ''} preenchido${filledCount !== 1 ? 's' : ''} · Leve ao seu médico, nutricionista ou laboratório</p>
+  ${sections}
+  <div class="disc">
+    <strong>Aviso importante:</strong> A Minha Tize não substitui avaliação médica. Os valores de referência são gerais, baseados em literatura científica, e podem variar entre laboratórios, métodos analíticos, equipamentos, sexo, idade e contexto clínico. Sempre que houver divergência entre a plataforma e o laudo laboratorial, prevalece o valor de referência informado pelo laboratório. Esta plataforma fornece apenas orientação educativa — não realiza diagnóstico, não sugere tratamento, não sugere medicamentos e não sugere suplementação específica.
+  </div>
+</body>
+</html>`
+
     const win = window.open('', '_blank')
     if (win) {
-      win.document.write(generatePrintHTML())
+      win.document.write(html)
       win.document.close()
     }
   }
