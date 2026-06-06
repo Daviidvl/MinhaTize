@@ -1,18 +1,16 @@
 import { useState } from 'react'
 import { UserProfile, WeightEntry } from '../types'
-import AntiPlato from './AntiPlato'
 
 interface Props {
   profile: UserProfile
   onUpdateProfile: (p: UserProfile) => void
 }
 
-type InnerTab = 'evolution' | 'summary' | 'antiplato'
+type InnerTab = 'evolution' | 'summary'
 
 const TABS: { id: InnerTab; label: string }[] = [
-  { id: 'evolution', label: '📈 Evolução'   },
-  { id: 'summary',   label: '📋 Resumo'     },
-  { id: 'antiplato', label: '🚧 Anti-Platô' },
+  { id: 'evolution', label: '📈 Evolução' },
+  { id: 'summary',   label: '📋 Resumo'   },
 ]
 
 function calcIMC(w: number, h: number) {
@@ -74,7 +72,7 @@ export default function ProgressHub({ profile, onUpdateProfile }: Props) {
       <div>
         <h2 style={{ fontSize: '20px', fontWeight: 800, color: 'var(--text-primary)', margin: 0 }}>Progresso</h2>
         <p style={{ color: 'var(--text-muted)', fontSize: '13px', marginTop: '4px' }}>
-          Evolução, sintomas e resumo do protocolo
+          Evolução e resumo do protocolo
         </p>
       </div>
 
@@ -196,16 +194,28 @@ export default function ProgressHub({ profile, onUpdateProfile }: Props) {
                   type="number" className="input-field" placeholder="Ex: 84.5"
                   style={{ flex: 1 }}
                   value={newWeight} onChange={e => setNewWeight(e.target.value)}
-                  min={20} max={300} step={0.1}
+                  min={20} max={300} step={0.1} inputMode="decimal"
                 />
-                <button
-                  className="btn-primary"
-                  style={{ flexShrink: 0, padding: '0 20px', opacity: newWeight ? 1 : 0.5 }}
-                  onClick={addWeight} disabled={!newWeight}
-                >
-                  {weightSaved ? '✓' : 'Salvar'}
-                </button>
+                {(() => {
+                  const n = parseFloat(newWeight)
+                  const valid = !!newWeight && !isNaN(n) && n >= 20 && n <= 300
+                  return (
+                    <button
+                      className="btn-primary"
+                      style={{ flexShrink: 0, padding: '0 20px', opacity: valid ? 1 : 0.4 }}
+                      onClick={addWeight} disabled={!valid}
+                    >
+                      {weightSaved ? '✓' : 'Salvar'}
+                    </button>
+                  )
+                })()}
               </div>
+              {newWeight && (() => {
+                const n = parseFloat(newWeight)
+                if (isNaN(n) || n < 20 || n > 300)
+                  return <p style={{ fontSize: '11px', color: '#EF4444', margin: 0 }}>Informe um peso entre 20 e 300 kg</p>
+                return null
+              })()}
             </div>
 
             {/* Histórico */}
@@ -362,9 +372,6 @@ export default function ProgressHub({ profile, onUpdateProfile }: Props) {
 
           </div>
         )}
-
-        {/* ── ANTI-PLATÔ ── */}
-        {tab === 'antiplato' && <AntiPlato />}
 
       </div>
     </div>

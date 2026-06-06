@@ -66,7 +66,7 @@ export default function Dashboard({ profile, onNavigate, onUpdateProfile }: Prop
 
   // Estoque: calcular aplicações restantes
   const stock     = profile.stock
-  const appsLeft  = stock
+  const appsLeft  = stock && profile.currentDose > 0
     ? Math.floor(stock.amouleMg / profile.currentDose) * stock.ampouleCount
     : null
   const stockLow  = appsLeft != null && appsLeft < 4

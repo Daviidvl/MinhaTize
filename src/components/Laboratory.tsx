@@ -667,19 +667,45 @@ export default function Laboratory({ profile, onUpdateProfile }: Props) {
       {innerTab === 'exams' && (
         <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
 
-          {/* Download button */}
-          <button
-            onClick={downloadList}
-            style={{
-              width: '100%', padding: '13px', borderRadius: '13px',
-              border: '1.5px solid var(--primary)', background: 'var(--primary-light)',
-              color: 'var(--primary)', fontWeight: 700, fontSize: '13px', cursor: 'pointer',
-              fontFamily: "'Plus Jakarta Sans', sans-serif",
-              display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px',
-            }}
-          >
-            📄 Baixar Lista Completa de Exames
-          </button>
+          {/* Download — only when all exams filled */}
+          {(() => {
+            const filled = EXAMS.filter(e => inputs[e.id] && inputs[e.id] !== '').length
+            const total  = EXAMS.length
+            const allDone = filled === total
+            return allDone ? (
+              <button
+                onClick={downloadList}
+                className="btn-primary"
+                style={{ width: '100%' }}
+              >
+                📄 Baixar PDF com Resultados
+              </button>
+            ) : (
+              <div style={{
+                padding: '14px 16px', borderRadius: '14px',
+                background: 'var(--surface-2)', border: '1.5px solid var(--border)',
+                display: 'flex', flexDirection: 'column', gap: '10px',
+              }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <p style={{ fontWeight: 700, fontSize: '13px', color: 'var(--text-primary)', margin: 0 }}>
+                    📄 Baixar PDF com Resultados
+                  </p>
+                  <span style={{ fontSize: '12px', fontWeight: 800, color: 'var(--primary)' }}>
+                    {filled}/{total}
+                  </span>
+                </div>
+                <div style={{ height: '6px', borderRadius: '99px', background: 'var(--surface-3)', overflow: 'hidden' }}>
+                  <div style={{
+                    height: '100%', borderRadius: '99px', background: 'var(--primary)',
+                    width: `${(filled / total) * 100}%`, transition: 'width 0.3s ease',
+                  }} />
+                </div>
+                <p style={{ fontSize: '11px', color: 'var(--text-muted)', margin: 0 }}>
+                  Preencha todos os {total} exames para liberar o PDF
+                </p>
+              </div>
+            )
+          })()}
 
           {/* Disclaimer */}
           <div className="card-warning">
@@ -772,6 +798,7 @@ export default function Laboratory({ profile, onUpdateProfile }: Props) {
                               placeholder={exam.unit ? `Valor em ${exam.unit}` : 'Valor'}
                               value={val}
                               step={exam.step ?? 0.1}
+                              inputMode="decimal"
                               onChange={e => setInputs(p => ({ ...p, [exam.id]: e.target.value }))}
                               onBlur={e  => commitValue(exam.id, e.target.value)}
                               style={{ flex: 1 }}
