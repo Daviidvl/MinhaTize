@@ -33,6 +33,7 @@ coverage
 .cache
 .vercel
 .env*
+tsconfig.tsbuildinfo
 
 # Claude Code internal files
 .agents/
