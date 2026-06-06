@@ -194,6 +194,72 @@ export default function Dashboard({ profile, onNavigate, onUpdateProfile }: Prop
         </div>
       )}
 
+      {/* Indicador de estoque */}
+      <button
+        onClick={() => onNavigate('profile')}
+        style={{ background: 'none', border: 'none', padding: 0, cursor: 'pointer', textAlign: 'left', width: '100%' }}
+      >
+        <div style={{
+          borderRadius: '20px', padding: '16px 20px',
+          background: stockLow
+            ? 'linear-gradient(135deg, #DC2626 0%, #991B1B 100%)'
+            : appsLeft != null
+              ? 'linear-gradient(135deg, #92400E 0%, #78350F 100%)'
+              : 'var(--surface-2)',
+          boxShadow: stockLow
+            ? '0 4px 20px rgba(220,38,38,0.28)'
+            : appsLeft != null
+              ? '0 4px 20px rgba(120,53,15,0.32)'
+              : 'var(--shadow-card)',
+          border: appsLeft == null ? '1.5px dashed var(--border-strong)' : 'none',
+          position: 'relative', overflow: 'hidden',
+        }}>
+          {appsLeft != null && (
+            <div style={{
+              position: 'absolute', top: '-20px', right: '-20px',
+              width: '90px', height: '90px', borderRadius: '50%',
+              background: 'rgba(255,255,255,0.08)', pointerEvents: 'none',
+            }} />
+          )}
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '12px' }}>
+            <div style={{ minWidth: 0 }}>
+              <p style={{
+                fontSize: '10px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em',
+                margin: 0, marginBottom: '6px',
+                color: appsLeft != null ? 'rgba(255,255,255,0.6)' : 'var(--text-muted)',
+              }}>
+                Estoque · toque para gerenciar
+              </p>
+              {appsLeft != null ? (
+                <>
+                  <p style={{ fontSize: '34px', fontWeight: 800, lineHeight: 1, letterSpacing: '-1.5px', color: '#fff', margin: 0 }}>
+                    {appsLeft}
+                    <span style={{ fontSize: '14px', fontWeight: 600, opacity: 0.8, marginLeft: '5px' }}>
+                      {appsLeft === 1 ? 'aplicação' : 'aplicações'}
+                    </span>
+                  </p>
+                  <p style={{ fontSize: '11px', color: 'rgba(255,255,255,0.7)', fontWeight: 600, margin: 0, marginTop: '5px' }}>
+                    ~{Math.round(appsLeft / 4)} {Math.round(appsLeft / 4) === 1 ? 'mês' : 'meses'} de tratamento
+                    {stockLow ? ' · ⚠️ Repor em breve' : ''}
+                  </p>
+                </>
+              ) : (
+                <p style={{ fontSize: '14px', fontWeight: 600, color: 'var(--text-muted)', margin: 0 }}>
+                  Configure o controle de estoque
+                </p>
+              )}
+            </div>
+            <span style={{
+              fontSize: '38px', flexShrink: 0,
+              opacity: appsLeft != null ? 1 : 0.35,
+              filter: appsLeft != null ? 'drop-shadow(0 2px 6px rgba(0,0,0,0.25))' : 'none',
+            }}>
+              📦
+            </span>
+          </div>
+        </div>
+      </button>
+
       {/* Stats compactas */}
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
         <div className="stat-card">
@@ -250,39 +316,6 @@ export default function Dashboard({ profile, onNavigate, onUpdateProfile }: Prop
         </div>
       </div>
 
-      {/* Indicador de estoque — aplicações restantes */}
-      <button
-        onClick={() => onNavigate('profile')}
-        style={{ width: '100%', background: 'none', border: 'none', cursor: 'pointer', padding: 0, textAlign: 'left' }}
-      >
-        <div style={{
-          display: 'flex', alignItems: 'center', gap: '10px',
-          padding: '11px 14px', borderRadius: '12px',
-          background: stockLow ? 'rgba(239,68,68,0.06)' : 'var(--surface-2)',
-          border: stockLow
-            ? '1px solid rgba(239,68,68,0.25)'
-            : appsLeft != null ? '1px solid var(--border)' : '1.5px dashed var(--border-strong)',
-        }}>
-          <span style={{ fontSize: '16px' }}>📦</span>
-          <div style={{ flex: 1, minWidth: 0 }}>
-            {appsLeft != null ? (
-              <>
-                <p style={{ fontSize: '12px', fontWeight: 700, color: stockLow ? '#EF4444' : 'var(--text-primary)', margin: 0 }}>
-                  {stockLow ? '⚠️ ' : ''}{appsLeft} {appsLeft === 1 ? 'aplicação restante' : 'aplicações restantes'}
-                </p>
-                <p style={{ fontSize: '10px', color: 'var(--text-muted)', marginTop: '1px' }}>
-                  ~{Math.round(appsLeft / 4)} {Math.round(appsLeft / 4) === 1 ? 'mês' : 'meses'} de tratamento
-                </p>
-              </>
-            ) : (
-              <p style={{ fontSize: '12px', color: 'var(--text-muted)', fontWeight: 600, margin: 0 }}>
-                Configure o controle de estoque
-              </p>
-            )}
-          </div>
-          <span style={{ fontSize: '13px', color: 'var(--text-muted)' }}>›</span>
-        </div>
-      </button>
 
     </div>
   )
