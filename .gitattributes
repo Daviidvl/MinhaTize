@@ -1,2 +1,13 @@
-# Auto detect text files and perform LF normalization
-* text=auto
+# Force LF line endings for all text files (web project standard)
+* text=auto eol=lf
+
+# Explicitly mark binary files to prevent corruption
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.ico binary
+*.woff binary
+*.woff2 binary
+*.ttf binary
+*.eot binary

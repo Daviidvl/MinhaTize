@@ -33,3 +33,7 @@ coverage
 .cache
 .vercel
 .env*
+
+# Claude Code internal files
+.agents/
+skills-lock.json
