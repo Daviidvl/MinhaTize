@@ -2,6 +2,7 @@ import { useState } from 'react'
 import FoodGuide from './FoodGuide'
 import Weaning from './Weaning'
 import SideEffects from './SideEffects'
+import AntiPlato from './AntiPlato'
 import { UserProfile } from '../types'
 
 interface Props {
@@ -9,7 +10,7 @@ interface Props {
   onUpdateProfile: (p: UserProfile) => void
 }
 
-type HealthTab = 'symptoms' | 'food' | 'exercise' | 'weaning' | 'supplementation'
+type HealthTab = 'symptoms' | 'food' | 'exercise' | 'weaning' | 'supplementation' | 'antiplato'
 
 // ── Symptom tips mapping ──────────────────────────────────────────────────────
 const SYMPTOM_TIPS: Record<string, { emoji: string; title: string; tips: string[] }> = {
@@ -299,6 +300,15 @@ const SECTION_CARDS: {
     gradient: 'linear-gradient(135deg, #0F766E 0%, #059669 100%)',
     shadow: '0 8px 24px rgba(15,118,110,0.28)',
     accentColor: '#0F766E',
+  },
+  {
+    id: 'antiplato',
+    icon: '🚧',
+    title: 'Anti-Platô',
+    subtitle: 'Identifique e desbloqueie seu platô',
+    gradient: 'linear-gradient(135deg, #E11D48 0%, #9F1239 100%)',
+    shadow: '0 8px 24px rgba(225,29,72,0.28)',
+    accentColor: '#E11D48',
   },
 ]
 
@@ -678,6 +688,10 @@ export default function HealthHub({ profile, onUpdateProfile }: Props) {
               </div>
             </div>
           )}
+
+          {/* ── ANTI-PLATÔ ─────────────────────────────────────────────── */}
+          {activeSection === 'antiplato' && <AntiPlato />}
+
         </div>
       </div>
     )
@@ -725,82 +739,66 @@ export default function HealthHub({ profile, onUpdateProfile }: Props) {
         <span style={{ fontSize: '12px', color: 'var(--text-muted)', fontWeight: 700 }}>Ver →</span>
       </button>
 
-      {/* Card grid: 2×2 + last card full width */}
+      {/* 2×3 card grid — all equal */}
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
-        {SECTION_CARDS.map(card => {
-          const isWide = card.id === 'supplementation'
-          return (
-            <button
-              key={card.id}
-              onClick={() => setActiveSection(card.id)}
-              style={{
-                gridColumn: isWide ? '1 / -1' : undefined,
-                background: card.gradient,
-                borderRadius: '20px',
-                padding: isWide ? '18px 20px' : '20px 16px 18px',
-                border: 'none',
-                cursor: 'pointer',
-                textAlign: 'left',
-                boxShadow: card.shadow,
-                display: 'flex',
-                flexDirection: isWide ? 'row' : 'column',
-                alignItems: isWide ? 'center' : undefined,
-                gap: isWide ? '16px' : '10px',
-                minHeight: isWide ? '72px' : '130px',
-                fontFamily: "'Plus Jakarta Sans', sans-serif",
-                transition: 'transform 0.15s ease, box-shadow 0.15s ease',
-                position: 'relative',
-                overflow: 'hidden',
-              }}
-              onMouseDown={e => (e.currentTarget.style.transform = 'scale(0.97)')}
-              onMouseUp={e => (e.currentTarget.style.transform = 'scale(1)')}
-              onTouchStart={e => (e.currentTarget.style.transform = 'scale(0.97)')}
-              onTouchEnd={e => (e.currentTarget.style.transform = 'scale(1)')}
-            >
-              {/* Decorative circle */}
-              <div style={{
-                position: 'absolute', top: '-18px', right: '-18px',
-                width: isWide ? '100px' : '80px', height: isWide ? '100px' : '80px',
-                borderRadius: '50%', background: 'rgba(255,255,255,0.1)',
-                pointerEvents: 'none',
-              }} />
+        {SECTION_CARDS.map(card => (
+          <button
+            key={card.id}
+            onClick={() => setActiveSection(card.id)}
+            style={{
+              background: card.gradient,
+              borderRadius: '20px',
+              padding: '20px 16px 18px',
+              border: 'none',
+              cursor: 'pointer',
+              textAlign: 'left',
+              boxShadow: card.shadow,
+              display: 'flex',
+              flexDirection: 'column',
+              gap: '10px',
+              minHeight: '130px',
+              fontFamily: "'Plus Jakarta Sans', sans-serif",
+              transition: 'transform 0.15s ease',
+              position: 'relative',
+              overflow: 'hidden',
+            }}
+            onMouseDown={e => (e.currentTarget.style.transform = 'scale(0.97)')}
+            onMouseUp={e => (e.currentTarget.style.transform = 'scale(1)')}
+            onTouchStart={e => (e.currentTarget.style.transform = 'scale(0.97)')}
+            onTouchEnd={e => (e.currentTarget.style.transform = 'scale(1)')}
+          >
+            <div style={{
+              position: 'absolute', top: '-18px', right: '-18px',
+              width: '80px', height: '80px', borderRadius: '50%',
+              background: 'rgba(255,255,255,0.1)', pointerEvents: 'none',
+            }} />
 
+            <span style={{ fontSize: '32px', lineHeight: 1, display: 'block' }}>
+              {card.icon}
+            </span>
+
+            <div>
+              <p style={{ fontSize: '15px', fontWeight: 800, color: '#fff', margin: 0, letterSpacing: '-0.2px' }}>
+                {card.title}
+              </p>
+              <p style={{ fontSize: '10px', color: 'rgba(255,255,255,0.72)', margin: 0, marginTop: '4px', lineHeight: 1.4 }}>
+                {card.subtitle}
+              </p>
+            </div>
+
+            {card.id === 'symptoms' && activeSymptoms.length > 0 && (
               <span style={{
-                fontSize: isWide ? '28px' : '32px',
-                lineHeight: 1, display: 'block', flexShrink: 0,
+                display: 'inline-flex', alignItems: 'center', gap: '4px',
+                padding: '3px 8px', borderRadius: '99px',
+                background: 'rgba(255,255,255,0.2)',
+                fontSize: '10px', fontWeight: 700, color: '#fff',
+                alignSelf: 'flex-start',
               }}>
-                {card.icon}
+                {symptomBadge.dot} {symptomBadge.label}
               </span>
-
-              <div style={{ flex: isWide ? 1 : undefined, minWidth: 0 }}>
-                <p style={{ fontSize: isWide ? '14px' : '15px', fontWeight: 800, color: '#fff', margin: 0, letterSpacing: '-0.2px' }}>
-                  {card.title}
-                </p>
-                <p style={{ fontSize: '10px', color: 'rgba(255,255,255,0.72)', margin: 0, marginTop: '4px', lineHeight: 1.4 }}>
-                  {card.subtitle}
-                </p>
-              </div>
-
-              {/* Sintomas card: show live badge */}
-              {card.id === 'symptoms' && activeSymptoms.length > 0 && (
-                <span style={{
-                  display: 'inline-flex', alignItems: 'center', gap: '4px',
-                  padding: '3px 8px', borderRadius: '99px',
-                  background: 'rgba(255,255,255,0.2)',
-                  fontSize: '10px', fontWeight: 700, color: '#fff',
-                  alignSelf: 'flex-start',
-                }}>
-                  {symptomBadge.dot} {symptomBadge.label}
-                </span>
-              )}
-
-              {/* Supplementation: right arrow */}
-              {isWide && (
-                <span style={{ fontSize: '14px', color: 'rgba(255,255,255,0.7)', flexShrink: 0 }}>→</span>
-              )}
-            </button>
-          )
-        })}
+            )}
+          </button>
+        ))}
       </div>
     </div>
   )

@@ -122,6 +122,12 @@ function getDayNumber(startDate: string): number {
   return Math.min(14, Math.max(1, diff + 1))
 }
 
+function getRawDay(startDate: string): number {
+  const startMs = new Date(startDate).getTime()
+  const todayMs = new Date(new Date().toISOString().split('T')[0]).getTime()
+  return Math.round((todayMs - startMs) / 86400000) + 1
+}
+
 function saveToStorage(plan: PlanData) {
   localStorage.setItem(PLAN_KEY, JSON.stringify(plan))
 }
@@ -197,7 +203,7 @@ export default function AntiPlato() {
       setPlan(data)
       if (data.aiReport)        setStep('report')
       else if (data.reevalResult) setStep('reeval')
-      else if (getDayNumber(data.startDate) > 14) setStep('reeval')
+      else if (getRawDay(data.startDate) > 14) setStep('reeval')
       else setStep('plan')
     } catch { /**/ }
   }, [])
@@ -596,7 +602,7 @@ Use parágrafos curtos. Não sugira alteração de dose do medicamento.`,
     const w    = parseFloat(answers.currentWeight) || 0
     const pMin = w > 0 ? Math.round(w * 1.2) : null
     const pMax = w > 0 ? Math.round(w * 1.5) : null
-    const ok   = answers.currentWeight !== '' && answers.meetsProtein !== null && answers.usesWhey !== null
+    const ok   = (parseFloat(answers.currentWeight) > 0) && answers.meetsProtein !== null && answers.usesWhey !== null
 
     return (
       <div className="fade-in" style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
@@ -608,6 +614,8 @@ Use parágrafos curtos. Não sugira alteração de dose do medicamento.`,
             type="number" value={answers.currentWeight}
             onChange={e => set('currentWeight', e.target.value)}
             placeholder="Ex: 80"
+            min={20} max={400} step={0.1}
+            inputMode="decimal"
             className="input-field"
           />
           {pMin && pMax && (
@@ -966,11 +974,11 @@ Use parágrafos curtos. Não sugira alteração de dose do medicamento.`,
               Preferencialmente pela manhã, em jejum
             </p>
             <input
-              type="number" step="0.1"
+              type="number" step="0.1" min={20} max={400}
               placeholder="Ex: 79.5"
               value={plan.weighIns[todayKey] ?? ''}
               onChange={e => updatePlan({ weighIns: { ...plan.weighIns, [todayKey]: e.target.value } })}
-              className="input-field"
+              className="input-field" inputMode="decimal"
             />
           </div>
         )}
@@ -1034,7 +1042,22 @@ Use parágrafos curtos. Não sugira alteração de dose do medicamento.`,
           </div>
         )}
 
-        <ResetBtn />
+        {today >= 14 && (
+          <button
+            onClick={() => setStep('reeval')}
+            className="btn-primary"
+            style={{ width: '100%', background: 'linear-gradient(135deg, #7C3AED 0%, #4F46E5 100%)' }}
+          >
+            🏁 Avaliar resultado do plano
+          </button>
+        )}
+
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', paddingTop: '4px' }}>
+          <ResetBtn />
+          <p style={{ fontSize: '11px', color: 'var(--text-muted)', textAlign: 'center', margin: 0, lineHeight: 1.5 }}>
+            Ao reiniciar, o plano atual e os registros serão apagados.
+          </p>
+        </div>
       </div>
     )
   }
