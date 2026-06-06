@@ -204,12 +204,12 @@ export default function Dashboard({ profile, onNavigate, onUpdateProfile }: Prop
           background: stockLow
             ? 'linear-gradient(135deg, #DC2626 0%, #991B1B 100%)'
             : appsLeft != null
-              ? 'linear-gradient(135deg, #92400E 0%, #78350F 100%)'
+              ? 'linear-gradient(135deg, #C49060 0%, #A87848 100%)'
               : 'var(--surface-2)',
           boxShadow: stockLow
             ? '0 4px 20px rgba(220,38,38,0.28)'
             : appsLeft != null
-              ? '0 4px 20px rgba(120,53,15,0.32)'
+              ? '0 4px 20px rgba(196,144,96,0.35)'
               : 'var(--shadow-card)',
           border: appsLeft == null ? '1.5px dashed var(--border-strong)' : 'none',
           position: 'relative', overflow: 'hidden',
