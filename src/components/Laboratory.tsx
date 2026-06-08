@@ -496,16 +496,78 @@ export default function Laboratory({ profile, onUpdateProfile }: Props) {
     }))
   })
 
-  // ── Download ─────────────────────────────────────────────────────────────
-  function downloadList() {
+  // ── PDF: solicitação (sempre disponível) ────────────────────────────────
+  function downloadRequest() {
     const today = new Date().toLocaleDateString('pt-BR', { day: '2-digit', month: 'long', year: 'numeric' })
 
-    const statusColor: Record<ExamStatus, string> = {
-      normal: '#059669', low: '#B45309', high: '#DC2626',
+    const sections = CATEGORIES.map(cat => {
+      const catExams = EXAMS.filter(e => e.category === cat.id)
+      const rows = catExams.map(exam => {
+        const ref = typeof exam.refDisplay === 'function'
+          ? (sex
+              ? exam.refDisplay(sex)
+              : `F: ${exam.refDisplay('female')} · M: ${exam.refDisplay('male')}`)
+          : exam.refDisplay
+        return `<tr>
+          <td>${exam.name}</td>
+          <td>${exam.unit || '—'}</td>
+          <td>${ref}</td>
+          <td></td>
+        </tr>`
+      }).join('')
+
+      return `
+        <h2>${cat.icon} ${cat.title}</h2>
+        <table>
+          <thead><tr><th>Exame</th><th>Unidade</th><th>Referência (plataforma)</th><th>Resultado</th></tr></thead>
+          <tbody>${rows}</tbody>
+        </table>`
+    }).join('')
+
+    const html = `<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <title>Solicitação de Exames — Minha Tize</title>
+  <style>
+    *{box-sizing:border-box}
+    body{font-family:'Segoe UI',Arial,sans-serif;max-width:820px;margin:0 auto;padding:24px;color:#111;line-height:1.5}
+    h1{color:#059669;font-size:22px;margin-bottom:2px}
+    .sub{color:#6b7280;font-size:12px;margin-bottom:28px}
+    h2{color:#374151;font-size:15px;border-bottom:2px solid #e5e7eb;padding-bottom:5px;margin-top:24px;margin-bottom:10px}
+    table{width:100%;border-collapse:collapse;margin-bottom:4px;font-size:12px}
+    thead tr{background:#f0fdf4}
+    th{text-align:left;padding:7px 10px;font-size:10px;color:#374151;text-transform:uppercase;letter-spacing:.05em;font-weight:700}
+    td{padding:8px 10px;border-bottom:1px solid #f3f4f6;vertical-align:middle}
+    td:last-child{min-width:90px;border-left:1px solid #e5e7eb}
+    tr:last-child td{border-bottom:none}
+    .disc{font-size:11px;color:#6b7280;border-top:2px solid #e5e7eb;padding-top:14px;margin-top:28px;line-height:1.6}
+    @media print{body{padding:12px}h2{page-break-before:auto}table{page-break-inside:avoid}}
+  </style>
+</head>
+<body>
+  <h1>🧪 Minha Tize — Solicitação de Exames Essenciais</h1>
+  <p class="sub">Gerado em ${today} · Leve ao seu médico, nutricionista ou laboratório</p>
+  ${sections}
+  <div class="disc">
+    <strong>Aviso importante:</strong> Os valores de referência são gerais, baseados em literatura científica, e podem variar entre laboratórios, métodos analíticos, equipamentos, sexo, idade e contexto clínico. Sempre que houver divergência entre a plataforma e o laudo laboratorial, prevalece o valor de referência informado pelo laboratório. Esta plataforma fornece apenas orientação educativa — não realiza diagnóstico, não sugere tratamento, não sugere medicamentos e não sugere suplementação específica.
+  </div>
+</body>
+</html>`
+
+    const win = window.open('', '_blank')
+    if (win) {
+      win.document.write(html)
+      win.document.close()
     }
-    const statusLabel: Record<ExamStatus, string> = {
-      normal: '✓ Normal', low: '↓ Baixo', high: '↑ Alto',
-    }
+  }
+
+  // ── PDF: resultados (disponível quando há exames preenchidos) ────────────
+  function downloadResults() {
+    const today = new Date().toLocaleDateString('pt-BR', { day: '2-digit', month: 'long', year: 'numeric' })
+
+    const statusColor: Record<ExamStatus, string> = { normal: '#059669', low: '#B45309', high: '#DC2626' }
+    const statusLabel: Record<ExamStatus, string> = { normal: '✓ Normal', low: '↓ Baixo', high: '↑ Alto' }
 
     const sections = CATEGORIES.map(cat => {
       const catExams = EXAMS.filter(e => e.category === cat.id)
@@ -518,7 +580,7 @@ export default function Laboratory({ profile, onUpdateProfile }: Props) {
         const raw    = inputs[exam.id]
         const value  = raw ? parseFloat(raw) : null
         const status = value !== null ? exam.getStatus(value, sex) : null
-        const valueCell = value !== null
+        const valueCell  = value !== null
           ? `<span style="font-weight:700;color:${statusColor[status!]}">${raw} ${exam.unit}</span>`
           : `<span style="color:#9ca3af">—</span>`
         const statusCell = status !== null
@@ -565,7 +627,7 @@ export default function Laboratory({ profile, onUpdateProfile }: Props) {
 </head>
 <body>
   <h1>🧪 Minha Tize — Resultados de Exames</h1>
-  <p class="sub">Gerado em ${today} · ${filledCount} exame${filledCount !== 1 ? 's' : ''} preenchido${filledCount !== 1 ? 's' : ''} · Leve ao seu médico, nutricionista ou laboratório</p>
+  <p class="sub">Gerado em ${today} · ${filledCount} exame${filledCount !== 1 ? 's' : ''} preenchido${filledCount !== 1 ? 's' : ''}</p>
   ${sections}
   <div class="disc">
     <strong>Aviso importante:</strong> A Minha Tize não substitui avaliação médica. Os valores de referência são gerais, baseados em literatura científica, e podem variar entre laboratórios, métodos analíticos, equipamentos, sexo, idade e contexto clínico. Sempre que houver divergência entre a plataforma e o laudo laboratorial, prevalece o valor de referência informado pelo laboratório. Esta plataforma fornece apenas orientação educativa — não realiza diagnóstico, não sugere tratamento, não sugere medicamentos e não sugere suplementação específica.
@@ -667,29 +729,47 @@ export default function Laboratory({ profile, onUpdateProfile }: Props) {
       {innerTab === 'exams' && (
         <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
 
-          {/* Download — only when all exams filled */}
+          {/* Card 1 — Solicitação de exames (sempre disponível) */}
+          <div className="card" style={{ padding: '16px', display: 'flex', flexDirection: 'column', gap: '12px' }}>
+            <div style={{ display: 'flex', alignItems: 'flex-start', gap: '12px' }}>
+              <div style={{
+                width: '42px', height: '42px', borderRadius: '12px', flexShrink: 0,
+                background: 'var(--primary-light)',
+                display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '20px',
+              }}>
+                📄
+              </div>
+              <div style={{ minWidth: 0 }}>
+                <p style={{ fontWeight: 800, fontSize: '14px', color: 'var(--text-primary)', margin: 0 }}>
+                  Solicitação de Exames Essenciais
+                </p>
+                <p style={{ fontSize: '12px', color: 'var(--text-muted)', marginTop: '3px', lineHeight: 1.4 }}>
+                  Baixe esta lista e leve ao laboratório, clínica ou médico de sua preferência.
+                </p>
+              </div>
+            </div>
+            <button onClick={downloadRequest} className="btn-primary" style={{ width: '100%' }}>
+              ⬇️ Baixar PDF
+            </button>
+          </div>
+
+          {/* Card 2 — Progresso dos resultados */}
           {(() => {
             const filled = EXAMS.filter(e => inputs[e.id] && inputs[e.id] !== '').length
             const total  = EXAMS.length
-            const allDone = filled === total
-            return allDone ? (
-              <button
-                onClick={downloadList}
-                className="btn-primary"
-                style={{ width: '100%' }}
-              >
-                📄 Baixar PDF com Resultados
-              </button>
-            ) : (
+            return (
               <div style={{
                 padding: '14px 16px', borderRadius: '14px',
                 background: 'var(--surface-2)', border: '1.5px solid var(--border)',
                 display: 'flex', flexDirection: 'column', gap: '10px',
               }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                  <p style={{ fontWeight: 700, fontSize: '13px', color: 'var(--text-primary)', margin: 0 }}>
-                    📄 Baixar PDF com Resultados
-                  </p>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <span style={{ fontSize: '18px' }}>🧪</span>
+                    <p style={{ fontWeight: 700, fontSize: '13px', color: 'var(--text-primary)', margin: 0 }}>
+                      Resultados Laboratoriais
+                    </p>
+                  </div>
                   <span style={{ fontSize: '12px', fontWeight: 800, color: 'var(--primary)' }}>
                     {filled}/{total}
                   </span>
@@ -701,7 +781,9 @@ export default function Laboratory({ profile, onUpdateProfile }: Props) {
                   }} />
                 </div>
                 <p style={{ fontSize: '11px', color: 'var(--text-muted)', margin: 0 }}>
-                  Preencha todos os {total} exames para liberar o PDF
+                  {filled === 0
+                    ? 'Após receber seus resultados, cadastre-os aqui para receber análise educativa.'
+                    : `${filled} de ${total} exames cadastrados`}
                 </p>
               </div>
             )
@@ -921,6 +1003,11 @@ export default function Laboratory({ profile, onUpdateProfile }: Props) {
                   Recomenda-se discutir estes resultados com seu médico ou nutricionista.
                 </p>
               </div>
+
+              {/* Download resultados */}
+              <button onClick={downloadResults} className="btn-primary" style={{ width: '100%' }}>
+                📄 Baixar PDF com Resultados
+              </button>
 
               {/* Disclaimer */}
               <div className="card-warning">
