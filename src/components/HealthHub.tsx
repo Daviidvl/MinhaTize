@@ -3,6 +3,7 @@ import FoodGuide from './FoodGuide'
 import Weaning from './Weaning'
 import SideEffects from './SideEffects'
 import AntiPlato from './AntiPlato'
+import Storage from './Storage'
 import { UserProfile } from '../types'
 
 interface Props {
@@ -10,7 +11,7 @@ interface Props {
   onUpdateProfile: (p: UserProfile) => void
 }
 
-type HealthTab = 'symptoms' | 'food' | 'exercise' | 'weaning' | 'supplementation' | 'antiplato'
+type HealthTab = 'symptoms' | 'food' | 'exercise' | 'weaning' | 'supplementation' | 'antiplato' | 'storage'
 
 // ── Symptom tips mapping ──────────────────────────────────────────────────────
 const SYMPTOM_TIPS: Record<string, { emoji: string; title: string; tips: string[] }> = {
@@ -309,6 +310,15 @@ const SECTION_CARDS: {
     gradient: 'linear-gradient(135deg, #E11D48 0%, #9F1239 100%)',
     shadow: '0 8px 24px rgba(225,29,72,0.28)',
     accentColor: '#E11D48',
+  },
+  {
+    id: 'storage',
+    icon: '❄️',
+    title: 'Armazenamento',
+    subtitle: 'Como guardar sua medicação corretamente',
+    gradient: 'linear-gradient(135deg, #0EA5E9 0%, #0284C7 100%)',
+    shadow: '0 8px 24px rgba(14,165,233,0.28)',
+    accentColor: '#0EA5E9',
   },
 ]
 
@@ -691,6 +701,9 @@ export default function HealthHub({ profile, onUpdateProfile }: Props) {
 
           {/* ── ANTI-PLATÔ ─────────────────────────────────────────────── */}
           {activeSection === 'antiplato' && <AntiPlato />}
+
+          {/* ── ARMAZENAMENTO ──────────────────────────────────────────── */}
+          {activeSection === 'storage' && <Storage />}
 
         </div>
       </div>
