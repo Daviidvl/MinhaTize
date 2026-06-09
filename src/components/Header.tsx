@@ -19,7 +19,7 @@ export default function Header({ isDark, onToggle, profile, onProfileClick }: Pr
       <img
         src="/LogoPng.png"
         alt="Minha Tize"
-        style={{ width: '58px', height: '58px', borderRadius: '12px', flexShrink: 0, objectFit: 'contain', transform: 'scale(1.25)', transformOrigin: 'center' }}
+        style={{ width: '58px', height: '58px', borderRadius: '12px', flexShrink: 0, objectFit: 'contain', transform: 'scale(2)', transformOrigin: 'center' }}
       />
 
       {/* Title */}
