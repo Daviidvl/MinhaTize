@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { TrendingUp, TrendingDown, Minus, BarChart2, ClipboardList } from 'lucide-react'
 import { UserProfile, WeightEntry } from '../types'
 
 interface Props {
@@ -8,9 +9,9 @@ interface Props {
 
 type InnerTab = 'evolution' | 'summary'
 
-const TABS: { id: InnerTab; label: string }[] = [
-  { id: 'evolution', label: '📈 Evolução' },
-  { id: 'summary',   label: '📋 Resumo'   },
+const TABS: { id: InnerTab; label: string; icon: React.ReactNode }[] = [
+  { id: 'evolution', label: 'Evolução', icon: <BarChart2 size={13} strokeWidth={2} /> },
+  { id: 'summary',   label: 'Resumo',   icon: <ClipboardList size={13} strokeWidth={2} /> },
 ]
 
 function calcIMC(w: number, h: number) {
@@ -91,12 +92,14 @@ export default function ProgressHub({ profile, onUpdateProfile }: Props) {
               color: tab === t.id ? '#fff' : 'var(--text-muted)',
               fontWeight: 700, fontSize: '11px', cursor: 'pointer',
               transition: 'all 0.2s ease',
-              fontFamily: "'Plus Jakarta Sans', sans-serif",
-              boxShadow: tab === t.id ? '0 2px 8px rgba(16,185,129,0.3)' : 'none',
+              fontFamily: 'Inter, -apple-system, sans-serif',
+              boxShadow: tab === t.id ? '0 2px 8px rgba(37,99,235,0.3)' : 'none',
               whiteSpace: 'nowrap',
             }}
           >
-            {t.label}
+            <span style={{ display: 'inline-flex', alignItems: 'center', gap: '5px' }}>
+              {t.icon}{t.label}
+            </span>
           </button>
         ))}
       </div>
@@ -130,7 +133,7 @@ export default function ProgressHub({ profile, onUpdateProfile }: Props) {
                 <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px' }}>
                   <span style={{ fontSize: '12px', fontWeight: 700, color: 'var(--text-primary)' }}>Meta: {profile.goalWeight}kg</span>
                   <span style={{ fontSize: '12px', fontWeight: 700, color: 'var(--primary)' }}>
-                    {toGoal <= 0 ? '🎉 Atingida!' : `Faltam ${toGoal.toFixed(1)}kg`}
+                    {toGoal <= 0 ? 'Atingida!' : `Faltam ${toGoal.toFixed(1)}kg`}
                   </span>
                 </div>
                 <div className="progress-track" style={{ height: '8px' }}>
@@ -176,7 +179,14 @@ export default function ProgressHub({ profile, onUpdateProfile }: Props) {
               </div>
             ) : (
               <div className="card" style={{ textAlign: 'center', padding: '28px 0' }}>
-                <p style={{ fontSize: '32px', marginBottom: '8px' }}>📉</p>
+                <div style={{
+                  width: '52px', height: '52px', borderRadius: '14px',
+                  background: 'var(--primary-light)', border: '1px solid rgba(37,99,235,0.15)',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  margin: '0 auto 10px',
+                }}>
+                  <TrendingDown size={24} strokeWidth={2} color="var(--primary)" />
+                </div>
                 <p style={{ fontWeight: 700, color: 'var(--text-primary)', fontSize: '14px' }}>Nenhum registro ainda</p>
                 <p style={{ color: 'var(--text-muted)', fontSize: '12px', marginTop: '4px' }}>
                   Adicione sua primeira pesagem abaixo
@@ -205,7 +215,7 @@ export default function ProgressHub({ profile, onUpdateProfile }: Props) {
                       style={{ flexShrink: 0, padding: '0 20px', opacity: valid ? 1 : 0.4 }}
                       onClick={addWeight} disabled={!valid}
                     >
-                      {weightSaved ? '✓' : 'Salvar'}
+                      {weightSaved ? 'Salvo' : 'Salvar'}
                     </button>
                   )
                 })()}
@@ -241,8 +251,15 @@ export default function ProgressHub({ profile, onUpdateProfile }: Props) {
                             <span style={{
                               fontSize: '11px', fontWeight: 700,
                               color: diff < 0 ? 'var(--primary)' : diff > 0 ? '#EF4444' : 'var(--text-muted)',
+                              display: 'inline-flex', alignItems: 'center', gap: '2px',
                             }}>
-                              {diff < 0 ? '▼' : diff > 0 ? '▲' : '='} {Math.abs(diff).toFixed(1)}
+                              {diff < 0
+                                ? <TrendingDown size={11} strokeWidth={2.5} />
+                                : diff > 0
+                                  ? <TrendingUp size={11} strokeWidth={2.5} />
+                                  : <Minus size={11} strokeWidth={2.5} />
+                              }
+                              {Math.abs(diff).toFixed(1)}
                             </span>
                           )}
                           <span style={{ fontSize: '14px', fontWeight: 800, color: 'var(--text-primary)' }}>
@@ -314,11 +331,21 @@ export default function ProgressHub({ profile, onUpdateProfile }: Props) {
                 display: 'flex', alignItems: 'center', gap: '12px',
                 padding: '14px', borderRadius: '12px',
                 background: weekDiff < 0 ? 'var(--primary-light)' : weekDiff > 0 ? 'rgba(239,68,68,0.06)' : 'var(--surface-2)',
-                border: `1px solid ${weekDiff < 0 ? 'rgba(16,185,129,0.2)' : weekDiff > 0 ? 'rgba(239,68,68,0.2)' : 'var(--border)'}`,
+                border: `1px solid ${weekDiff < 0 ? 'rgba(37,99,235,0.2)' : weekDiff > 0 ? 'rgba(239,68,68,0.2)' : 'var(--border)'}`,
               }}>
-                <span style={{ fontSize: '28px' }}>
-                  {weekDiff < 0 ? '📉' : weekDiff > 0 ? '📈' : '➡️'}
-                </span>
+                <div style={{
+                  width: '40px', height: '40px', borderRadius: '11px',
+                  background: weekDiff < 0 ? 'var(--primary-light)' : weekDiff > 0 ? 'rgba(239,68,68,0.08)' : 'var(--surface-2)',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
+                  color: weekDiff < 0 ? 'var(--primary)' : weekDiff > 0 ? '#EF4444' : 'var(--text-muted)',
+                }}>
+                  {weekDiff < 0
+                    ? <TrendingDown size={20} strokeWidth={2} />
+                    : weekDiff > 0
+                      ? <TrendingUp size={20} strokeWidth={2} />
+                      : <Minus size={20} strokeWidth={2} />
+                  }
+                </div>
                 <div>
                   <p style={{
                     fontSize: '20px', fontWeight: 800, lineHeight: 1,
@@ -348,7 +375,7 @@ export default function ProgressHub({ profile, onUpdateProfile }: Props) {
                 <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '8px' }}>
                   <span style={{ fontSize: '11px', color: 'var(--text-muted)', fontWeight: 600 }}>{profile.startWeight}kg</span>
                   <span style={{ fontSize: '11px', color: 'var(--primary)', fontWeight: 800 }}>
-                    {toGoal <= 0 ? '🎉 Meta atingida!' : `${profile.goalWeight}kg`}
+                    {toGoal <= 0 ? 'Meta atingida!' : `${profile.goalWeight}kg`}
                   </span>
                 </div>
               </div>

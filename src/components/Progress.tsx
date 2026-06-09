@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { Scale, BookOpen, TrendingDown } from 'lucide-react'
 import { UserProfile, WeightEntry } from '../types'
 import Diary from './Diary'
 
@@ -53,9 +54,9 @@ export default function Progress({ profile, onUpdateProfile }: Props) {
         borderRadius: '12px', padding: '4px',
       }}>
         {([
-          { id: 'weight', label: '⚖️ Peso' },
-          { id: 'diary',  label: '📓 Diário' },
-        ] as { id: InnerTab; label: string }[]).map(t => (
+          { id: 'weight', label: 'Peso',   icon: <Scale    size={13} strokeWidth={2} /> },
+          { id: 'diary',  label: 'Diário', icon: <BookOpen size={13} strokeWidth={2} /> },
+        ] as { id: InnerTab; label: string; icon: React.ReactNode }[]).map(t => (
           <button
             key={t.id}
             onClick={() => setInnerTab(t.id)}
@@ -65,11 +66,12 @@ export default function Progress({ profile, onUpdateProfile }: Props) {
               color: innerTab === t.id ? '#fff' : 'var(--text-muted)',
               fontWeight: 700, fontSize: '13px', cursor: 'pointer',
               transition: 'all 0.2s ease',
-              fontFamily: "'Plus Jakarta Sans', sans-serif",
-              boxShadow: innerTab === t.id ? '0 2px 8px rgba(16,185,129,0.3)' : 'none',
+              fontFamily: 'Inter, -apple-system, sans-serif',
+              boxShadow: innerTab === t.id ? '0 2px 8px rgba(37,99,235,0.3)' : 'none',
+              display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: '5px',
             }}
           >
-            {t.label}
+            {t.icon}{t.label}
           </button>
         ))}
       </div>
@@ -111,7 +113,14 @@ export default function Progress({ profile, onUpdateProfile }: Props) {
             </div>
           ) : (
             <div style={{ textAlign: 'center', padding: '24px 0' }}>
-              <p style={{ fontSize: '36px', marginBottom: '10px' }}>📉</p>
+              <div style={{
+                width: '48px', height: '48px', borderRadius: '13px',
+                background: 'var(--primary-light)', border: '1px solid rgba(37,99,235,0.15)',
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                margin: '0 auto 10px', color: 'var(--primary)',
+              }}>
+                <TrendingDown size={22} strokeWidth={2} />
+              </div>
               <p style={{ fontWeight: 700, color: 'var(--text-primary)', fontSize: '14px' }}>Nenhum registro ainda</p>
               <p style={{ color: 'var(--text-muted)', fontSize: '12px', marginTop: '4px' }}>
                 Registre sua primeira pesagem abaixo
@@ -157,7 +166,7 @@ export default function Progress({ profile, onUpdateProfile }: Props) {
               onClick={addWeight}
               disabled={!newWeight}
             >
-              {saved ? '✓ Salvo!' : 'Salvar pesagem'}
+              {saved ? 'Salvo!' : 'Salvar pesagem'}
             </button>
           </div>
 

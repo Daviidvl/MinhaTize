@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { Waves, AlertCircle, ArrowDown, Droplets, Flame, Battery, RotateCcw, Circle, Minus, X, Activity } from 'lucide-react'
 import { SideEffectEntry, UserProfile } from '../types'
 
 interface Props {
@@ -6,17 +7,30 @@ interface Props {
   onUpdateProfile: (p: UserProfile) => void
 }
 
+const SYMPTOM_ICON: Record<string, React.ReactNode> = {
+  nausea:       <Waves       size={15} strokeWidth={2} />,
+  vomiting:     <AlertCircle size={15} strokeWidth={2} />,
+  constipation: <ArrowDown   size={15} strokeWidth={2} />,
+  diarrhea:     <Droplets    size={15} strokeWidth={2} />,
+  reflux:       <Flame       size={15} strokeWidth={2} />,
+  fatigue:      <Battery     size={15} strokeWidth={2} />,
+  dizziness:    <RotateCcw   size={15} strokeWidth={2} />,
+  abdominal:    <Circle      size={15} strokeWidth={2} />,
+  headache:     <Minus       size={15} strokeWidth={2} />,
+  appetite:     <X           size={15} strokeWidth={2} />,
+}
+
 const SYMPTOMS = [
-  { id: 'nausea',     label: 'Náusea',            icon: '🤢' },
-  { id: 'vomiting',   label: 'Vômito',             icon: '🤮' },
-  { id: 'constipation',label: 'Constipação',       icon: '😣' },
-  { id: 'diarrhea',   label: 'Diarreia',           icon: '🚽' },
-  { id: 'reflux',     label: 'Refluxo/Azia',       icon: '🔥' },
-  { id: 'fatigue',    label: 'Fadiga',             icon: '😴' },
-  { id: 'dizziness',  label: 'Tontura',            icon: '💫' },
-  { id: 'abdominal',  label: 'Dor abdominal',      icon: '🫃' },
-  { id: 'headache',   label: 'Dor de cabeça',      icon: '🤕' },
-  { id: 'appetite',   label: 'Sem apetite',        icon: '🍽️' },
+  { id: 'nausea',       label: 'Náusea'        },
+  { id: 'vomiting',     label: 'Vômito'        },
+  { id: 'constipation', label: 'Constipação'   },
+  { id: 'diarrhea',     label: 'Diarreia'      },
+  { id: 'reflux',       label: 'Refluxo/Azia'  },
+  { id: 'fatigue',      label: 'Fadiga'        },
+  { id: 'dizziness',    label: 'Tontura'       },
+  { id: 'abdominal',    label: 'Dor abdominal' },
+  { id: 'headache',     label: 'Dor de cabeça' },
+  { id: 'appetite',     label: 'Sem apetite'   },
 ]
 
 const INTENSITIES: { value: 0 | 1 | 2 | 3; label: string; color: string }[] = [
@@ -109,7 +123,14 @@ export default function SideEffects({ profile, onUpdateProfile }: Props) {
               }}>
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                    <span style={{ fontSize: '18px' }}>{symptom.icon}</span>
+                    <div style={{
+                      width: '28px', height: '28px', borderRadius: '8px', flexShrink: 0,
+                      background: current.intensity > 0 ? `${intensityColor(current.intensity)}15` : 'var(--surface-3)',
+                      display: 'flex', alignItems: 'center', justifyContent: 'center',
+                      color: current.intensity > 0 ? intensityColor(current.intensity) : 'var(--text-muted)',
+                    }}>
+                      {SYMPTOM_ICON[symptom.id]}
+                    </div>
                     <span style={{ fontWeight: 700, fontSize: '13px', color: 'var(--text-primary)' }}>
                       {symptom.label}
                     </span>
@@ -135,7 +156,7 @@ export default function SideEffects({ profile, onUpdateProfile }: Props) {
                         background: current.intensity === int.value ? int.color + '15' : 'transparent',
                         color: current.intensity === int.value ? int.color : 'var(--text-muted)',
                         cursor: 'pointer', transition: 'all 0.15s ease',
-                        fontFamily: "'Plus Jakarta Sans', sans-serif",
+                        fontFamily: "Inter, -apple-system, sans-serif",
                       }}
                     >
                       {int.label}
@@ -164,7 +185,7 @@ export default function SideEffects({ profile, onUpdateProfile }: Props) {
           style={{ width: '100%' }}
           onClick={handleSave}
         >
-          {saved ? '✓ Registro salvo!' : existing ? 'Atualizar registro' : 'Salvar esta semana'}
+          {saved ? 'Registro salvo' : existing ? 'Atualizar registro' : 'Salvar esta semana'}
         </button>
       </div>
 
@@ -183,9 +204,10 @@ export default function SideEffects({ profile, onUpdateProfile }: Props) {
                   padding: '5px 10px', borderRadius: '99px',
                   background: intensityColor(s.intensity) + '12',
                   border: `1px solid ${intensityColor(s.intensity)}25`,
+                  color: intensityColor(s.intensity),
                 }}>
-                  <span style={{ fontSize: '12px' }}>{sym.icon}</span>
-                  <span style={{ fontSize: '11px', fontWeight: 700, color: intensityColor(s.intensity) }}>
+                  {SYMPTOM_ICON[sym.id]}
+                  <span style={{ fontSize: '11px', fontWeight: 700 }}>
                     {sym.label}
                   </span>
                 </div>
@@ -244,7 +266,13 @@ export default function SideEffects({ profile, onUpdateProfile }: Props) {
 
       {!hasAnySymptom && history.length === 0 && (
         <div style={{ textAlign: 'center', padding: '24px 0' }}>
-          <p style={{ fontSize: '36px', marginBottom: '10px' }}>🩺</p>
+          <div style={{
+            width: '52px', height: '52px', borderRadius: '16px', margin: '0 auto 12px',
+            background: 'var(--primary-light)', display: 'flex', alignItems: 'center',
+            justifyContent: 'center', color: 'var(--primary)',
+          }}>
+            <Activity size={24} strokeWidth={2} />
+          </div>
           <p style={{ fontWeight: 700, color: 'var(--text-primary)', fontSize: '14px' }}>Nenhum registro ainda</p>
           <p style={{ color: 'var(--text-muted)', fontSize: '12px', marginTop: '4px' }}>
             Registre como você se sentiu esta semana

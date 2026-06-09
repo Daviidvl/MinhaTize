@@ -15,31 +15,34 @@ export default function Header({ isDark, onToggle, profile, onProfileClick }: Pr
 
   return (
     <header className="app-header">
-      {/* Logo */}
+      {/* Logo mark */}
       <div style={{
         width: '36px', height: '36px', borderRadius: '10px', flexShrink: 0,
-        background: 'linear-gradient(135deg, rgba(16,185,129,0.3) 0%, rgba(124,58,237,0.2) 100%)',
-        border: '1px solid rgba(16,185,129,0.35)',
+        background: 'linear-gradient(135deg, #2563EB 0%, #7C3AED 100%)',
         display: 'flex', alignItems: 'center', justifyContent: 'center',
-        fontSize: '17px',
-        boxShadow: '0 2px 12px rgba(16,185,129,0.2)',
+        boxShadow: '0 2px 12px rgba(37,99,235,0.30)',
       }}>
-        📈
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none"
+          stroke="#fff" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+          <polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/>
+          <polyline points="17 6 23 6 23 12"/>
+        </svg>
       </div>
 
       {/* Title */}
       <div style={{ flex: 1 }}>
         <h1 style={{
-          fontSize: '17px', fontWeight: 800, color: '#FFFFFF',
+          fontSize: '17px', fontWeight: 800,
+          color: 'var(--text-primary)',
           letterSpacing: '-0.5px', lineHeight: 1, margin: 0,
-          fontFamily: "'Plus Jakarta Sans', sans-serif",
+          fontFamily: 'Inter, -apple-system, sans-serif',
         }}>
           TizeTrack
         </h1>
         <p style={{
-          fontSize: '10px', color: 'rgba(255,255,255,0.35)',
+          fontSize: '10px', color: 'var(--text-muted)',
           marginTop: '2px', fontWeight: 500,
-          fontFamily: "'Plus Jakarta Sans', sans-serif",
+          fontFamily: 'Inter, -apple-system, sans-serif',
         }}>
           Acompanhamento de protocolo
         </p>
@@ -48,24 +51,30 @@ export default function Header({ isDark, onToggle, profile, onProfileClick }: Pr
       {/* Dark mode toggle */}
       <DarkModeToggle isDark={isDark} onToggle={onToggle} />
 
-      {/* Avatar do usuário */}
+      {/* User avatar */}
       {profile && onProfileClick && (
         <button
           onClick={onProfileClick}
           aria-label="Perfil"
           style={{
             width: '36px', height: '36px', borderRadius: '50%', flexShrink: 0,
-            background: 'linear-gradient(135deg, #059669, #7C3AED)',
-            border: '2px solid rgba(255,255,255,0.15)',
+            background: 'linear-gradient(135deg, #2563EB, #7C3AED)',
+            border: '2px solid var(--border)',
             display: 'flex', alignItems: 'center', justifyContent: 'center',
-            fontSize: '13px', fontWeight: 800, color: '#fff',
-            cursor: 'pointer', letterSpacing: '-0.5px',
-            fontFamily: "'Plus Jakarta Sans', sans-serif",
-            boxShadow: '0 2px 8px rgba(5,150,105,0.4)',
+            fontSize: '12px', fontWeight: 800, color: '#fff',
+            cursor: 'pointer', letterSpacing: '-0.3px',
+            fontFamily: 'Inter, -apple-system, sans-serif',
+            boxShadow: '0 2px 10px rgba(37,99,235,0.30)',
             transition: 'transform 0.15s, box-shadow 0.15s',
           }}
-          onMouseEnter={e => { (e.currentTarget as HTMLButtonElement).style.transform = 'scale(1.08)' }}
-          onMouseLeave={e => { (e.currentTarget as HTMLButtonElement).style.transform = 'scale(1)' }}
+          onMouseEnter={e => {
+            e.currentTarget.style.transform = 'scale(1.08)'
+            e.currentTarget.style.boxShadow = '0 4px 16px rgba(37,99,235,0.45)'
+          }}
+          onMouseLeave={e => {
+            e.currentTarget.style.transform = 'scale(1)'
+            e.currentTarget.style.boxShadow = '0 2px 10px rgba(37,99,235,0.30)'
+          }}
         >
           {initials}
         </button>

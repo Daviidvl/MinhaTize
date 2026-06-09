@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { Syringe, Check, X, AlertTriangle, ChevronDown, Info } from 'lucide-react'
 
 type ItemStatus = 'ok' | 'no' | 'warn'
 
@@ -9,7 +10,6 @@ interface MedItem {
 
 interface Med {
   id: string
-  icon: string
   name: string
   brand: string
   color: string
@@ -23,7 +23,7 @@ interface Med {
 const MEDS: Med[] = [
   {
     id: 'tirzepatida',
-    icon: '💉',
+
     name: 'Tirzepatida',
     brand: 'Mounjaro',
     color: '#0EA5E9',
@@ -41,7 +41,7 @@ const MEDS: Med[] = [
   },
   {
     id: 'semaglutida',
-    icon: '💉',
+
     name: 'Semaglutida',
     brand: 'Wegovy',
     color: '#7C3AED',
@@ -59,7 +59,7 @@ const MEDS: Med[] = [
   },
   {
     id: 'liraglutida',
-    icon: '💉',
+
     name: 'Liraglutida',
     brand: 'Olire',
     color: '#059669',
@@ -77,7 +77,11 @@ const MEDS: Med[] = [
   },
 ]
 
-const STATUS_ICON: Record<ItemStatus, string>  = { ok: '✅', no: '❌', warn: '⚠️' }
+const STATUS_ICON: Record<ItemStatus, React.ReactNode> = {
+  ok:   <Check         size={14} strokeWidth={2.5} />,
+  no:   <X             size={14} strokeWidth={2.5} />,
+  warn: <AlertTriangle size={14} strokeWidth={2.5} />,
+}
 const STATUS_COLOR: Record<ItemStatus, string> = {
   ok:   'var(--text-secondary)',
   no:   '#DC2626',
@@ -144,15 +148,16 @@ export default function Storage() {
               style={{
                 width: '100%', padding: '14px 16px', background: 'none', border: 'none',
                 cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '12px',
-                textAlign: 'left', fontFamily: "'Plus Jakarta Sans', sans-serif",
+                textAlign: 'left', fontFamily: "Inter, -apple-system, sans-serif",
               }}
             >
               <div style={{
                 width: '42px', height: '42px', borderRadius: '12px', flexShrink: 0,
                 background: `${med.color}18`, border: `1px solid ${med.color}30`,
-                display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '20px',
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+              color: med.color,
               }}>
-                {med.icon}
+                <Syringe size={20} strokeWidth={2} />
               </div>
 
               <div style={{ flex: 1, minWidth: 0 }}>
@@ -173,10 +178,10 @@ export default function Storage() {
               </div>
 
               <span style={{
-                fontSize: '11px', color: 'var(--text-muted)', flexShrink: 0,
-                transition: 'transform 0.2s', display: 'inline-block',
+                flexShrink: 0, color: 'var(--text-muted)',
+                transition: 'transform 0.2s', display: 'inline-flex',
                 transform: isOpen ? 'rotate(180deg)' : 'none',
-              }}>▼</span>
+              }}><ChevronDown size={16} strokeWidth={2} /></span>
             </button>
 
             {/* Items */}
@@ -193,7 +198,10 @@ export default function Storage() {
                     background: STATUS_BG[item.status],
                     border: `1px solid ${STATUS_BORDER[item.status]}`,
                   }}>
-                    <span style={{ fontSize: '15px', flexShrink: 0, marginTop: '1px', lineHeight: 1 }}>
+                    <span style={{
+                      flexShrink: 0, marginTop: '2px', lineHeight: 1,
+                      color: STATUS_COLOR[item.status],
+                    }}>
                       {STATUS_ICON[item.status]}
                     </span>
                     <p style={{
@@ -213,9 +221,10 @@ export default function Storage() {
 
       {/* Disclaimer */}
       <div className="card-warning">
-        <p style={{ fontWeight: 800, fontSize: '12px', color: 'var(--warn-text)', marginBottom: '6px' }}>
-          ⚠️ Importante
-        </p>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '6px' }}>
+          <Info size={13} strokeWidth={2} style={{ color: 'var(--warn-text)', flexShrink: 0 }} />
+          <p style={{ fontWeight: 800, fontSize: '12px', color: 'var(--warn-text)', margin: 0 }}>Importante</p>
+        </div>
         <p style={{ fontSize: '11px', color: 'var(--warn-text)', lineHeight: 1.6, margin: 0 }}>
           As orientações apresentadas possuem caráter exclusivamente educativo e não substituem as recomendações do fabricante, a bula oficial ou a orientação do profissional de saúde responsável pelo seu tratamento.
         </p>

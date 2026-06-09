@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { Award, Calendar, Package, Settings, Zap, BarChart2, Scale, Flame, Dumbbell, Target, Lightbulb, AlertTriangle, Check, ChevronLeft } from 'lucide-react'
 import { UserProfile, Medication, Sex, MEDICATION_LABELS, WEEK_DAYS_FULL } from '../types'
 import ApplicationCalendar from './ApplicationCalendar'
 import StockControl from './StockControl'
@@ -11,18 +12,18 @@ interface Props {
 
 type ProfileTab = 'achievements' | 'history' | 'stock' | 'edit'
 
-const PROFILE_TABS: { id: ProfileTab; icon: string; label: string }[] = [
-  { id: 'achievements', icon: '🏅', label: 'Conquistas' },
-  { id: 'history',      icon: '📅', label: 'Histórico'  },
-  { id: 'stock',        icon: '📦', label: 'Estoque'    },
-  { id: 'edit',         icon: '⚙️', label: 'Editar'     },
+const PROFILE_TABS: { id: ProfileTab; icon: React.ReactNode; label: string }[] = [
+  { id: 'achievements', icon: <Award size={14} strokeWidth={2} />,    label: 'Conquistas' },
+  { id: 'history',      icon: <Calendar size={14} strokeWidth={2} />, label: 'Histórico'  },
+  { id: 'stock',        icon: <Package size={14} strokeWidth={2} />,  label: 'Estoque'    },
+  { id: 'edit',         icon: <Settings size={14} strokeWidth={2} />, label: 'Editar'     },
 ]
 
 const DOSES = [2.5, 5, 7.5, 10, 12.5, 15]
 const MEDS  = Object.entries(MEDICATION_LABELS) as [Medication, string][]
 
 interface Achievement {
-  id: string; icon: string; title: string; phrase: string; unlocked: boolean
+  id: string; icon: React.ReactNode; title: string; phrase: string; unlocked: boolean
 }
 
 function buildAchievements(profile: UserProfile): Achievement[] {
@@ -34,47 +35,47 @@ function buildAchievements(profile: UserProfile): Achievement[] {
 
   return [
     {
-      id: 'start', icon: '🚀', title: 'Primeiro passo',
+      id: 'start', icon: <Zap size={28} strokeWidth={1.5} />, title: 'Primeiro passo',
       phrase: 'Você deu o primeiro passo — o mais difícil de todos.',
       unlocked: !!profile.name,
     },
     {
-      id: 'week1', icon: '📅', title: '1ª semana',
+      id: 'week1', icon: <Calendar size={28} strokeWidth={1.5} />, title: '1ª semana',
       phrase: 'Uma semana inteira de comprometimento. Continue!',
       unlocked: days >= 7,
     },
     {
-      id: 'month1', icon: '🗓️', title: '1 mês',
+      id: 'month1', icon: <Calendar size={28} strokeWidth={1.5} />, title: '1 mês',
       phrase: 'Um mês de protocolo. Os resultados estão chegando.',
       unlocked: days >= 30,
     },
     {
-      id: 'month2', icon: '🏅', title: '2 meses',
+      id: 'month2', icon: <Award size={28} strokeWidth={1.5} />, title: '2 meses',
       phrase: '60 dias. Você já criou um hábito real.',
       unlocked: days >= 60,
     },
     {
-      id: 'track3', icon: '📊', title: 'Comprometido',
+      id: 'track3', icon: <BarChart2 size={28} strokeWidth={1.5} />, title: 'Comprometido',
       phrase: 'Monitorar é o segredo de quem chega lá.',
       unlocked: entries >= 3,
     },
     {
-      id: 'lost2', icon: '⚖️', title: '2kg a menos',
+      id: 'lost2', icon: <Scale size={28} strokeWidth={1.5} />, title: '2kg a menos',
       phrase: 'Os primeiros 2kg são os mais significativos.',
       unlocked: lost >= 2,
     },
     {
-      id: 'lost5', icon: '🔥', title: '5kg a menos',
+      id: 'lost5', icon: <Flame size={28} strokeWidth={1.5} />, title: '5kg a menos',
       phrase: 'Seu corpo está respondendo. 5kg é transformação.',
       unlocked: lost >= 5,
     },
     {
-      id: 'lost10', icon: '💪', title: '10kg a menos',
+      id: 'lost10', icon: <Dumbbell size={28} strokeWidth={1.5} />, title: '10kg a menos',
       phrase: '10kg! Uma conquista que muda a vida.',
       unlocked: lost >= 10,
     },
     {
-      id: 'goal', icon: '🎯', title: 'Meta atingida!',
+      id: 'goal', icon: <Target size={28} strokeWidth={1.5} />, title: 'Meta atingida!',
       phrase: 'Meta atingida. Você é um exemplo de dedicação.',
       unlocked: reachedGoal,
     },
@@ -140,7 +141,7 @@ export default function ProfilePage({ profile, onUpdateProfile, onBack }: Props)
     background: active ? 'linear-gradient(135deg, var(--primary), #0D9488)' : 'var(--surface-2)',
     color: active ? '#fff' : 'var(--text-primary)',
     fontWeight: 700, fontSize: '12px', transition: 'all 0.15s',
-    fontFamily: "'Plus Jakarta Sans', sans-serif",
+    fontFamily: 'Inter, -apple-system, sans-serif',
     boxShadow: active ? 'var(--shadow-green)' : 'none',
     outline: active ? 'none' : '1px solid var(--border)',
   })
@@ -162,10 +163,11 @@ export default function ProfilePage({ profile, onUpdateProfile, onBack }: Props)
           style={{
             width: '40px', height: '40px', borderRadius: '50%', flexShrink: 0,
             background: 'var(--surface-2)', border: '1px solid var(--border)',
-            cursor: 'pointer', fontSize: '18px',
+            cursor: 'pointer',
             display: 'flex', alignItems: 'center', justifyContent: 'center',
+            color: 'var(--text-primary)',
           }}
-        >←</button>
+        ><ChevronLeft size={18} strokeWidth={2} /></button>
         <div style={{ flex: 1 }}>
           <h2 style={{ fontSize: '18px', fontWeight: 800, color: 'var(--text-primary)', margin: 0 }}>Perfil</h2>
         </div>
@@ -218,12 +220,12 @@ export default function ProfilePage({ profile, onUpdateProfile, onBack }: Props)
               color: activeTab === t.id ? '#fff' : 'var(--text-muted)',
               fontWeight: 700, fontSize: '10px', cursor: 'pointer',
               transition: 'all 0.2s ease',
-              fontFamily: "'Plus Jakarta Sans', sans-serif",
-              boxShadow: activeTab === t.id ? '0 2px 8px rgba(16,185,129,0.3)' : 'none',
+              fontFamily: 'Inter, -apple-system, sans-serif',
+              boxShadow: activeTab === t.id ? '0 2px 8px rgba(37,99,235,0.3)' : 'none',
               display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '2px',
             }}
           >
-            <span style={{ fontSize: '14px' }}>{t.icon}</span>
+            <span style={{ display: 'flex' }}>{t.icon}</span>
             <span>{t.label}</span>
           </button>
         ))}
@@ -253,21 +255,23 @@ export default function ProfilePage({ profile, onUpdateProfile, onBack }: Props)
                   style={{
                     flexShrink: 0, width: '150px',
                     padding: '16px 12px', borderRadius: '16px',
-                    border: `1.5px solid ${a.unlocked ? 'rgba(16,185,129,0.3)' : 'var(--border)'}`,
-                    background: a.unlocked
-                      ? 'linear-gradient(135deg, var(--primary-light), var(--accent-light))'
-                      : 'var(--surface)',
-                    opacity: a.unlocked ? 1 : 0.45,
-                    boxShadow: a.unlocked ? '0 0 16px var(--primary-glow)' : 'var(--shadow-card)',
+                    border: `1.5px solid ${a.unlocked ? 'rgba(37,99,235,0.2)' : 'var(--border)'}`,
+                    background: a.unlocked ? 'var(--primary-light)' : 'var(--surface)',
+                    opacity: a.unlocked ? 1 : 0.5,
+                    boxShadow: a.unlocked ? '0 4px 16px rgba(37,99,235,0.12)' : 'var(--shadow-card)',
                     display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center', gap: '8px',
                   }}
                 >
-                  <span style={{
-                    fontSize: '34px',
-                    filter: a.unlocked ? 'none' : 'grayscale(1) opacity(0.4)',
+                  <div style={{
+                    width: '52px', height: '52px', borderRadius: '14px',
+                    background: a.unlocked ? 'var(--primary-light)' : 'var(--surface-2)',
+                    border: `1px solid ${a.unlocked ? 'rgba(37,99,235,0.15)' : 'var(--border)'}`,
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    color: a.unlocked ? 'var(--primary)' : 'var(--text-muted)',
+                    opacity: a.unlocked ? 1 : 0.5,
                   }}>
                     {a.icon}
-                  </span>
+                  </div>
                   <p style={{
                     fontWeight: 800, fontSize: '12px', lineHeight: 1.3, margin: 0,
                     color: a.unlocked ? 'var(--primary)' : 'var(--text-muted)',
@@ -290,8 +294,9 @@ export default function ProfilePage({ profile, onUpdateProfile, onBack }: Props)
         {/* ── HISTÓRICO ── */}
         {activeTab === 'history' && (
           <div className="card">
-            <p style={{ fontWeight: 700, fontSize: '14px', color: 'var(--text-primary)', marginBottom: '14px' }}>
-              📅 Histórico de aplicações
+            <p style={{ fontWeight: 700, fontSize: '14px', color: 'var(--text-primary)', marginBottom: '14px', display: 'flex', alignItems: 'center', gap: '7px' }}>
+              <Calendar size={15} strokeWidth={2} color="var(--primary)" />
+              Histórico de aplicações
             </p>
             <ApplicationCalendar profile={profile} onUpdateProfile={onUpdateProfile} />
           </div>
@@ -312,7 +317,7 @@ export default function ProfilePage({ profile, onUpdateProfile, onBack }: Props)
               </p>
               <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', marginBottom: '12px' }}>
                 <div>
-                  <p style={{ fontSize: '44px', fontWeight: 800, lineHeight: 1, letterSpacing: '-2px' }}>
+                  <p style={{ fontSize: '44px', fontWeight: 800, lineHeight: 1, letterSpacing: '1px' }}>
                     {appsLeft ?? '--'}
                     {appsLeft != null && (
                       <span style={{ fontSize: '15px', opacity: 0.8, marginLeft: '6px' }}>
@@ -335,8 +340,11 @@ export default function ProfilePage({ profile, onUpdateProfile, onBack }: Props)
                       height: '100%', background: '#fff', borderRadius: '99px', transition: 'width 0.9s ease',
                     }} />
                   </div>
-                  <p style={{ fontSize: '12px', opacity: 0.8, fontWeight: 700 }}>
-                    {stockLow ? '⚠️ Estoque baixo — reponha em breve' : '✓ Estoque confortável'}
+                  <p style={{ fontSize: '12px', opacity: 0.8, fontWeight: 700, display: 'flex', alignItems: 'center', gap: '5px' }}>
+                    {stockLow
+                      ? <><AlertTriangle size={12} strokeWidth={2} />Estoque baixo — reponha em breve</>
+                      : <><Check size={12} strokeWidth={2.5} />Estoque confortável</>
+                    }
                   </p>
                 </>
               )}
@@ -358,9 +366,12 @@ export default function ProfilePage({ profile, onUpdateProfile, onBack }: Props)
             </div>
 
             <div className="card-warning">
-              <p style={{ fontSize: '12px', color: 'var(--warn-text)', lineHeight: 1.6 }}>
-                💡 Mantenha ao menos <strong>4 semanas</strong> de estoque. O medicamento pode demorar alguns dias após o pedido.
-              </p>
+              <div style={{ display: 'flex', gap: '8px', alignItems: 'flex-start' }}>
+                <Lightbulb size={13} strokeWidth={2} style={{ flexShrink: 0, marginTop: '1px', color: 'var(--warn-text)' }} />
+                <p style={{ fontSize: '12px', color: 'var(--warn-text)', lineHeight: 1.6, margin: 0 }}>
+                  Mantenha ao menos <strong>4 semanas</strong> de estoque. O medicamento pode demorar alguns dias após o pedido.
+                </p>
+              </div>
             </div>
           </div>
         )}
@@ -477,7 +488,7 @@ export default function ProfilePage({ profile, onUpdateProfile, onBack }: Props)
               className="btn-primary" style={{ width: '100%', opacity: canSave() ? 1 : 0.4 }}
               onClick={handleSave} disabled={!canSave()}
             >
-              {saved ? '✓ Salvo com sucesso!' : 'Salvar alterações'}
+              {saved ? 'Salvo com sucesso!' : 'Salvar alterações'}
             </button>
 
             {/* Reset */}
@@ -486,7 +497,7 @@ export default function ProfilePage({ profile, onUpdateProfile, onBack }: Props)
                 width: '100%', padding: '12px', borderRadius: '10px',
                 border: '1.5px solid rgba(239,68,68,0.3)', background: 'transparent',
                 color: '#EF4444', fontWeight: 600, fontSize: '13px', cursor: 'pointer',
-                fontFamily: "'Plus Jakarta Sans', sans-serif",
+                fontFamily: 'Inter, -apple-system, sans-serif',
               }}>
                 Resetar todos os dados
               </button>
@@ -500,7 +511,7 @@ export default function ProfilePage({ profile, onUpdateProfile, onBack }: Props)
                   <button onClick={() => { localStorage.removeItem('tizetrack_profile'); window.location.reload() }} style={{
                     flex: 1, padding: '10px', borderRadius: '8px', border: 'none',
                     background: '#EF4444', color: '#fff', fontWeight: 700, cursor: 'pointer',
-                    fontFamily: "'Plus Jakarta Sans', sans-serif",
+                    fontFamily: 'Inter, -apple-system, sans-serif',
                   }}>Sim, resetar</button>
                 </div>
               </div>

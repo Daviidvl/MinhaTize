@@ -1,3 +1,4 @@
+import { AlertTriangle, Syringe, BarChart2, ChevronDown } from 'lucide-react'
 import { CalculationResult } from '../types'
 import { generateGuidance } from '../utils/calculator'
 
@@ -14,8 +15,8 @@ export default function Result({ result, syringeCapacity }: Props) {
         <div style={{
           width: '36px', height: '36px', borderRadius: '10px', flexShrink: 0,
           background: 'rgba(245,158,11,0.15)', display: 'flex', alignItems: 'center',
-          justifyContent: 'center', fontSize: '18px',
-        }}>⚠️</div>
+          justifyContent: 'center', color: '#F59E0B',
+        }}><AlertTriangle size={18} strokeWidth={2} /></div>
         <div>
           <p style={{ fontWeight: 700, fontSize: '15px', color: 'var(--warn-text)' }}>Atenção</p>
           <p style={{ fontSize: '13px', color: 'var(--warn-text)', marginTop: '4px', lineHeight: 1.5 }} role="alert">
@@ -85,15 +86,17 @@ export default function Result({ result, syringeCapacity }: Props) {
           }}/>
         </div>
         {nearLimit && (
-          <p style={{ fontSize: '11px', color: '#F59E0B', fontWeight: 700, marginTop: '6px' }}>
-            ⚠️ Próximo ao limite da seringa
+          <p style={{ fontSize: '11px', color: '#F59E0B', fontWeight: 700, marginTop: '6px', display: 'flex', alignItems: 'center', gap: '4px' }}>
+            <AlertTriangle size={11} strokeWidth={2} />Próximo ao limite da seringa
           </p>
         )}
       </div>
 
       {/* Como aspirar */}
       <div className="card" style={{ padding: '1rem 1.25rem' }}>
-        <p className="label-base" style={{ color: 'var(--primary)', marginBottom: '8px' }}>💉 Como aspirar</p>
+        <p className="label-base" style={{ color: 'var(--primary)', marginBottom: '8px', display: 'flex', alignItems: 'center', gap: '6px' }}>
+          <Syringe size={13} strokeWidth={2} />Como aspirar
+        </p>
         <p style={{ fontSize: '15px', fontWeight: 600, color: 'var(--text-primary)', lineHeight: 1.5 }}>
           {guidance}
         </p>
@@ -106,8 +109,10 @@ export default function Result({ result, syringeCapacity }: Props) {
           display: 'flex', justifyContent: 'space-between', alignItems: 'center',
           fontWeight: 700, fontSize: '13px', color: 'var(--text-muted)',
         }}>
-          <span>📊 Detalhes do cálculo</span>
-          <span style={{ fontSize: '10px' }}>▼</span>
+          <span style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
+            <BarChart2 size={13} strokeWidth={2} />Detalhes do cálculo
+          </span>
+          <ChevronDown size={14} strokeWidth={2} />
         </summary>
         <div style={{ marginTop: '14px', paddingTop: '14px', borderTop: '1px solid var(--border)', display: 'flex', flexDirection: 'column', gap: '6px' }}>
           {[

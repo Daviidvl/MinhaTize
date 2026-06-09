@@ -1,23 +1,30 @@
 interface Props { isDark: boolean; onToggle: () => void }
+
 export default function DarkModeToggle({ isDark, onToggle }: Props) {
   return (
     <button
       onClick={onToggle}
       aria-label={isDark ? 'Modo claro' : 'Modo escuro'}
       style={{
-        width: '40px', height: '40px', borderRadius: '11px',
-        border: '1px solid rgba(255,255,255,0.12)',
-        background: 'rgba(255,255,255,0.07)',
+        width: '38px', height: '38px', borderRadius: '12px', flexShrink: 0,
+        border: '1px solid var(--border)',
+        background: 'var(--surface-2)',
         display: 'flex', alignItems: 'center', justifyContent: 'center',
-        cursor: 'pointer', flexShrink: 0,
-        transition: 'background 0.2s, border-color 0.2s',
+        cursor: 'pointer',
+        transition: 'background 0.2s, border-color 0.2s, transform 0.15s',
       }}
-      onMouseEnter={e => (e.currentTarget.style.background = 'rgba(255,255,255,0.13)')}
-      onMouseLeave={e => (e.currentTarget.style.background = 'rgba(255,255,255,0.07)')}
+      onMouseEnter={e => {
+        e.currentTarget.style.background = 'var(--surface-3)'
+        e.currentTarget.style.transform = 'scale(1.05)'
+      }}
+      onMouseLeave={e => {
+        e.currentTarget.style.background = 'var(--surface-2)'
+        e.currentTarget.style.transform = 'scale(1)'
+      }}
     >
       {isDark ? (
-        <svg width="18" height="18" viewBox="0 0 24 24" fill="none"
-          stroke="#FCD34D" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none"
+          stroke="#F59E0B" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
           <circle cx="12" cy="12" r="5"/>
           <line x1="12" y1="1"  x2="12" y2="3"/>
           <line x1="12" y1="21" x2="12" y2="23"/>
@@ -29,8 +36,8 @@ export default function DarkModeToggle({ isDark, onToggle }: Props) {
           <line x1="18.36" y1="5.64"  x2="19.78" y2="4.22"/>
         </svg>
       ) : (
-        <svg width="17" height="17" viewBox="0 0 24 24" fill="none"
-          stroke="rgba(255,255,255,0.75)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none"
+          stroke="var(--text-muted)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
           <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>
         </svg>
       )}

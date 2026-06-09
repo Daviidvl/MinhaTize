@@ -1,4 +1,11 @@
 import { useState, useEffect } from 'react'
+import {
+  Target, Search, BarChart2, Calendar, ClipboardList,
+  Droplets, Dumbbell, Activity, Moon,
+  AlertCircle, AlertTriangle, CheckCircle2, Sparkles,
+  CheckCheck, TrendingUp, Minus, Flag,
+  Scale, Info, FileText, Zap, Leaf, Lightbulb, Check,
+} from 'lucide-react'
 
 const PLAN_KEY = 'tizetrack_antiplato'
 
@@ -24,13 +31,28 @@ const MEDS_LIST = [
 ]
 
 const CHECK_ITEMS = [
-  { id: 'water',    label: 'Água',               detail: '2–3 litros',  icon: '💧' },
-  { id: 'food',     label: 'Registro alimentar',  detail: '',            icon: '📝' },
-  { id: 'protein',  label: 'Proteína',            detail: '',            icon: '🥩' },
-  { id: 'steps',    label: 'Passos',              detail: '',            icon: '👟' },
-  { id: 'exercise', label: 'Treino',              detail: '',            icon: '💪' },
-  { id: 'sleep',    label: 'Sono',                detail: '7+ horas',    icon: '😴' },
+  { id: 'water',    label: 'Água',               detail: '2–3 litros' },
+  { id: 'food',     label: 'Registro alimentar',  detail: ''           },
+  { id: 'protein',  label: 'Proteína',            detail: ''           },
+  { id: 'steps',    label: 'Passos',              detail: ''           },
+  { id: 'exercise', label: 'Treino',              detail: ''           },
+  { id: 'sleep',    label: 'Sono',                detail: '7+ horas'   },
 ]
+
+const CHECK_ICON: Record<string, React.ReactNode> = {
+  water:    <Droplets      size={16} strokeWidth={2} />,
+  food:     <ClipboardList size={16} strokeWidth={2} />,
+  protein:  <Dumbbell      size={16} strokeWidth={2} />,
+  steps:    <Activity      size={16} strokeWidth={2} />,
+  exercise: <Zap           size={16} strokeWidth={2} />,
+  sleep:    <Moon          size={16} strokeWidth={2} />,
+}
+
+const LEVEL_ICON: Record<string, React.ReactNode> = {
+  high:     <AlertCircle   size={18} strokeWidth={2} />,
+  moderate: <AlertTriangle size={18} strokeWidth={2} />,
+  low:      <CheckCircle2  size={18} strokeWidth={2} />,
+}
 
 const WEIGH_DAYS = [1, 4, 8, 12, 14]
 
@@ -142,7 +164,7 @@ function RadioBtn({ label, selected, onClick }: { label: string; selected: boole
       background: selected ? 'var(--primary-light)' : 'var(--surface)',
       color: selected ? 'var(--primary)' : 'var(--text-secondary)',
       fontWeight: selected ? 700 : 500, fontSize: '14px',
-      fontFamily: "'Plus Jakarta Sans', sans-serif",
+      fontFamily: "Inter, -apple-system, sans-serif",
       transition: 'all 0.15s',
       display: 'flex', alignItems: 'center', gap: '10px',
     }}>
@@ -167,7 +189,7 @@ function CheckBtn({ label, checked, onChange }: { label: string; checked: boolea
       background: checked ? 'var(--primary-light)' : 'var(--surface)',
       color: checked ? 'var(--primary)' : 'var(--text-secondary)',
       fontWeight: checked ? 700 : 500, fontSize: '13px',
-      fontFamily: "'Plus Jakarta Sans', sans-serif",
+      fontFamily: "Inter, -apple-system, sans-serif",
       transition: 'all 0.15s',
       display: 'flex', alignItems: 'center', gap: '10px',
     }}>
@@ -176,9 +198,9 @@ function CheckBtn({ label, checked, onChange }: { label: string; checked: boolea
         border: `2px solid ${checked ? 'var(--primary)' : 'var(--border-strong)'}`,
         background: checked ? 'var(--primary)' : 'transparent',
         display: 'flex', alignItems: 'center', justifyContent: 'center',
-        fontSize: '11px', color: '#fff',
+        color: '#fff',
       }}>
-        {checked && '✓'}
+        {checked && <Check size={10} strokeWidth={3} />}
       </span>
       {label}
     </button>
@@ -384,7 +406,7 @@ Use parágrafos curtos. Não sugira alteração de dose do medicamento.`,
           <button onClick={resetAll} style={{
             flex: 1, padding: '10px', borderRadius: '10px', background: '#EF444415', border: '1.5px solid #EF444430',
             color: '#EF4444', fontWeight: 700, fontSize: '13px', cursor: 'pointer',
-            fontFamily: "'Plus Jakarta Sans', sans-serif",
+            fontFamily: "Inter, -apple-system, sans-serif",
           }}>
             Confirmar reset
           </button>
@@ -392,7 +414,7 @@ Use parágrafos curtos. Não sugira alteração de dose do medicamento.`,
             flex: 1, padding: '10px', borderRadius: '10px', background: 'var(--surface-2)',
             border: '1.5px solid var(--border)', color: 'var(--text-muted)',
             fontWeight: 600, fontSize: '13px', cursor: 'pointer',
-            fontFamily: "'Plus Jakarta Sans', sans-serif",
+            fontFamily: "Inter, -apple-system, sans-serif",
           }}>
             Cancelar
           </button>
@@ -402,7 +424,7 @@ Use parágrafos curtos. Não sugira alteração de dose do medicamento.`,
     return (
       <button onClick={() => setConfirmReset(true)} style={{
         background: 'none', border: 'none', cursor: 'pointer', padding: '8px',
-        fontSize: '12px', color: 'var(--text-muted)', fontFamily: "'Plus Jakarta Sans', sans-serif",
+        fontSize: '12px', color: 'var(--text-muted)', fontFamily: "Inter, -apple-system, sans-serif",
         display: 'block', margin: '0 auto',
       }}>
         Reiniciar avaliação
@@ -418,7 +440,15 @@ Use parágrafos curtos. Não sugira alteração de dose do medicamento.`,
         borderRadius: '24px', padding: '28px 22px', color: '#fff',
         boxShadow: '0 8px 32px rgba(124,58,237,0.3)',
       }}>
-        <span style={{ fontSize: '40px', display: 'block', marginBottom: '14px' }}>🚧</span>
+        <div style={{
+          width: '56px', height: '56px', borderRadius: '18px', margin: '0 auto 14px',
+          background: 'rgba(255,255,255,0.18)', backdropFilter: 'blur(20px)',
+          border: '1px solid rgba(255,255,255,0.2)',
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          color: '#fff',
+        }}>
+          <Target size={28} strokeWidth={2} />
+        </div>
         <h2 style={{ fontSize: '22px', fontWeight: 800, margin: 0, letterSpacing: '-0.3px' }}>Anti-Platô da Tize</h2>
         <p style={{ fontSize: '14px', opacity: 0.85, marginTop: '8px', lineHeight: 1.6 }}>
           Seu peso parou de cair?<br />
@@ -428,10 +458,10 @@ Use parágrafos curtos. Não sugira alteração de dose do medicamento.`,
 
       <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
         {[
-          { icon: '🔍', text: '6 perguntas para identificar as causas' },
-          { icon: '📊', text: 'Diagnóstico automático personalizado' },
-          { icon: '📅', text: 'Plano de ação de 14 dias com checklist diário' },
-          { icon: '📝', text: 'Relatório educativo ao final' },
+          { icon: <Search        size={18} strokeWidth={2} />, text: '6 perguntas para identificar as causas' },
+          { icon: <BarChart2     size={18} strokeWidth={2} />, text: 'Diagnóstico automático personalizado' },
+          { icon: <Calendar      size={18} strokeWidth={2} />, text: 'Plano de ação de 14 dias com checklist diário' },
+          { icon: <ClipboardList size={18} strokeWidth={2} />, text: 'Relatório educativo ao final' },
         ].map((item, i) => (
           <div key={i} style={{
             display: 'flex', alignItems: 'center', gap: '12px',
@@ -439,7 +469,13 @@ Use parágrafos curtos. Não sugira alteração de dose do medicamento.`,
             background: 'var(--surface)', border: '1px solid var(--border)',
             boxShadow: 'var(--shadow-card)',
           }}>
-            <span style={{ fontSize: '20px' }}>{item.icon}</span>
+            <div style={{
+              width: '36px', height: '36px', borderRadius: '10px', flexShrink: 0,
+              background: 'var(--primary-light)', display: 'flex',
+              alignItems: 'center', justifyContent: 'center', color: 'var(--primary)',
+            }}>
+              {item.icon}
+            </div>
             <p style={{ fontSize: '13px', color: 'var(--text-secondary)', fontWeight: 600, margin: 0 }}>{item.text}</p>
           </div>
         ))}
@@ -524,7 +560,14 @@ Use parágrafos curtos. Não sugira alteração de dose do medicamento.`,
           borderRadius: '20px', padding: '22px', textAlign: 'center',
           background: 'var(--primary-light)', border: '1.5px solid rgba(5,150,105,0.3)',
         }}>
-          <span style={{ fontSize: '44px', display: 'block', marginBottom: '12px' }}>🌱</span>
+          <div style={{
+            width: '52px', height: '52px', borderRadius: '14px',
+            background: 'var(--primary-light)', border: '1px solid rgba(37,99,235,0.15)',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            margin: '0 auto 14px', color: 'var(--primary)',
+          }}>
+            <Leaf size={26} strokeWidth={2} />
+          </div>
           <h3 style={{ fontSize: '18px', fontWeight: 800, color: 'var(--primary)', margin: 0 }}>
             Provavelmente não é um platô verdadeiro
           </h3>
@@ -543,7 +586,7 @@ Use parágrafos curtos. Não sugira alteração de dose do medicamento.`,
               padding: '10px 14px', borderRadius: '12px',
               background: 'var(--surface)', border: '1px solid var(--border)',
             }}>
-              <span style={{ fontSize: '16px', flexShrink: 0, marginTop: '1px' }}>💡</span>
+              <Lightbulb size={15} strokeWidth={2} color="var(--primary)" style={{ flexShrink: 0, marginTop: '1px' }} />
               <p style={{ fontSize: '13px', color: 'var(--text-secondary)', margin: 0, lineHeight: 1.4 }}>{r}</p>
             </div>
           ))}
@@ -584,7 +627,13 @@ Use parágrafos curtos. Não sugira alteração de dose do medicamento.`,
             background: `${riskColor}08`, border: `1.5px solid ${riskColor}30`,
             display: 'flex', alignItems: 'center', gap: '10px',
           }}>
-            <span style={{ fontSize: '22px' }}>{score >= 6 ? '🔴' : score >= 3 ? '🟡' : '🟢'}</span>
+            <div style={{ color: riskColor, flexShrink: 0 }}>
+              {score >= 6
+                ? <AlertCircle   size={22} strokeWidth={2} />
+                : score >= 3
+                ? <AlertTriangle size={22} strokeWidth={2} />
+                : <CheckCircle2  size={22} strokeWidth={2} />}
+            </div>
             <div>
               <p style={{ fontWeight: 800, fontSize: '13px', color: riskColor, margin: 0 }}>{riskLabel}</p>
               <p style={{ fontSize: '11px', color: 'var(--text-muted)', margin: 0 }}>{score} item{score !== 1 ? 's' : ''} identificado{score !== 1 ? 's' : ''}</p>
@@ -624,7 +673,7 @@ Use parágrafos curtos. Não sugira alteração de dose do medicamento.`,
               background: 'var(--primary-light)', border: '1px solid rgba(5,150,105,0.25)',
               display: 'flex', alignItems: 'center', gap: '10px',
             }}>
-              <span style={{ fontSize: '18px' }}>🎯</span>
+              <Target size={17} strokeWidth={2} color="var(--primary)" style={{ flexShrink: 0 }} />
               <p style={{ fontSize: '13px', color: 'var(--primary)', fontWeight: 800, margin: 0 }}>
                 Sua meta: {pMin}–{pMax} g de proteína/dia
               </p>
@@ -767,9 +816,12 @@ Use parágrafos curtos. Não sugira alteração de dose do medicamento.`,
 
         {answers.medications.length > 0 && (
           <div className="card-warning">
-            <p style={{ fontSize: '12px', color: 'var(--warn-text)', lineHeight: 1.5 }}>
-              ⚕️ Alguns medicamentos podem interferir na perda de peso. Converse com seu médico antes de qualquer alteração.
-            </p>
+            <div style={{ display: 'flex', gap: '8px', alignItems: 'flex-start' }}>
+              <Info size={13} strokeWidth={2} style={{ flexShrink: 0, marginTop: '1px', color: 'var(--warn-text)' }} />
+              <p style={{ fontSize: '12px', color: 'var(--warn-text)', lineHeight: 1.5, margin: 0 }}>
+                Alguns medicamentos podem interferir na perda de peso. Converse com seu médico antes de qualquer alteração.
+              </p>
+            </div>
           </div>
         )}
 
@@ -781,7 +833,6 @@ Use parágrafos curtos. Não sugira alteração de dose do medicamento.`,
   // ── DIAGNOSIS ─────────────────────────────────────────────────────────────
   if (step === 'diagnosis') {
     const priorities = computeDiagnosis(answers)
-    const levelIcon:  Record<string, string> = { high: '🔴', moderate: '🟡', low: '🟢' }
     const levelLabel: Record<string, string> = { high: 'Alta prioridade', moderate: 'Moderada', low: 'Baixa prioridade' }
     const levelColor: Record<string, string> = { high: '#EF4444', moderate: '#F59E0B', low: '#10B981' }
     const w = parseFloat(answers.currentWeight) || 0
@@ -813,7 +864,13 @@ Use parágrafos curtos. Não sugira alteração de dose do medicamento.`,
               padding: '18px', borderRadius: '14px', textAlign: 'center',
               background: 'var(--primary-light)', border: '1px solid rgba(5,150,105,0.25)',
             }}>
-              <span style={{ fontSize: '32px', display: 'block', marginBottom: '8px' }}>✨</span>
+              <div style={{
+              width: '44px', height: '44px', borderRadius: '14px', margin: '0 auto 10px',
+              background: 'var(--primary-light)', display: 'flex',
+              alignItems: 'center', justifyContent: 'center', color: 'var(--primary)',
+            }}>
+              <Sparkles size={22} strokeWidth={2} />
+            </div>
               <p style={{ fontSize: '14px', fontWeight: 700, color: 'var(--primary)', margin: 0 }}>Hábitos bem alinhados!</p>
               <p style={{ fontSize: '12px', color: 'var(--text-muted)', marginTop: '4px' }}>O platô pode ser fisiológico. O plano ajuda a desbloquear.</p>
             </div>
@@ -825,8 +882,8 @@ Use parágrafos curtos. Não sugira alteração de dose do medicamento.`,
                 background: 'var(--surface)', border: `1px solid ${levelColor[p.level]}22`,
                 boxShadow: 'var(--shadow-card)',
               }}>
-                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '3px', flexShrink: 0 }}>
-                  <span style={{ fontSize: '20px' }}>{levelIcon[p.level]}</span>
+                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '3px', flexShrink: 0, color: levelColor[p.level] }}>
+                  {LEVEL_ICON[p.level]}
                   <span style={{ fontSize: '9px', fontWeight: 800, color: levelColor[p.level] }}>#{i + 1}</span>
                 </div>
                 <div style={{ flex: 1, minWidth: 0 }}>
@@ -841,28 +898,33 @@ Use parágrafos curtos. Não sugira alteração de dose do medicamento.`,
 
         {w > 0 && (
           <div className="card" style={{ padding: '14px 16px' }}>
-            <p style={{ fontWeight: 700, fontSize: '13px', color: 'var(--text-primary)', margin: 0, marginBottom: '10px' }}>
-              🎯 Suas metas no plano
-            </p>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '7px', marginBottom: '10px' }}>
+              <Target size={14} strokeWidth={2} style={{ color: 'var(--primary)', flexShrink: 0 }} />
+              <p style={{ fontWeight: 700, fontSize: '13px', color: 'var(--text-primary)', margin: 0 }}>Suas metas no plano</p>
+            </div>
             {[
-              { icon: '🥩', label: 'Proteína', value: `${Math.round(w * 1.2)}–${Math.round(w * 1.5)} g/dia` },
-              { icon: '👟', label: 'Passos',   value: '7.000–8.000/dia' },
-              { icon: '💧', label: 'Água',     value: '2–3 litros/dia' },
-              { icon: '😴', label: 'Sono',     value: '7+ horas/noite' },
+              { icon: <Dumbbell  size={13} strokeWidth={2} />, label: 'Proteína', value: `${Math.round(w * 1.2)}–${Math.round(w * 1.5)} g/dia` },
+              { icon: <Activity  size={13} strokeWidth={2} />, label: 'Passos',   value: '7.000–8.000/dia' },
+              { icon: <Droplets  size={13} strokeWidth={2} />, label: 'Água',     value: '2–3 litros/dia' },
+              { icon: <Moon      size={13} strokeWidth={2} />, label: 'Sono',     value: '7+ horas/noite' },
             ].map((m, i) => (
               <div key={i} style={{
                 display: 'flex', justifyContent: 'space-between', alignItems: 'center',
                 padding: '8px 0', borderTop: i > 0 ? '1px solid var(--border)' : 'none',
               }}>
-                <span style={{ fontSize: '13px', color: 'var(--text-secondary)' }}>{m.icon} {m.label}</span>
+                <span style={{ fontSize: '13px', color: 'var(--text-secondary)', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                  <span style={{ color: 'var(--text-muted)' }}>{m.icon}</span>
+                  {m.label}
+                </span>
                 <span style={{ fontSize: '13px', color: 'var(--primary)', fontWeight: 800 }}>{m.value}</span>
               </div>
             ))}
           </div>
         )}
 
-        <button onClick={handleStartPlan} className="btn-primary" style={{ width: '100%' }}>
-          🚀 Iniciar Plano de 14 dias
+        <button onClick={handleStartPlan} className="btn-primary" style={{ width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}>
+          <Flag size={16} strokeWidth={2.5} />
+          Iniciar Plano de 14 dias
         </button>
       </div>
     )
@@ -911,7 +973,9 @@ Use parágrafos curtos. Não sugira alteração de dose do medicamento.`,
         <div className="card" style={{ padding: '16px' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '14px' }}>
             <p style={{ fontWeight: 800, fontSize: '14px', color: 'var(--text-primary)', margin: 0 }}>
-              📋 Hoje — Dia {today}
+              <span style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
+                <ClipboardList size={14} strokeWidth={2} color="var(--primary)" />Hoje — Dia {today}
+              </span>
             </p>
             <span style={{
               fontSize: '11px', fontWeight: 700, padding: '3px 8px', borderRadius: '99px',
@@ -939,7 +1003,7 @@ Use parágrafos curtos. Não sugira alteração de dose do medicamento.`,
                     padding: '10px 12px', borderRadius: '12px', cursor: 'pointer',
                     border: `1.5px solid ${checked ? 'var(--primary)' : 'var(--border)'}`,
                     background: checked ? 'var(--primary-light)' : 'var(--surface-2)',
-                    fontFamily: "'Plus Jakarta Sans', sans-serif",
+                    fontFamily: "Inter, -apple-system, sans-serif",
                     transition: 'all 0.15s', textAlign: 'left',
                   }}
                 >
@@ -947,10 +1011,9 @@ Use parágrafos curtos. Não sugira alteração de dose do medicamento.`,
                     width: '30px', height: '30px', borderRadius: '9px', flexShrink: 0,
                     display: 'flex', alignItems: 'center', justifyContent: 'center',
                     background: checked ? 'var(--primary)' : 'var(--surface-3)',
-                    fontSize: checked ? '15px' : '18px', color: checked ? '#fff' : undefined,
-                    fontWeight: 700,
+                    color: checked ? '#fff' : 'var(--text-muted)',
                   }}>
-                    {checked ? '✓' : item.icon}
+                    {checked ? <CheckCheck size={14} strokeWidth={2.5} /> : CHECK_ICON[item.id]}
                   </span>
                   <div style={{ flex: 1 }}>
                     <p style={{ fontWeight: 700, fontSize: '13px', color: checked ? 'var(--primary)' : 'var(--text-primary)', margin: 0 }}>
@@ -967,9 +1030,10 @@ Use parágrafos curtos. Não sugira alteração de dose do medicamento.`,
         {/* Weigh-in field */}
         {isWeighDay && (
           <div className="card" style={{ padding: '16px' }}>
-            <p style={{ fontWeight: 800, fontSize: '14px', color: 'var(--text-primary)', marginBottom: '4px' }}>
-              ⚖️ Pesagem — Dia {today}
-            </p>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '7px', marginBottom: '4px' }}>
+              <Scale size={15} strokeWidth={2} style={{ color: 'var(--primary)', flexShrink: 0 }} />
+              <p style={{ fontWeight: 800, fontSize: '14px', color: 'var(--text-primary)', margin: 0 }}>Pesagem — Dia {today}</p>
+            </div>
             <p style={{ fontSize: '11px', color: 'var(--text-muted)', marginBottom: '10px' }}>
               Preferencialmente pela manhã, em jejum
             </p>
@@ -1033,7 +1097,7 @@ Use parágrafos curtos. Não sugira alteração de dose do medicamento.`,
                   </span>
                   {WEIGH_DAYS.includes(day) && (
                     <span style={{ fontSize: '10px', color: weighIn ? 'var(--primary)' : 'var(--text-muted)', flexShrink: 0 }}>
-                      {weighIn ? `${weighIn} kg` : '⚖️ —'}
+                      {weighIn ? `${weighIn} kg` : '–'}
                     </span>
                   )}
                 </div>
@@ -1048,7 +1112,9 @@ Use parágrafos curtos. Não sugira alteração de dose do medicamento.`,
             className="btn-primary"
             style={{ width: '100%', background: 'linear-gradient(135deg, #7C3AED 0%, #4F46E5 100%)' }}
           >
-            🏁 Avaliar resultado do plano
+            <span style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
+              <Flag size={14} strokeWidth={2} />Avaliar resultado do plano
+            </span>
           </button>
         )}
 
@@ -1066,27 +1132,30 @@ Use parágrafos curtos. Não sugira alteração de dose do medicamento.`,
   if (step === 'reeval') {
     if (plan?.reevalResult) {
       const config = {
-        dropped:   { icon: '🎉', color: '#10B981', bg: 'var(--primary-light)', border: 'rgba(16,185,129,0.3)', title: 'Excelente resultado!', msg: 'Continue os hábitos construídos. O platô foi desbloqueado!' },
-        same:      { icon: '🔍', color: '#F59E0B', bg: 'rgba(245,158,11,0.08)', border: 'rgba(245,158,11,0.3)', title: 'Peso estável', msg: 'Pode ser interessante apresentar seus registros ao médico e discutir os próximos passos.' },
-        increased: { icon: '📊', color: '#EF4444', bg: 'rgba(239,68,68,0.06)', border: 'rgba(239,68,68,0.2)', title: 'Peso aumentou', msg: 'Revise possíveis calorias ocultas e sua rotina alimentar. Considere conversar com seu médico.' },
+        dropped:   { icon: <CheckCircle2 size={36} strokeWidth={2} />, color: '#10B981', bg: 'var(--primary-light)', border: 'rgba(16,185,129,0.3)', title: 'Excelente resultado!', msg: 'Continue os hábitos construídos. O platô foi desbloqueado!' },
+        same:      { icon: <Search       size={36} strokeWidth={2} />, color: '#F59E0B', bg: 'rgba(245,158,11,0.08)', border: 'rgba(245,158,11,0.3)', title: 'Peso estável', msg: 'Pode ser interessante apresentar seus registros ao médico e discutir os próximos passos.' },
+        increased: { icon: <BarChart2    size={36} strokeWidth={2} />, color: '#EF4444', bg: 'rgba(239,68,68,0.06)', border: 'rgba(239,68,68,0.2)', title: 'Peso aumentou', msg: 'Revise possíveis calorias ocultas e sua rotina alimentar. Considere conversar com seu médico.' },
       }[plan.reevalResult]
 
       return (
         <div className="fade-in" style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
           <div style={{ padding: '22px', borderRadius: '20px', background: config.bg, border: `1.5px solid ${config.border}`, textAlign: 'center' }}>
-            <span style={{ fontSize: '44px', display: 'block', marginBottom: '12px' }}>{config.icon}</span>
+            <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '14px', color: config.color }}>
+              {config.icon}
+            </div>
             <h3 style={{ fontSize: '18px', fontWeight: 800, color: config.color, margin: 0 }}>{config.title}</h3>
             <p style={{ fontSize: '13px', color: 'var(--text-secondary)', marginTop: '8px', lineHeight: 1.6 }}>{config.msg}</p>
           </div>
 
           {plan.aiReport ? (
-            <button onClick={() => setStep('report')} className="btn-primary" style={{ width: '100%' }}>
-              📝 Ver relatório completo
+            <button onClick={() => setStep('report')} className="btn-primary" style={{ width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}>
+              <FileText size={15} strokeWidth={2.5} />
+              Ver relatório completo
             </button>
           ) : (
             <>
-              <button onClick={generateReport} className="btn-primary" style={{ width: '100%' }} disabled={aiLoading}>
-                {aiLoading ? 'Gerando relatório...' : '✨ Gerar relatório com IA'}
+              <button onClick={generateReport} className="btn-primary" style={{ width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }} disabled={aiLoading}>
+                {aiLoading ? 'Gerando relatório...' : <><Sparkles size={15} strokeWidth={2.5} /> Gerar relatório com IA</>}
               </button>
               {aiError && <p style={{ fontSize: '12px', color: '#EF4444', textAlign: 'center', lineHeight: 1.5 }}>{aiError}</p>}
             </>
@@ -1107,7 +1176,9 @@ Use parágrafos curtos. Não sugira alteração de dose do medicamento.`,
           borderRadius: '20px', padding: '20px', color: '#fff',
           boxShadow: '0 8px 24px rgba(124,58,237,0.3)',
         }}>
-          <span style={{ fontSize: '36px', display: 'block', marginBottom: '10px' }}>🏁</span>
+          <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '10px' }}>
+            <Flag size={28} strokeWidth={2} />
+          </div>
           <h3 style={{ fontSize: '18px', fontWeight: 800, margin: 0 }}>14 dias concluídos!</h3>
           <p style={{ fontSize: '13px', opacity: 0.85, marginTop: '8px', lineHeight: 1.4 }}>
             Como está seu peso em relação ao início do plano?
@@ -1116,9 +1187,9 @@ Use parágrafos curtos. Não sugira alteração de dose do medicamento.`,
 
         <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
           {[
-            { v: 'dropped',   icon: '✅', label: 'Peso caiu',             sub: 'Ótimo — desbloqueamos o platô' },
-            { v: 'same',      icon: '⏸️', label: 'Peso permaneceu igual', sub: 'Sem mudança significativa' },
-            { v: 'increased', icon: '📈', label: 'Peso aumentou',          sub: 'Precisa de revisão' },
+            { v: 'dropped',   icon: <CheckCircle2 size={22} strokeWidth={2} />, iconColor: '#10B981', label: 'Peso caiu',             sub: 'Ótimo — desbloqueamos o platô' },
+            { v: 'same',      icon: <Minus        size={22} strokeWidth={2} />, iconColor: '#F59E0B', label: 'Peso permaneceu igual', sub: 'Sem mudança significativa' },
+            { v: 'increased', icon: <TrendingUp   size={22} strokeWidth={2} />, iconColor: '#EF4444', label: 'Peso aumentou',          sub: 'Precisa de revisão' },
           ].map(opt => (
             <button
               key={opt.v}
@@ -1126,11 +1197,11 @@ Use parágrafos curtos. Não sugira alteração de dose do medicamento.`,
               style={{
                 width: '100%', padding: '14px 16px', textAlign: 'left', cursor: 'pointer',
                 borderRadius: '14px', border: '1.5px solid var(--border-strong)',
-                background: 'var(--surface)', fontFamily: "'Plus Jakarta Sans', sans-serif",
+                background: 'var(--surface)', fontFamily: "Inter, -apple-system, sans-serif",
                 display: 'flex', alignItems: 'center', gap: '12px',
               }}
             >
-              <span style={{ fontSize: '22px' }}>{opt.icon}</span>
+              <span style={{ color: opt.iconColor }}>{opt.icon}</span>
               <div>
                 <p style={{ fontWeight: 800, fontSize: '14px', color: 'var(--text-primary)', margin: 0 }}>{opt.label}</p>
                 <p style={{ fontSize: '11px', color: 'var(--text-muted)', margin: 0, marginTop: '2px' }}>{opt.sub}</p>
@@ -1150,9 +1221,9 @@ Use parágrafos curtos. Não sugira alteração de dose do medicamento.`,
           <div style={{
             width: '40px', height: '40px', borderRadius: '12px', flexShrink: 0,
             background: 'linear-gradient(135deg, #7C3AED, #4F46E5)',
-            display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '20px',
+            display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff',
           }}>
-            📝
+            <FileText size={20} strokeWidth={2} />
           </div>
           <h3 style={{ fontSize: '18px', fontWeight: 800, color: 'var(--text-primary)', margin: 0 }}>
             Relatório Final
@@ -1170,16 +1241,19 @@ Use parágrafos curtos. Não sugira alteração de dose do medicamento.`,
         ) : (
           <>
             <button onClick={generateReport} className="btn-primary" style={{ width: '100%' }} disabled={aiLoading}>
-              {aiLoading ? 'Gerando relatório...' : '✨ Gerar relatório com IA'}
+              {aiLoading ? 'Gerando relatório...' : <><Sparkles size={14} strokeWidth={2} style={{ marginRight: '6px' }} />Gerar relatório com IA</>}
             </button>
             {aiError && <p style={{ fontSize: '12px', color: '#EF4444', textAlign: 'center', lineHeight: 1.5 }}>{aiError}</p>}
           </>
         )}
 
         <div className="card-warning">
-          <p style={{ fontSize: '11px', color: 'var(--warn-text)', lineHeight: 1.5 }}>
-            ⚕️ Este relatório é educativo e não substitui avaliação médica individualizada.
-          </p>
+          <div style={{ display: 'flex', gap: '7px', alignItems: 'flex-start' }}>
+            <Info size={12} strokeWidth={2} style={{ flexShrink: 0, marginTop: '1px', color: 'var(--warn-text)' }} />
+            <p style={{ fontSize: '11px', color: 'var(--warn-text)', lineHeight: 1.5, margin: 0 }}>
+              Este relatório é educativo e não substitui avaliação médica individualizada.
+            </p>
+          </div>
         </div>
 
         <button onClick={resetAll} className="btn-ghost" style={{ width: '100%' }}>

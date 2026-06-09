@@ -1,7 +1,8 @@
+import { Zap, Calendar, Award, BarChart2, Scale, Flame, Dumbbell, Target } from 'lucide-react'
 import { UserProfile } from '../types'
 
 interface Achievement {
-  id: string; icon: string; title: string; description: string; unlocked: boolean
+  id: string; icon: React.ReactNode; title: string; description: string; unlocked: boolean
 }
 
 function daysSince(d: string) {
@@ -16,15 +17,15 @@ function build(profile: UserProfile): Achievement[] {
   const reachedGoal = lastW <= profile.goalWeight && profile.goalWeight < profile.startWeight
 
   return [
-    { id: 'start',   icon: '🚀', title: 'Primeiro passo',  description: 'Configurou o perfil',      unlocked: !!profile.name },
-    { id: 'week1',   icon: '📅', title: '1ª semana',       description: '7 dias em protocolo',      unlocked: days >= 7 },
-    { id: 'month1',  icon: '🗓️', title: '1 mês',           description: '30 dias em protocolo',     unlocked: days >= 30 },
-    { id: 'month2',  icon: '🏅', title: '2 meses',         description: '60 dias em protocolo',     unlocked: days >= 60 },
-    { id: 'track3',  icon: '📊', title: 'Comprometido',    description: '3 registros de peso',      unlocked: entries >= 3 },
-    { id: 'lost2',   icon: '⚖️', title: '2kg a menos',     description: 'Primeiros 2kg perdidos',   unlocked: lost >= 2 },
-    { id: 'lost5',   icon: '🔥', title: '5kg a menos',     description: '5kg perdidos',             unlocked: lost >= 5 },
-    { id: 'lost10',  icon: '💪', title: '10kg a menos',    description: '10kg perdidos',            unlocked: lost >= 10 },
-    { id: 'goal',    icon: '🎯', title: 'Meta atingida!',  description: 'Chegou ao peso desejado',  unlocked: reachedGoal },
+    { id: 'start',   icon: <Zap      size={22} strokeWidth={1.5} />, title: 'Primeiro passo',  description: 'Configurou o perfil',      unlocked: !!profile.name },
+    { id: 'week1',   icon: <Calendar size={22} strokeWidth={1.5} />, title: '1ª semana',       description: '7 dias em protocolo',      unlocked: days >= 7 },
+    { id: 'month1',  icon: <Calendar size={22} strokeWidth={1.5} />, title: '1 mês',           description: '30 dias em protocolo',     unlocked: days >= 30 },
+    { id: 'month2',  icon: <Award    size={22} strokeWidth={1.5} />, title: '2 meses',         description: '60 dias em protocolo',     unlocked: days >= 60 },
+    { id: 'track3',  icon: <BarChart2 size={22} strokeWidth={1.5} />, title: 'Comprometido',   description: '3 registros de peso',      unlocked: entries >= 3 },
+    { id: 'lost2',   icon: <Scale    size={22} strokeWidth={1.5} />, title: '2kg a menos',     description: 'Primeiros 2kg perdidos',   unlocked: lost >= 2 },
+    { id: 'lost5',   icon: <Flame    size={22} strokeWidth={1.5} />, title: '5kg a menos',     description: '5kg perdidos',             unlocked: lost >= 5 },
+    { id: 'lost10',  icon: <Dumbbell size={22} strokeWidth={1.5} />, title: '10kg a menos',    description: '10kg perdidos',            unlocked: lost >= 10 },
+    { id: 'goal',    icon: <Target   size={22} strokeWidth={1.5} />, title: 'Meta atingida!',  description: 'Chegou ao peso desejado',  unlocked: reachedGoal },
   ]
 }
 
@@ -48,19 +49,20 @@ export default function Achievements({ profile }: { profile: UserProfile }) {
               padding: '12px 6px 10px',
               borderRadius: '12px',
               textAlign: 'center',
-              border: `1.5px solid ${a.unlocked ? 'rgba(16,185,129,0.3)' : 'var(--border)'}`,
-              background: a.unlocked
-                ? 'linear-gradient(135deg, var(--primary-light), var(--accent-light))'
-                : 'var(--surface-2)',
+              border: `1.5px solid ${a.unlocked ? 'rgba(37,99,235,0.2)' : 'var(--border)'}`,
+              background: a.unlocked ? 'var(--primary-light)' : 'var(--surface-2)',
               opacity: a.unlocked ? 1 : 0.4,
               transition: 'all 0.2s',
-              boxShadow: a.unlocked ? '0 0 12px var(--primary-glow)' : 'none',
+              boxShadow: a.unlocked ? '0 4px 12px rgba(37,99,235,0.10)' : 'none',
             }}
           >
             <div style={{
-              fontSize: '26px', marginBottom: '5px',
-              filter: a.unlocked ? 'none' : 'grayscale(1) opacity(0.5)',
-              transition: 'filter 0.3s',
+              width: '38px', height: '38px', borderRadius: '10px',
+              background: a.unlocked ? 'rgba(37,99,235,0.12)' : 'var(--border)',
+              border: `1px solid ${a.unlocked ? 'rgba(37,99,235,0.2)' : 'transparent'}`,
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              margin: '0 auto 6px',
+              color: a.unlocked ? 'var(--primary)' : 'var(--text-muted)',
             }}>
               {a.icon}
             </div>
