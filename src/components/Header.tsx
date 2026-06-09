@@ -15,19 +15,12 @@ export default function Header({ isDark, onToggle, profile, onProfileClick }: Pr
 
   return (
     <header className="app-header">
-      {/* Logo mark */}
-      <div style={{
-        width: '36px', height: '36px', borderRadius: '10px', flexShrink: 0,
-        background: 'linear-gradient(135deg, #2563EB 0%, #7C3AED 100%)',
-        display: 'flex', alignItems: 'center', justifyContent: 'center',
-        boxShadow: '0 2px 12px rgba(37,99,235,0.30)',
-      }}>
-        <svg width="18" height="18" viewBox="0 0 24 24" fill="none"
-          stroke="#fff" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
-          <polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/>
-          <polyline points="17 6 23 6 23 12"/>
-        </svg>
-      </div>
+      {/* Logo */}
+      <img
+        src="/LogoPng.png"
+        alt="Minha Tize"
+        style={{ width: '36px', height: '36px', borderRadius: '10px', flexShrink: 0, objectFit: 'contain' }}
+      />
 
       {/* Title */}
       <div style={{ flex: 1 }}>
@@ -37,7 +30,7 @@ export default function Header({ isDark, onToggle, profile, onProfileClick }: Pr
           letterSpacing: '-0.5px', lineHeight: 1, margin: 0,
           fontFamily: 'Inter, -apple-system, sans-serif',
         }}>
-          TizeTrack
+          Minha Tize
         </h1>
         <p style={{
           fontSize: '10px', color: 'var(--text-muted)',
