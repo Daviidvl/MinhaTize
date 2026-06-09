@@ -101,9 +101,13 @@ export default function App() {
   const [showTour, setShowTour]     = useState(() =>
     !!loadProfile().name && !localStorage.getItem(TOUR_KEY)
   )
-  const lastScrollY = useRef(0)
+  const lastScrollY   = useRef(0)
+  const showTourRef   = useRef(showTour)
 
   const isFirstAccess = !profile.name
+
+  // Keep ref in sync so the navbar effect can read it without a dependency
+  showTourRef.current = showTour
 
   function handleProfileComplete(p: UserProfile) {
     setProfile(p)
@@ -117,36 +121,37 @@ export default function App() {
   useEffect(() => {
     let idleTimer: ReturnType<typeof setTimeout> | null = null
 
-    function clearIdle() {
-      if (idleTimer) { clearTimeout(idleTimer); idleTimer = null }
+    function startIdleTimer() {
+      if (idleTimer) clearTimeout(idleTimer)
+      // Never hide while the onboarding tour is running (tour spotlights the nav)
+      if (showTourRef.current) return
+      idleTimer = setTimeout(() => setNavVisible(false), 3000)
     }
-    function scheduleHide() {
-      clearIdle()
-      if (window.scrollY > 80) {
-        idleTimer = setTimeout(() => setNavVisible(false), 3000)
-      }
+    function showAndReset() {
+      setNavVisible(true)
+      startIdleTimer()
     }
     function onScroll() {
       const current = window.scrollY
       const delta   = current - lastScrollY.current
-      clearIdle()
-      if (current < 40)    setNavVisible(true)
-      else if (delta > 6)  setNavVisible(false)
-      else if (delta < -6) { setNavVisible(true); scheduleHide() }
-      else                 scheduleHide()
       lastScrollY.current = current
+      // Scroll down → hide immediately; anything else → show + restart idle
+      if (delta > 6) {
+        if (idleTimer) { clearTimeout(idleTimer); idleTimer = null }
+        setNavVisible(false)
+      } else {
+        showAndReset()
+      }
     }
-    function onTouch() {
-      clearIdle()
-      setNavVisible(true)
-      scheduleHide()
-    }
-    window.addEventListener('scroll', onScroll, { passive: true })
-    window.addEventListener('touchstart', onTouch, { passive: true })
+
+    // Begin idle countdown as soon as the app renders
+    startIdleTimer()
+    window.addEventListener('scroll',     onScroll,    { passive: true })
+    window.addEventListener('pointerdown', showAndReset, { passive: true })
     return () => {
-      window.removeEventListener('scroll', onScroll)
-      window.removeEventListener('touchstart', onTouch)
-      clearIdle()
+      window.removeEventListener('scroll',     onScroll)
+      window.removeEventListener('pointerdown', showAndReset)
+      if (idleTimer) clearTimeout(idleTimer)
     }
   }, [])
 
@@ -207,6 +212,7 @@ export default function App() {
             {NAV_TABS.map(tab => (
               <button
                 key={tab.id}
+                data-tour={`tab-${tab.id}`}
                 className={`nav-tab${activeTab === tab.id ? ' active' : ''}`}
                 onClick={() => { setActiveTab(tab.id); window.scrollTo({ top: 0, behavior: 'instant' }) }}
                 aria-label={tab.label}
