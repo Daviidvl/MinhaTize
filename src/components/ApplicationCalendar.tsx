@@ -164,19 +164,23 @@ export default function ApplicationCalendar({ profile, onUpdateProfile, compact 
             color = 'var(--text-muted)'
           }
 
+          const canRegister = isAppDay && !isFuture
+
           return (
             <button
               key={dateStr}
-              onClick={() => isAppDay && day ? registerApplication(dateStr) : undefined}
+              onClick={() => canRegister ? registerApplication(dateStr) : undefined}
+              title={isFuture && isAppDay ? 'Aplicação ainda não realizada' : undefined}
               style={{
                 height: cellSize ?? undefined,
                 aspectRatio: cellSize ? undefined : '1',
                 borderRadius: compact ? '7px' : '9px',
                 background: bg, border, color, fontWeight, fontSize,
-                cursor: isAppDay ? 'pointer' : 'default',
+                cursor: canRegister ? 'pointer' : 'default',
                 display: 'flex', alignItems: 'center', justifyContent: 'center',
                 transition: 'all 0.15s', fontFamily: 'Inter, -apple-system, sans-serif',
                 position: 'relative',
+                opacity: isFuture && isAppDay && !isNext ? 0.5 : 1,
               }}
             >
               {day}

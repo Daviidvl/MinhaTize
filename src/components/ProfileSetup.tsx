@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Pill, Syringe, TrendingUp, Lock, ChevronLeft, ChevronRight, Check } from 'lucide-react'
+import { Pill, Syringe, TrendingUp, Lock, ChevronLeft, ChevronRight, Check, AlertTriangle } from 'lucide-react'
 import { Medication, Sex, UserProfile, WEEK_DAYS_FULL } from '../types'
 
 interface Props {
@@ -9,11 +9,11 @@ interface Props {
 const DOSES = [2.5, 5, 7.5, 10, 12.5, 15]
 
 const MEDICATIONS: { value: Medication; label: string; icon: React.ReactNode }[] = [
-  { value: 'tirzepatida', label: 'Tirzepatida',  icon: <Pill size={18} strokeWidth={2} /> },
+  { value: 'tirzepatida', label: 'Tirzepatida',  icon: <Pill    size={18} strokeWidth={2} /> },
   { value: 'semaglutida', label: 'Semaglutida',  icon: <Syringe size={18} strokeWidth={2} /> },
   { value: 'ozempic',     label: 'Ozempic',      icon: <Syringe size={18} strokeWidth={2} /> },
   { value: 'wegovy',      label: 'Wegovy',       icon: <Syringe size={18} strokeWidth={2} /> },
-  { value: 'mounjaro',    label: 'Mounjaro',     icon: <Pill size={18} strokeWidth={2} /> },
+  { value: 'mounjaro',    label: 'Mounjaro',     icon: <Pill    size={18} strokeWidth={2} /> },
 ]
 
 const STEPS = [
@@ -24,19 +24,114 @@ const STEPS = [
   { id: 5, title: 'Dia da aplicação',         subtitle: 'Qual dia da semana você aplica sua dose?' },
 ]
 
+// ── Validation helpers ────────────────────────────────────────────────────────
+
+function weightBlock(val: string): string | null {
+  const w = parseFloat(val)
+  if (!val || val.trim() === '') return null
+  if (isNaN(w) || w <= 0) return 'Informe um peso válido em kg.'
+  if (w < 20) return `${val}kg é um peso impossível. Verifique o valor informado.`
+  if (w > 500) return `${val}kg está fora dos limites. Verifique o valor informado.`
+  return null
+}
+
+function weightWarn(val: string): string | null {
+  const w = parseFloat(val)
+  if (!val || isNaN(w)) return null
+  if (w < 30) return `${val}kg parece muito baixo. Confirme se o peso está correto.`
+  if (w > 350) return `${val}kg é um valor incomum. Confirme se o peso está correto.`
+  return null
+}
+
+function heightBlock(val: string): string | null {
+  const h = parseFloat(val)
+  if (!val || val.trim() === '') return null
+  if (isNaN(h) || h <= 0) return 'Informe uma altura válida em centímetros.'
+  if (h < 80) return `${val}cm é uma altura impossível. Verifique o valor informado.`
+  if (h > 280) return `${val}cm está fora dos limites. Verifique o valor informado.`
+  return null
+}
+
+function heightWarn(val: string): string | null {
+  const h = parseFloat(val)
+  if (!val || isNaN(h)) return null
+  if (h < 100) return `${val}cm é muito baixo. A altura deve ser em centímetros (ex: 168).`
+  if (h > 230) return `${val}cm parece incomum. Confirme se a altura está em centímetros.`
+  return null
+}
+
+function ageWarn(val: string): string | null {
+  const a = parseInt(val)
+  if (!val || isNaN(a)) return null
+  if (a < 14)  return 'Idade muito baixa. Confirme o valor informado.'
+  if (a > 110) return 'Idade muito alta. Confirme o valor informado.'
+  return null
+}
+
+function coherenceBlock(height: string, weight: string): string | null {
+  const h = parseFloat(height), w = parseFloat(weight)
+  if (!h || !w || h < 80 || w < 20) return null
+  const bmi = w / ((h / 100) ** 2)
+  if (bmi < 8)  return `Com ${h}cm e ${w}kg, o IMC seria ${bmi.toFixed(1)} — fisicamente impossível. Verifique se altura está em cm e peso em kg.`
+  if (bmi > 90) return `Com ${h}cm e ${w}kg, o IMC seria ${bmi.toFixed(1)} — valor extremo. Confirme se os dados estão corretos.`
+  return null
+}
+
+function goalWarn(start: string, goal: string): string | null {
+  const s = parseFloat(start), g = parseFloat(goal)
+  if (!s || !g || g >= s) return null
+  const loss    = s - g
+  const lossPct = (loss / s) * 100
+  if (g < 30) return 'Meta abaixo de 30kg pode não ser saudável. Considere revisar a meta.'
+  if (loss > 80 || lossPct > 60)
+    return `Perder ${loss.toFixed(0)}kg (${lossPct.toFixed(0)}% do peso) é uma meta muito agressiva para um protocolo GLP-1. Considere uma meta mais gradual.`
+  if (loss > 40)
+    return `Meta de perder ${loss.toFixed(0)}kg é significativa. O GLP-1 apoiará este processo de forma gradual e segura.`
+  return null
+}
+
+// ── Inline message components ─────────────────────────────────────────────────
+
+function BlockMsg({ msg }: { msg: string }) {
+  return (
+    <div style={{
+      display: 'flex', alignItems: 'flex-start', gap: '7px',
+      padding: '9px 12px', borderRadius: '10px', marginTop: '6px',
+      background: 'rgba(239,68,68,0.08)', border: '1px solid rgba(239,68,68,0.22)',
+    }}>
+      <AlertTriangle size={13} strokeWidth={2} style={{ color: '#EF4444', flexShrink: 0, marginTop: '1px' }} />
+      <p style={{ fontSize: '12px', color: '#B91C1C', margin: 0, lineHeight: 1.4, fontWeight: 600 }}>{msg}</p>
+    </div>
+  )
+}
+
+function WarnMsg({ msg }: { msg: string }) {
+  return (
+    <div style={{
+      display: 'flex', alignItems: 'flex-start', gap: '7px',
+      padding: '9px 12px', borderRadius: '10px', marginTop: '6px',
+      background: 'rgba(245,158,11,0.08)', border: '1px solid rgba(245,158,11,0.25)',
+    }}>
+      <AlertTriangle size={13} strokeWidth={2} style={{ color: '#D97706', flexShrink: 0, marginTop: '1px' }} />
+      <p style={{ fontSize: '12px', color: '#92400E', margin: 0, lineHeight: 1.4 }}>{msg}</p>
+    </div>
+  )
+}
+
+// ── Component ─────────────────────────────────────────────────────────────────
 export default function ProfileSetup({ onComplete }: Props) {
   const [step, setStep] = useState(1)
   const [form, setForm] = useState({
-    name: '',
-    age: '',
-    sex: '' as Sex | '',
-    medication: 'tirzepatida' as Medication,
-    height: '',
-    startWeight: '',
-    currentWeight: '',
-    goalWeight: '',
-    currentDose: 2.5,
-    startDate: new Date().toISOString().split('T')[0],
+    name:           '',
+    age:            '',
+    sex:            '' as Sex | '',
+    medication:     'tirzepatida' as Medication,
+    height:         '',
+    startWeight:    '',
+    currentWeight:  '',
+    goalWeight:     '',
+    currentDose:    2.5,
+    startDate:      new Date().toISOString().split('T')[0],
     applicationDay: new Date().getDay(),
   })
 
@@ -44,29 +139,46 @@ export default function ProfileSetup({ onComplete }: Props) {
     setForm(f => ({ ...f, [field]: value }))
   }
 
+  // Derived validation state
+  const hBlock = heightBlock(form.height)
+  const hWarn  = !hBlock ? heightWarn(form.height) : null
+  const wBlock = weightBlock(form.startWeight)
+  const wWarn  = !wBlock ? weightWarn(form.startWeight) : null
+  const cohErr = coherenceBlock(form.height, form.startWeight)
+  const aWarn  = ageWarn(form.age)
+  const gWarn  = goalWarn(form.startWeight, form.goalWeight)
+
   function canAdvance() {
     if (step === 1) return form.name.trim().length >= 2
-    if (step === 2) return parseFloat(form.height) > 0 && parseFloat(form.startWeight) > 0
-    if (step === 3) return parseFloat(form.goalWeight) > 0 && parseFloat(form.goalWeight) < parseFloat(form.startWeight)
-    if (step === 4) return true
+    if (step === 2) {
+      const heightOk = parseFloat(form.height) >= 80 && !hBlock
+      const weightOk = parseFloat(form.startWeight) >= 20 && !wBlock
+      return heightOk && weightOk && !cohErr
+    }
+    if (step === 3) {
+      const g = parseFloat(form.goalWeight), s = parseFloat(form.startWeight)
+      return g > 0 && g < s && g >= 20
+    }
     return true
   }
 
   function handleFinish() {
     const profile: UserProfile = {
-      name: form.name.trim(),
-      age: form.age ? parseInt(form.age) : undefined,
-      sex: form.sex || undefined,
-      medication: form.medication,
-      height: parseFloat(form.height),
-      startWeight: parseFloat(form.startWeight),
-      currentWeight: form.currentWeight ? parseFloat(form.currentWeight) : undefined,
-      goalWeight: parseFloat(form.goalWeight),
-      currentDose: form.currentDose,
-      startDate: form.startDate,
+      name:           form.name.trim(),
+      age:            form.age ? parseInt(form.age) : undefined,
+      sex:            form.sex || undefined,
+      medication:     form.medication,
+      height:         parseFloat(form.height),
+      startWeight:    parseFloat(form.startWeight),
+      currentWeight:  form.currentWeight ? parseFloat(form.currentWeight) : undefined,
+      goalWeight:     parseFloat(form.goalWeight),
+      currentDose:    form.currentDose,
+      startDate:      form.startDate,
       applicationDay: form.applicationDay,
-      weightHistory: form.currentWeight ? [{ date: new Date().toISOString().split('T')[0], weight: parseFloat(form.currentWeight) }] : [],
-      diary: [],
+      weightHistory:  form.currentWeight
+        ? [{ date: new Date().toISOString().split('T')[0], weight: parseFloat(form.currentWeight) }]
+        : [],
+      diary:       [],
       sideEffects: [],
     }
     onComplete(profile)
@@ -74,7 +186,6 @@ export default function ProfileSetup({ onComplete }: Props) {
 
   const progress = ((step - 1) / (STEPS.length - 1)) * 100
 
-  // helpers de estilo
   const selBtn = (active: boolean, color = 'var(--primary)') => ({
     padding: '12px 8px', borderRadius: '11px', border: 'none', cursor: 'pointer',
     background: active ? `linear-gradient(135deg, ${color}, #0D9488)` : 'var(--surface-2)',
@@ -84,6 +195,8 @@ export default function ProfileSetup({ onComplete }: Props) {
     boxShadow: active ? 'var(--shadow-green)' : 'none',
     outline: active ? 'none' : '1px solid var(--border)',
   })
+
+  const ok = canAdvance()
 
   return (
     <div style={{ minHeight: '100dvh', display: 'flex', flexDirection: 'column', background: 'var(--bg)' }}>
@@ -164,6 +277,7 @@ export default function ProfileSetup({ onComplete }: Props) {
                 <label className="label-base">Idade (opcional)</label>
                 <input type="number" className="input-field" placeholder="Ex: 35"
                   value={form.age} onChange={e => set('age', e.target.value)} min={10} max={120} />
+                {aWarn && <WarnMsg msg={aWarn} />}
               </div>
 
               <div style={{ padding: '12px 14px', background: 'var(--primary-light)', borderRadius: '11px', border: '1px solid rgba(37,99,235,0.15)' }}>
@@ -182,24 +296,37 @@ export default function ProfileSetup({ onComplete }: Props) {
                 <div>
                   <label className="label-base">Altura (cm)</label>
                   <input type="number" className="input-field" placeholder="Ex: 168"
-                    value={form.height} onChange={e => set('height', e.target.value)} min={100} max={250} autoFocus />
+                    value={form.height} onChange={e => set('height', e.target.value)} min={80} max={280} autoFocus />
+                  {hBlock && <BlockMsg msg={hBlock} />}
+                  {hWarn  && <WarnMsg  msg={hWarn}  />}
                 </div>
                 <div>
                   <label className="label-base">Peso inicial (kg)</label>
                   <input type="number" className="input-field" placeholder="Ex: 92"
-                    value={form.startWeight} onChange={e => set('startWeight', e.target.value)} min={20} max={300} step={0.1} />
+                    value={form.startWeight} onChange={e => set('startWeight', e.target.value)} min={20} max={500} step={0.1} />
+                  {wBlock && <BlockMsg msg={wBlock} />}
+                  {wWarn  && <WarnMsg  msg={wWarn}  />}
                 </div>
               </div>
+
+              {cohErr && <BlockMsg msg={cohErr} />}
+
               <div>
                 <label className="label-base">Peso atual (kg) <span style={{ fontWeight: 400, textTransform: 'none', letterSpacing: 0 }}>— se diferente do inicial</span></label>
                 <input type="number" className="input-field" placeholder="Ex: 88.5"
-                  value={form.currentWeight} onChange={e => set('currentWeight', e.target.value)} min={20} max={300} step={0.1} />
+                  value={form.currentWeight} onChange={e => set('currentWeight', e.target.value)} min={20} max={500} step={0.1} />
+                {form.currentWeight && weightBlock(form.currentWeight) && <BlockMsg msg={weightBlock(form.currentWeight)!} />}
+                {form.currentWeight && !weightBlock(form.currentWeight) && weightWarn(form.currentWeight) && <WarnMsg msg={weightWarn(form.currentWeight)!} />}
               </div>
+
               <div>
                 <label className="label-base">Início do protocolo</label>
                 <input type="date" className="input-field"
                   value={form.startDate} onChange={e => set('startDate', e.target.value)}
                   max={new Date().toISOString().split('T')[0]} />
+                {form.startDate > new Date().toISOString().split('T')[0] && (
+                  <BlockMsg msg="A data de início não pode ser no futuro." />
+                )}
               </div>
             </div>
           )}
@@ -212,21 +339,36 @@ export default function ProfileSetup({ onComplete }: Props) {
                 <input type="number" className="input-field" placeholder="Ex: 70"
                   value={form.goalWeight} onChange={e => set('goalWeight', e.target.value)}
                   min={20} max={300} step={0.1} autoFocus />
+                {parseFloat(form.goalWeight) < 20 && form.goalWeight && (
+                  <BlockMsg msg="Meta abaixo de 20kg não é permitida." />
+                )}
               </div>
-              {form.startWeight && form.goalWeight && parseFloat(form.goalWeight) < parseFloat(form.startWeight) && (
-                <div style={{ padding: '14px', background: 'var(--primary-light)', borderRadius: '12px', border: '1px solid rgba(16,185,129,0.2)' }}>
+
+              {form.startWeight && form.goalWeight && parseFloat(form.goalWeight) >= parseFloat(form.startWeight) && parseFloat(form.goalWeight) > 0 && (
+                <WarnMsg msg="A meta deve ser menor que o peso atual." />
+              )}
+
+              {gWarn && parseFloat(form.goalWeight) < parseFloat(form.startWeight) && (
+                <div style={{
+                  display: 'flex', alignItems: 'flex-start', gap: '7px',
+                  padding: '10px 13px', borderRadius: '11px',
+                  background: 'rgba(245,158,11,0.08)', border: '1px solid rgba(245,158,11,0.25)',
+                }}>
+                  <AlertTriangle size={13} strokeWidth={2} style={{ color: '#D97706', flexShrink: 0, marginTop: '1px' }} />
+                  <p style={{ fontSize: '12px', color: '#92400E', margin: 0, lineHeight: 1.4 }}>{gWarn}</p>
+                </div>
+              )}
+
+              {form.startWeight && form.goalWeight
+                && parseFloat(form.goalWeight) > 0
+                && parseFloat(form.goalWeight) < parseFloat(form.startWeight)
+                && !gWarn && (
+                <div style={{ padding: '14px', background: 'var(--primary-light)', borderRadius: '12px', border: '1px solid rgba(37,99,235,0.2)' }}>
                   <p style={{ fontSize: '15px', fontWeight: 800, color: 'var(--primary)' }}>
                     Meta: perder {(parseFloat(form.startWeight) - parseFloat(form.goalWeight)).toFixed(1)}kg
                   </p>
                   <p style={{ fontSize: '12px', color: 'var(--text-muted)', marginTop: '4px' }}>
                     Você está no caminho certo. Vamos juntos!
-                  </p>
-                </div>
-              )}
-              {form.goalWeight && form.startWeight && parseFloat(form.goalWeight) >= parseFloat(form.startWeight) && (
-                <div className="card-warning">
-                  <p style={{ fontSize: '13px', color: 'var(--warn-text)', fontWeight: 600 }}>
-                    A meta deve ser menor que o peso inicial.
                   </p>
                 </div>
               )}
@@ -291,7 +433,7 @@ export default function ProfileSetup({ onComplete }: Props) {
           )}
         </div>
 
-        {/* Navigation buttons */}
+        {/* Navigation */}
         <div style={{ display: 'flex', gap: '10px', marginTop: '28px' }}>
           {step > 1 && (
             <button className="btn-ghost" onClick={() => setStep(s => s - 1)}
@@ -301,10 +443,12 @@ export default function ProfileSetup({ onComplete }: Props) {
           )}
           <button
             className="btn-primary"
-            style={{ flex: 1, opacity: canAdvance() ? 1 : 0.4, cursor: canAdvance() ? 'pointer' : 'not-allowed',
-              display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: '6px' }}
+            style={{
+              flex: 1, opacity: ok ? 1 : 0.4, cursor: ok ? 'pointer' : 'not-allowed',
+              display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: '6px',
+            }}
             onClick={() => {
-              if (!canAdvance()) return
+              if (!ok) return
               if (step < STEPS.length) setStep(s => s + 1)
               else handleFinish()
             }}

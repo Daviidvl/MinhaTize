@@ -28,6 +28,17 @@ function imcLabel(v: number) {
   return         { label: 'Obesidade III',         color: '#B91C1C' }
 }
 
+function weightInputError(val: string): string | null {
+  const w = parseFloat(val)
+  if (!val || val.trim() === '') return null
+  if (isNaN(w) || w <= 0) return 'Informe um peso válido.'
+  if (w < 20)  return `${val}kg é muito baixo. Verifique o valor.`
+  if (w > 500) return `${val}kg está fora dos limites. Verifique o valor.`
+  if (w < 30)  return `${val}kg parece muito baixo. Confirme antes de salvar.`
+  if (w > 350) return `${val}kg é um valor incomum. Confirme antes de salvar.`
+  return null
+}
+
 export default function ProgressHub({ profile, onUpdateProfile }: Props) {
   const [tab, setTab]             = useState<InnerTab>('evolution')
   const [newWeight, setNewWeight] = useState('')
@@ -55,9 +66,12 @@ export default function ProgressHub({ profile, onUpdateProfile }: Props) {
   const prev2   = profile.weightHistory.at(-2)?.weight ?? firstWeight
   const weekDiff = lastWeight - prev2
 
+  const wInputErr = weightInputError(newWeight)
+  const wBlocked  = !!newWeight && (parseFloat(newWeight) < 20 || parseFloat(newWeight) > 500)
+
   function addWeight() {
     const w = parseFloat(newWeight)
-    if (!w || w < 20 || w > 300) return
+    if (!w || wBlocked) return
     const entry: WeightEntry = { date: new Date().toISOString().split('T')[0], weight: w }
     onUpdateProfile({ ...profile, weightHistory: [...profile.weightHistory, entry] })
     setNewWeight('')
@@ -199,33 +213,42 @@ export default function ProgressHub({ profile, onUpdateProfile }: Props) {
               <h3 style={{ fontWeight: 700, fontSize: '14px', color: 'var(--text-primary)', margin: 0 }}>
                 Registrar pesagem
               </h3>
-              <div style={{ display: 'flex', gap: '10px' }}>
-                <input
-                  type="number" className="input-field" placeholder="Ex: 84.5"
-                  style={{ flex: 1 }}
-                  value={newWeight} onChange={e => setNewWeight(e.target.value)}
-                  min={20} max={300} step={0.1} inputMode="decimal"
-                />
-                {(() => {
-                  const n = parseFloat(newWeight)
-                  const valid = !!newWeight && !isNaN(n) && n >= 20 && n <= 300
-                  return (
-                    <button
-                      className="btn-primary"
-                      style={{ flexShrink: 0, padding: '0 20px', opacity: valid ? 1 : 0.4 }}
-                      onClick={addWeight} disabled={!valid}
-                    >
-                      {weightSaved ? 'Salvo' : 'Salvar'}
-                    </button>
-                  )
-                })()}
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                <div style={{ display: 'flex', gap: '10px' }}>
+                  <input
+                    type="number" className="input-field" placeholder="Ex: 84.5"
+                    style={{ flex: 1 }}
+                    value={newWeight} onChange={e => setNewWeight(e.target.value)}
+                    min={20} max={500} step={0.1} inputMode="decimal"
+                  />
+                  {(() => {
+                    const n = parseFloat(newWeight)
+                    const valid = !!newWeight && !isNaN(n) && n >= 20 && n <= 500 && !wBlocked
+                    return (
+                      <button
+                        className="btn-primary"
+                        style={{ flexShrink: 0, padding: '0 20px', opacity: valid ? 1 : 0.4 }}
+                        onClick={addWeight} disabled={!valid}
+                      >
+                        {weightSaved ? 'Salvo' : 'Salvar'}
+                      </button>
+                    )
+                  })()}
+                </div>
+                {wInputErr && newWeight && (
+                  <div style={{
+                    display: 'flex', alignItems: 'flex-start', gap: '6px',
+                    padding: '8px 11px', borderRadius: '9px',
+                    background: wBlocked ? 'rgba(239,68,68,0.07)' : 'rgba(245,158,11,0.07)',
+                    border: `1px solid ${wBlocked ? 'rgba(239,68,68,0.2)' : 'rgba(245,158,11,0.22)'}`,
+                  }}>
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke={wBlocked ? '#EF4444' : '#D97706'} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0, marginTop: '1px' }}><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+                    <p style={{ fontSize: '11px', color: wBlocked ? '#B91C1C' : '#92400E', margin: 0, lineHeight: 1.4, fontWeight: 600 }}>
+                      {wInputErr}
+                    </p>
+                  </div>
+                )}
               </div>
-              {newWeight && (() => {
-                const n = parseFloat(newWeight)
-                if (isNaN(n) || n < 20 || n > 300)
-                  return <p style={{ fontSize: '11px', color: '#EF4444', margin: 0 }}>Informe um peso entre 20 e 300 kg</p>
-                return null
-              })()}
             </div>
 
             {/* Histórico */}

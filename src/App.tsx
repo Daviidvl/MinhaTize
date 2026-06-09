@@ -7,6 +7,7 @@ import HealthHub from './components/HealthHub'
 import Laboratory from './components/Laboratory'
 import ProfilePage from './components/ProfilePage'
 import ProfileSetup from './components/ProfileSetup'
+import OnboardingTour, { TOUR_KEY } from './components/OnboardingTour'
 import { useDarkMode } from './hooks/useDarkMode'
 import { Tab, UserProfile } from './types'
 
@@ -97,29 +98,60 @@ export default function App() {
   const [activeTab, setActiveTab]   = useState<Tab>('dashboard')
   const [profile, setProfile]       = useState<UserProfile>(loadProfile)
   const [navVisible, setNavVisible] = useState(true)
-  const lastScrollY                 = useRef(0)
+  const [showTour, setShowTour]     = useState(() =>
+    !!loadProfile().name && !localStorage.getItem(TOUR_KEY)
+  )
+  const lastScrollY = useRef(0)
 
   const isFirstAccess = !profile.name
+
+  function handleProfileComplete(p: UserProfile) {
+    setProfile(p)
+    if (!localStorage.getItem(TOUR_KEY)) setShowTour(true)
+  }
 
   useEffect(() => {
     localStorage.setItem('tizetrack_profile', JSON.stringify(profile))
   }, [profile])
 
   useEffect(() => {
+    let idleTimer: ReturnType<typeof setTimeout> | null = null
+
+    function clearIdle() {
+      if (idleTimer) { clearTimeout(idleTimer); idleTimer = null }
+    }
+    function scheduleHide() {
+      clearIdle()
+      if (window.scrollY > 80) {
+        idleTimer = setTimeout(() => setNavVisible(false), 3000)
+      }
+    }
     function onScroll() {
       const current = window.scrollY
       const delta   = current - lastScrollY.current
+      clearIdle()
       if (current < 40)    setNavVisible(true)
       else if (delta > 6)  setNavVisible(false)
-      else if (delta < -6) setNavVisible(true)
+      else if (delta < -6) { setNavVisible(true); scheduleHide() }
+      else                 scheduleHide()
       lastScrollY.current = current
     }
+    function onTouch() {
+      clearIdle()
+      setNavVisible(true)
+      scheduleHide()
+    }
     window.addEventListener('scroll', onScroll, { passive: true })
-    return () => window.removeEventListener('scroll', onScroll)
+    window.addEventListener('touchstart', onTouch, { passive: true })
+    return () => {
+      window.removeEventListener('scroll', onScroll)
+      window.removeEventListener('touchstart', onTouch)
+      clearIdle()
+    }
   }, [])
 
   if (isFirstAccess) {
-    return <ProfileSetup onComplete={setProfile} />
+    return <ProfileSetup onComplete={handleProfileComplete} />
   }
 
   const showProfile = activeTab === 'profile'
@@ -166,6 +198,8 @@ export default function App() {
       >
         {renderTab()}
       </main>
+
+      {showTour && <OnboardingTour onDone={() => setShowTour(false)} />}
 
       {!showProfile && (
         <nav className={`bottom-nav${navVisible ? '' : ' nav-hidden'}`}>
