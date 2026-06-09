@@ -97,7 +97,7 @@ export default function App() {
   const { isDark, toggle }          = useDarkMode()
   const [activeTab, setActiveTab]   = useState<Tab>('dashboard')
   const [profile, setProfile]       = useState<UserProfile>(loadProfile)
-  const [navVisible, setNavVisible] = useState(true)
+  const [navVisible, setNavVisible] = useState(false)
   const [showTour, setShowTour]     = useState(() =>
     !!loadProfile().name && !localStorage.getItem(TOUR_KEY)
   )
@@ -119,9 +119,8 @@ export default function App() {
       const current = window.scrollY
       const delta   = current - lastScrollY.current
       lastScrollY.current = current
-      if (current < 10)      setNavVisible(true)   // sempre visível no topo
-      else if (delta >  8)   setNavVisible(false)  // deslizou para baixo → esconde
-      else if (delta < -8)   setNavVisible(true)   // deslizou para cima  → mostra
+      if (delta >  8) setNavVisible(false)  // deslizou para baixo → esconde
+      else if (delta < -8) setNavVisible(true)   // deslizou para cima  → mostra
     }
     window.addEventListener('scroll', onScroll, { passive: true })
     return () => window.removeEventListener('scroll', onScroll)
