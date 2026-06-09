@@ -113,11 +113,11 @@ export default function ApplicationCalendar({ profile, onUpdateProfile, compact 
               style={{
                 padding: '8px 14px', borderRadius: '9px', border: 'none',
                 background: 'var(--primary)', color: '#fff', fontWeight: 700, fontSize: '12px',
-                cursor: 'pointer', fontFamily: "'Plus Jakarta Sans', sans-serif",
+                cursor: 'pointer', fontFamily: 'Inter, -apple-system, sans-serif',
                 boxShadow: 'var(--shadow-green)',
               }}
             >
-              Registrar ✓
+              Registrar
             </button>
           )}
         </div>
@@ -175,13 +175,15 @@ export default function ApplicationCalendar({ profile, onUpdateProfile, compact 
                 background: bg, border, color, fontWeight, fontSize,
                 cursor: isAppDay ? 'pointer' : 'default',
                 display: 'flex', alignItems: 'center', justifyContent: 'center',
-                transition: 'all 0.15s', fontFamily: "'Plus Jakarta Sans', sans-serif",
+                transition: 'all 0.15s', fontFamily: 'Inter, -apple-system, sans-serif',
                 position: 'relative',
               }}
             >
               {day}
               {isConfirmed && (
-                <span style={{ position: 'absolute', top: '1px', right: '2px', fontSize: compact ? '6px' : '7px' }}>✓</span>
+                <span style={{ position: 'absolute', top: '1px', right: '2px', lineHeight: 1 }}>
+                  <svg width={compact ? 6 : 7} height={compact ? 6 : 7} viewBox="0 0 10 10" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="1.5 5 4 7.5 8.5 2.5"/></svg>
+                </span>
               )}
             </button>
           )

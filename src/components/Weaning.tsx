@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { AlertCircle, AlertTriangle, CheckCircle2, Info, HelpCircle, X, Target, Sparkles, RotateCcw, Star, Clock } from 'lucide-react'
 import { UserProfile } from '../types'
 
 interface Props { profile: UserProfile }
@@ -34,24 +35,24 @@ function calcScore(a: Answers): number {
 }
 
 // ─── Níveis ──────────────────────────────────────────────────────────
-const LEVELS = [
+const LEVELS: { icon: React.ReactNode; color: string; bg: string; border: string; label: string; message: string }[] = [
   {
-    emoji: '🔴', color: '#EF4444', bg: 'rgba(239,68,68,0.08)', border: 'rgba(239,68,68,0.25)',
+    icon: <AlertCircle size={32} strokeWidth={1.5} />, color: '#EF4444', bg: 'rgba(239,68,68,0.08)', border: 'rgba(239,68,68,0.25)',
     label: 'Baixa prontidão',
     message: 'Seu organismo ainda necessita do suporte medicamentoso. Evite qualquer redução de dose sem orientação médica.',
   },
   {
-    emoji: '🟡', color: '#F59E0B', bg: 'rgba(245,158,11,0.08)', border: 'rgba(245,158,11,0.25)',
+    icon: <AlertTriangle size={32} strokeWidth={1.5} />, color: '#F59E0B', bg: 'rgba(245,158,11,0.08)', border: 'rgba(245,158,11,0.25)',
     label: 'Prontidão intermediária',
     message: 'Você já apresenta alguns sinais positivos, mas ainda há aspectos a fortalecer. Permaneça mais tempo na etapa atual antes de avançar.',
   },
   {
-    emoji: '🟢', color: '#10B981', bg: 'rgba(16,185,129,0.08)', border: 'rgba(16,185,129,0.25)',
+    icon: <CheckCircle2 size={32} strokeWidth={1.5} />, color: '#10B981', bg: 'rgba(16,185,129,0.08)', border: 'rgba(16,185,129,0.25)',
     label: 'Boa prontidão',
     message: 'Você apresenta sinais favoráveis para o desmame.\n\nMantenha seus hábitos atuais e converse com seu médico sobre os próximos passos da redução gradual.',
   },
   {
-    emoji: '🔵', color: '#6366F1', bg: 'rgba(99,102,241,0.08)', border: 'rgba(99,102,241,0.25)',
+    icon: <Info size={32} strokeWidth={1.5} />, color: '#6366F1', bg: 'rgba(99,102,241,0.08)', border: 'rgba(99,102,241,0.25)',
     label: 'Prontidão avançada',
     message: 'Você apresenta sinais favoráveis para o desmame.\n\nMantenha seus hábitos atuais e converse com seu médico sobre os próximos passos da redução gradual.',
   },
@@ -120,12 +121,21 @@ function Option({ label, selected, onClick }: { label: string; selected: boolean
         color: selected ? '#fff' : 'var(--text-primary)',
         fontWeight: 700, fontSize: '14px', textAlign: 'left',
         cursor: 'pointer', transition: 'all 0.15s ease',
-        fontFamily: "'Plus Jakarta Sans', sans-serif",
-        boxShadow: selected ? 'var(--shadow-green)' : 'none',
+        fontFamily: 'Inter, -apple-system, sans-serif',
+        boxShadow: selected ? '0 2px 8px rgba(37,99,235,0.25)' : 'none',
         outline: selected ? 'none' : '1px solid var(--border)',
       }}
     >
-      <span style={{ marginRight: '10px', fontSize: '16px' }}>{selected ? '✓' : '○'}</span>
+      <span style={{
+        marginRight: '10px', width: '18px', height: '18px',
+        borderRadius: '50%', flexShrink: 0,
+        background: selected ? 'rgba(255,255,255,0.25)' : 'var(--border)',
+        border: selected ? '2px solid rgba(255,255,255,0.5)' : '2px solid var(--border)',
+        display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+        verticalAlign: 'middle',
+      }}>
+        {selected && <span style={{ width: '6px', height: '6px', borderRadius: '50%', background: '#fff' }} />}
+      </span>
       {label}
     </button>
   )
@@ -191,7 +201,14 @@ export default function Weaning({ profile }: Props) {
             background: 'linear-gradient(135deg, var(--primary-light), var(--accent-light))',
             border: '1px solid rgba(16,185,129,0.2)',
           }}>
-            <p style={{ fontSize: '32px', marginBottom: '10px' }}>🤔</p>
+            <div style={{
+              width: '52px', height: '52px', borderRadius: '14px',
+              background: 'var(--primary-light)', border: '1px solid rgba(37,99,235,0.15)',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              margin: '0 0 12px', color: 'var(--primary)',
+            }}>
+              <HelpCircle size={26} strokeWidth={2} />
+            </div>
             <h3 style={{ fontSize: '17px', fontWeight: 800, color: 'var(--text-primary)', marginBottom: '8px' }}>
               Meu organismo está pronto para depender menos da medicação?
             </h3>
@@ -206,7 +223,7 @@ export default function Weaning({ profile }: Props) {
             </p>
             {['Iniciar o desmame', 'Suspender a medicação', 'Aumentar a dose', 'Reduzir a dose'].map(item => (
               <div key={item} style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '6px' }}>
-                <span style={{ fontSize: '14px', color: '#EF4444' }}>✕</span>
+                <X size={14} strokeWidth={2.5} color="#EF4444" style={{ flexShrink: 0 }} />
                 <span style={{ fontSize: '13px', color: 'var(--text-muted)' }}>{item}</span>
               </div>
             ))}
@@ -249,7 +266,14 @@ export default function Weaning({ profile }: Props) {
             background: 'rgba(245,158,11,0.07)', border: '1.5px solid rgba(245,158,11,0.25)',
             textAlign: 'center', padding: '2rem 1.5rem',
           }}>
-            <p style={{ fontSize: '40px', marginBottom: '12px' }}>🎯</p>
+            <div style={{
+              width: '52px', height: '52px', borderRadius: '14px',
+              background: 'rgba(245,158,11,0.12)', border: '1px solid rgba(245,158,11,0.25)',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              margin: '0 auto 12px', color: '#F59E0B',
+            }}>
+              <Target size={26} strokeWidth={2} />
+            </div>
             <h3 style={{ fontSize: '18px', fontWeight: 800, color: 'var(--text-primary)', marginBottom: '12px', lineHeight: 1.3 }}>
               Você ainda não atingiu seu peso objetivo.
             </h3>
@@ -261,9 +285,12 @@ export default function Weaning({ profile }: Props) {
             </p>
           </div>
           <div className="card-warning">
-            <p style={{ fontSize: '12px', color: 'var(--warn-text)', lineHeight: 1.5 }}>
-              ⚕️ Finalidade exclusivamente educativa. Não substitui avaliação médica.
-            </p>
+            <div style={{ display: 'flex', gap: '7px', alignItems: 'flex-start' }}>
+              <Info size={13} strokeWidth={2} style={{ flexShrink: 0, marginTop: '1px', color: 'var(--warn-text)' }} />
+              <p style={{ fontSize: '12px', color: 'var(--warn-text)', lineHeight: 1.5, margin: 0 }}>
+                Finalidade exclusivamente educativa. Não substitui avaliação médica.
+              </p>
+            </div>
           </div>
           <button className="btn-ghost" style={{ width: '100%' }} onClick={restart}>
             Refazer avaliação
@@ -314,7 +341,7 @@ export default function Weaning({ profile }: Props) {
               background: 'linear-gradient(135deg, var(--primary-light), var(--accent-light))',
               border: '1px solid rgba(16,185,129,0.2)',
             }}>
-              <span style={{ fontSize: '12px' }}>★</span>
+              <Star size={11} strokeWidth={2} color="var(--primary)" />
               <span style={{ fontSize: '11px', fontWeight: 700, color: 'var(--primary)' }}>
                 Variável mais importante desta avaliação
               </span>
@@ -361,8 +388,8 @@ export default function Weaning({ profile }: Props) {
                     : 'var(--surface-2)',
                   color: answers.q4 === dose ? '#fff' : 'var(--text-primary)',
                   fontWeight: 800, fontSize: '15px', cursor: 'pointer',
-                  transition: 'all 0.15s', fontFamily: "'Plus Jakarta Sans', sans-serif",
-                  boxShadow: answers.q4 === dose ? 'var(--shadow-green)' : 'none',
+                  transition: 'all 0.15s', fontFamily: 'Inter, -apple-system, sans-serif',
+                  boxShadow: answers.q4 === dose ? '0 2px 8px rgba(37,99,235,0.25)' : 'none',
                 }}
               >
                 {dose}mg
@@ -445,7 +472,12 @@ export default function Weaning({ profile }: Props) {
             padding: '1.5rem',
           }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '14px' }}>
-              <span style={{ fontSize: '38px' }}>{classif.emoji}</span>
+              <div style={{
+                width: '52px', height: '52px', borderRadius: '14px', flexShrink: 0,
+                background: classif.bg, border: `1px solid ${classif.border}`,
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                color: classif.color,
+              }}>{classif.icon}</div>
               <div>
                 <p style={{ fontSize: '11px', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: '3px' }}>
                   Sua classificação
@@ -470,7 +502,7 @@ export default function Weaning({ profile }: Props) {
               border: '1.5px solid rgba(16,185,129,0.3)',
               display: 'flex', gap: '12px', alignItems: 'flex-start',
             }}>
-              <span style={{ fontSize: '20px', flexShrink: 0 }}>✨</span>
+              <Sparkles size={18} strokeWidth={2} color="var(--primary)" style={{ flexShrink: 0 }} />
               <p style={{ fontSize: '13px', fontWeight: 600, color: 'var(--text-primary)', lineHeight: 1.6 }}>
                 Você já se encontra na menor dose disponível e apresenta sinais favoráveis de estabilidade.
               </p>
@@ -485,7 +517,7 @@ export default function Weaning({ profile }: Props) {
               border: '1.5px solid rgba(239,68,68,0.3)',
             }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px' }}>
-                <span style={{ fontSize: '18px' }}>🔴</span>
+                <AlertCircle size={16} strokeWidth={2} color="#EF4444" style={{ flexShrink: 0 }} />
                 <p style={{ fontSize: '13px', fontWeight: 800, color: '#EF4444', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
                   Risco aumentado de reganho
                 </p>
@@ -510,7 +542,7 @@ export default function Weaning({ profile }: Props) {
                   border: '1px solid rgba(245,158,11,0.22)',
                   display: 'flex', gap: '10px', alignItems: 'flex-start',
                 }}>
-                  <span style={{ fontSize: '14px', flexShrink: 0, marginTop: '1px' }}>⚠</span>
+                  <AlertTriangle size={14} strokeWidth={2} color="#F59E0B" style={{ flexShrink: 0, marginTop: '1px' }} />
                   <p style={{ fontSize: '13px', color: 'var(--text-primary)', lineHeight: 1.6 }}>{pt.text}</p>
                 </div>
               ))}
@@ -540,20 +572,24 @@ export default function Weaning({ profile }: Props) {
             padding: '12px 14px', borderRadius: '12px', textAlign: 'center',
             background: 'var(--surface-2)', border: '1px solid var(--border)',
           }}>
-            <p style={{ fontSize: '13px', fontWeight: 800, color: 'var(--text-primary)', letterSpacing: '-0.01em' }}>
-              ⏳ Não force velocidade no processo.
+            <p style={{ fontSize: '13px', fontWeight: 800, color: 'var(--text-primary)', letterSpacing: '-0.01em', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px' }}>
+              <Clock size={13} strokeWidth={2} color="var(--text-muted)" />
+              Não force velocidade no processo.
             </p>
           </div>
 
           {/* Aviso legal */}
           <div className="card-warning">
-            <p style={{ fontSize: '12px', color: 'var(--warn-text)', lineHeight: 1.6 }}>
-              ⚕️ Esta ferramenta possui finalidade exclusivamente educativa. Os resultados não substituem avaliação médica. Qualquer ajuste de dose deve ser realizado com acompanhamento profissional.
-            </p>
+            <div style={{ display: 'flex', gap: '7px', alignItems: 'flex-start' }}>
+              <Info size={13} strokeWidth={2} style={{ flexShrink: 0, marginTop: '1px', color: 'var(--warn-text)' }} />
+              <p style={{ fontSize: '12px', color: 'var(--warn-text)', lineHeight: 1.6, margin: 0 }}>
+                Esta ferramenta possui finalidade exclusivamente educativa. Os resultados não substituem avaliação médica. Qualquer ajuste de dose deve ser realizado com acompanhamento profissional.
+              </p>
+            </div>
           </div>
 
-          <button className="btn-ghost" style={{ width: '100%' }} onClick={restart}>
-            🔄 Refazer avaliação
+          <button className="btn-ghost" style={{ width: '100%', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: '6px' }} onClick={restart}>
+            <RotateCcw size={14} strokeWidth={2} />Refazer avaliação
           </button>
         </div>
       )}

@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { Pill, Syringe, TrendingUp, Lock, ChevronLeft, ChevronRight, Check } from 'lucide-react'
 import { Medication, Sex, UserProfile, WEEK_DAYS_FULL } from '../types'
 
 interface Props {
@@ -7,12 +8,12 @@ interface Props {
 
 const DOSES = [2.5, 5, 7.5, 10, 12.5, 15]
 
-const MEDICATIONS: { value: Medication; label: string; emoji: string }[] = [
-  { value: 'tirzepatida', label: 'Tirzepatida',  emoji: '💊' },
-  { value: 'semaglutida', label: 'Semaglutida',  emoji: '💉' },
-  { value: 'ozempic',     label: 'Ozempic',      emoji: '🟣' },
-  { value: 'wegovy',      label: 'Wegovy',        emoji: '🔵' },
-  { value: 'mounjaro',    label: 'Mounjaro',      emoji: '🟢' },
+const MEDICATIONS: { value: Medication; label: string; icon: React.ReactNode }[] = [
+  { value: 'tirzepatida', label: 'Tirzepatida',  icon: <Pill size={18} strokeWidth={2} /> },
+  { value: 'semaglutida', label: 'Semaglutida',  icon: <Syringe size={18} strokeWidth={2} /> },
+  { value: 'ozempic',     label: 'Ozempic',      icon: <Syringe size={18} strokeWidth={2} /> },
+  { value: 'wegovy',      label: 'Wegovy',       icon: <Syringe size={18} strokeWidth={2} /> },
+  { value: 'mounjaro',    label: 'Mounjaro',     icon: <Pill size={18} strokeWidth={2} /> },
 ]
 
 const STEPS = [
@@ -79,7 +80,7 @@ export default function ProfileSetup({ onComplete }: Props) {
     background: active ? `linear-gradient(135deg, ${color}, #0D9488)` : 'var(--surface-2)',
     color: active ? '#fff' : 'var(--text-primary)',
     fontWeight: 700, fontSize: '13px', transition: 'all 0.15s',
-    fontFamily: "'Plus Jakarta Sans', sans-serif",
+    fontFamily: 'Inter, -apple-system, sans-serif',
     boxShadow: active ? 'var(--shadow-green)' : 'none',
     outline: active ? 'none' : '1px solid var(--border)',
   })
@@ -105,10 +106,11 @@ export default function ProfileSetup({ onComplete }: Props) {
         <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '32px' }}>
           <div style={{
             width: '34px', height: '34px', borderRadius: '10px', flexShrink: 0,
-            background: 'linear-gradient(135deg, rgba(16,185,129,0.25), rgba(124,58,237,0.15))',
-            border: '1px solid rgba(16,185,129,0.3)',
-            display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '17px',
-          }}>📈</div>
+            background: 'var(--primary-light)',
+            border: '1px solid rgba(37,99,235,0.2)',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            color: 'var(--primary)',
+          }}><TrendingUp size={17} strokeWidth={2} /></div>
           <span style={{ fontWeight: 800, fontSize: '16px', color: 'var(--text-primary)' }}>TizeTrack</span>
         </div>
 
@@ -147,16 +149,14 @@ export default function ProfileSetup({ onComplete }: Props) {
               <div>
                 <label className="label-base">Sexo (opcional)</label>
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '8px' }}>
-                  {([
-                    { v: 'female', l: 'Feminino', e: '👩' },
-                    { v: 'male',   l: 'Masculino', e: '👨' },
-                    { v: 'other',  l: 'Outro',     e: '🧑' },
-                  ] as const).map(o => (
-                    <button key={o.v} style={selBtn(form.sex === o.v)} onClick={() => set('sex', o.v)}>
-                      <span style={{ display: 'block', fontSize: '20px', marginBottom: '4px' }}>{o.e}</span>
-                      {o.l}
-                    </button>
-                  ))}
+                  {(['Feminino', 'Masculino', 'Outro'] as const).map((l, i) => {
+                    const v = (['female', 'male', 'other'] as const)[i]
+                    return (
+                      <button key={v} style={selBtn(form.sex === v)} onClick={() => set('sex', v)}>
+                        {l}
+                      </button>
+                    )
+                  })}
                 </div>
               </div>
 
@@ -166,9 +166,10 @@ export default function ProfileSetup({ onComplete }: Props) {
                   value={form.age} onChange={e => set('age', e.target.value)} min={10} max={120} />
               </div>
 
-              <div style={{ padding: '12px 14px', background: 'var(--primary-light)', borderRadius: '11px', border: '1px solid rgba(16,185,129,0.2)' }}>
-                <p style={{ fontSize: '12px', color: 'var(--primary)', fontWeight: 600, lineHeight: 1.5 }}>
-                  🔒 Seus dados ficam salvos apenas neste dispositivo.
+              <div style={{ padding: '12px 14px', background: 'var(--primary-light)', borderRadius: '11px', border: '1px solid rgba(37,99,235,0.15)' }}>
+                <p style={{ fontSize: '12px', color: 'var(--primary)', fontWeight: 600, lineHeight: 1.5, display: 'flex', alignItems: 'center', gap: '6px' }}>
+                  <Lock size={12} strokeWidth={2} style={{ flexShrink: 0 }} />
+                  Seus dados ficam salvos apenas neste dispositivo.
                 </p>
               </div>
             </div>
@@ -245,7 +246,7 @@ export default function ProfileSetup({ onComplete }: Props) {
                         textAlign: 'left', padding: '12px 14px',
                         display: 'flex', alignItems: 'center', gap: '10px',
                       }}>
-                      <span style={{ fontSize: '20px' }}>{m.emoji}</span>
+                      <span style={{ display: 'flex', flexShrink: 0 }}>{m.icon}</span>
                       <span>{m.label}</span>
                     </button>
                   ))}
@@ -279,9 +280,10 @@ export default function ProfileSetup({ onComplete }: Props) {
                 </div>
               </div>
               {form.applicationDay !== undefined && (
-                <div style={{ padding: '12px 14px', background: 'var(--primary-light)', borderRadius: '11px', border: '1px solid rgba(16,185,129,0.2)' }}>
-                  <p style={{ fontSize: '13px', color: 'var(--primary)', fontWeight: 600 }}>
-                    ✓ Você aplica toda {WEEK_DAYS_FULL[form.applicationDay]}. O TizeTrack vai acompanhar isso pra você.
+                <div style={{ padding: '12px 14px', background: 'var(--primary-light)', borderRadius: '11px', border: '1px solid rgba(37,99,235,0.15)' }}>
+                  <p style={{ fontSize: '13px', color: 'var(--primary)', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '6px' }}>
+                    <Check size={13} strokeWidth={2.5} style={{ flexShrink: 0 }} />
+                    Você aplica toda {WEEK_DAYS_FULL[form.applicationDay]}. O TizeTrack vai acompanhar isso pra você.
                   </p>
                 </div>
               )}
@@ -292,20 +294,25 @@ export default function ProfileSetup({ onComplete }: Props) {
         {/* Navigation buttons */}
         <div style={{ display: 'flex', gap: '10px', marginTop: '28px' }}>
           {step > 1 && (
-            <button className="btn-ghost" onClick={() => setStep(s => s - 1)}>
-              ← Voltar
+            <button className="btn-ghost" onClick={() => setStep(s => s - 1)}
+              style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+              <ChevronLeft size={15} strokeWidth={2} />Voltar
             </button>
           )}
           <button
             className="btn-primary"
-            style={{ flex: 1, opacity: canAdvance() ? 1 : 0.4, cursor: canAdvance() ? 'pointer' : 'not-allowed' }}
+            style={{ flex: 1, opacity: canAdvance() ? 1 : 0.4, cursor: canAdvance() ? 'pointer' : 'not-allowed',
+              display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: '6px' }}
             onClick={() => {
               if (!canAdvance()) return
               if (step < STEPS.length) setStep(s => s + 1)
               else handleFinish()
             }}
           >
-            {step < STEPS.length ? 'Continuar →' : '🚀 Entrar no TizeTrack'}
+            {step < STEPS.length
+              ? <><span>Continuar</span><ChevronRight size={15} strokeWidth={2} /></>
+              : 'Entrar no TizeTrack'
+            }
           </button>
         </div>
       </div>

@@ -166,7 +166,10 @@ export default function Settings({ profile, onUpdateProfile }: Props) {
 
       {/* Controle de estoque */}
       <div className="card" style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-        <p style={{ fontWeight: 700, fontSize: '14px', color: 'var(--text-primary)' }}>📦 Controle de Estoque</p>
+        <p style={{ fontWeight: 700, fontSize: '14px', color: 'var(--text-primary)', display: 'flex', alignItems: 'center', gap: '7px' }}>
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="var(--primary)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 16V8a2 2 0 00-1-1.73l-7-4a2 2 0 00-2 0l-7 4A2 2 0 003 8v8a2 2 0 001 1.73l7 4a2 2 0 002 0l7-4A2 2 0 0021 16z"/><polyline points="3.27 6.96 12 12.01 20.73 6.96"/><line x1="12" y1="22.08" x2="12" y2="12"/></svg>
+          Controle de Estoque
+        </p>
         <p style={{ fontSize: '12px', color: 'var(--text-muted)' }}>
           Informe as ampolas disponíveis e calcule quantas semanas de tratamento você tem.
         </p>
@@ -176,7 +179,7 @@ export default function Settings({ profile, onUpdateProfile }: Props) {
       {/* Salvar */}
       <button className="btn-primary" style={{ width: '100%', opacity: canSave() ? 1 : 0.4 }}
         onClick={handleSave} disabled={!canSave()}>
-        {saved ? '✓ Salvo com sucesso!' : 'Salvar alterações'}
+        {saved ? 'Salvo com sucesso!' : 'Salvar alterações'}
       </button>
 
       {/* Reset */}

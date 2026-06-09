@@ -68,7 +68,7 @@ export default function StockControl({ profile, onUpdateProfile }: Props) {
             value={form.ampouleCount} onChange={e => set('ampouleCount', e.target.value)} min={1} step={1} />
         </div>
         <button className="btn-primary" style={{ width: '100%' }} onClick={save}>
-          {saved ? '✓ Estoque atualizado!' : 'Calcular estoque'}
+          {saved ? 'Estoque atualizado!' : 'Calcular estoque'}
         </button>
       </div>
 
@@ -93,8 +93,9 @@ export default function StockControl({ profile, onUpdateProfile }: Props) {
 
           {!stockOk && totalDoses > 0 && (
             <div className="card-warning">
-              <p style={{ fontSize: '12px', color: 'var(--warn-text)', fontWeight: 600 }}>
-                ⚠️ Estoque baixo — menos de 4 semanas de tratamento. Providencie a reposição.
+              <p style={{ fontSize: '12px', color: 'var(--warn-text)', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '5px' }}>
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+                Estoque baixo — menos de 4 semanas de tratamento. Providencie a reposição.
               </p>
             </div>
           )}

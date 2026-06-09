@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { Zap, Smile, Meh, Frown, BookOpen } from 'lucide-react'
 import { DiaryEntry, UserProfile } from '../types'
 
 interface Props {
@@ -8,11 +9,11 @@ interface Props {
 
 const DOSES = [2.5, 5, 7.5, 10, 12.5, 15]
 
-const FEELINGS: { value: DiaryEntry['feeling']; emoji: string; label: string; color: string }[] = [
-  { value: 'great', emoji: '🤩', label: 'Ótimo',   color: '#10B981' },
-  { value: 'good',  emoji: '😊', label: 'Bem',     color: '#6366F1' },
-  { value: 'okay',  emoji: '😐', label: 'Regular', color: '#F59E0B' },
-  { value: 'hard',  emoji: '😔', label: 'Difícil', color: '#EF4444' },
+const FEELINGS: { value: DiaryEntry['feeling']; icon: React.ReactNode; label: string; color: string }[] = [
+  { value: 'great', icon: <Zap   size={22} strokeWidth={2} />, label: 'Ótimo',   color: '#10B981' },
+  { value: 'good',  icon: <Smile size={22} strokeWidth={2} />, label: 'Bem',     color: '#6366F1' },
+  { value: 'okay',  icon: <Meh   size={22} strokeWidth={2} />, label: 'Regular', color: '#F59E0B' },
+  { value: 'hard',  icon: <Frown size={22} strokeWidth={2} />, label: 'Difícil', color: '#EF4444' },
 ]
 
 function getMondayOf(date: Date): string {
@@ -83,7 +84,7 @@ export default function Diary({ profile, onUpdateProfile }: Props) {
                   fontSize: '13px',
                   cursor: 'pointer',
                   transition: 'all 0.15s ease',
-                  fontFamily: "'Plus Jakarta Sans', sans-serif",
+                  fontFamily: 'Inter, -apple-system, sans-serif',
                 }}
               >
                 {d}mg
@@ -107,14 +108,17 @@ export default function Diary({ profile, onUpdateProfile }: Props) {
                   background: feeling === f.value ? `${f.color}18` : 'var(--surface-2)',
                   cursor: 'pointer',
                   transition: 'all 0.15s ease',
-                  fontFamily: "'Plus Jakarta Sans', sans-serif",
+                  fontFamily: 'Inter, -apple-system, sans-serif',
                   display: 'flex',
                   flexDirection: 'column',
                   alignItems: 'center',
                   gap: '4px',
                 }}
               >
-                <span style={{ fontSize: '22px' }}>{f.emoji}</span>
+                <span style={{
+                  display: 'flex',
+                  color: feeling === f.value ? f.color : 'var(--text-muted)',
+                }}>{f.icon}</span>
                 <span style={{
                   fontSize: '10px', fontWeight: 700,
                   color: feeling === f.value ? f.color : 'var(--text-muted)',
@@ -147,7 +151,7 @@ export default function Diary({ profile, onUpdateProfile }: Props) {
           style={{ width: '100%' }}
           onClick={handleSave}
         >
-          {saved ? '✓ Semana registrada!' : existingEntry ? 'Atualizar registro' : 'Registrar semana'}
+          {saved ? 'Semana registrada!' : existingEntry ? 'Atualizar registro' : 'Registrar semana'}
         </button>
       </div>
 
@@ -168,13 +172,18 @@ export default function Diary({ profile, onUpdateProfile }: Props) {
                     padding: '12px 14px',
                     borderRadius: '12px',
                     background: isThis ? 'var(--primary-light)' : 'var(--surface-2)',
-                    border: `1.5px solid ${isThis ? 'rgba(16,185,129,0.25)' : 'var(--border)'}`,
+                    border: `1.5px solid ${isThis ? 'rgba(37,99,235,0.2)' : 'var(--border)'}`,
                     display: 'flex',
                     alignItems: 'center',
                     gap: '12px',
                   }}
                 >
-                  <span style={{ fontSize: '24px' }}>{f.emoji}</span>
+                  <div style={{
+                    width: '36px', height: '36px', borderRadius: '10px', flexShrink: 0,
+                    background: `${f.color}18`, border: `1px solid ${f.color}30`,
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    color: f.color,
+                  }}>{f.icon}</div>
                   <div style={{ flex: 1, minWidth: 0 }}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                       <p style={{ fontSize: '12px', fontWeight: 700, color: 'var(--text-muted)' }}>
@@ -207,7 +216,14 @@ export default function Diary({ profile, onUpdateProfile }: Props) {
 
       {history.length === 0 && (
         <div style={{ textAlign: 'center', padding: '32px 0' }}>
-          <p style={{ fontSize: '40px', marginBottom: '12px' }}>📓</p>
+          <div style={{
+            width: '52px', height: '52px', borderRadius: '14px',
+            background: 'var(--primary-light)', border: '1px solid rgba(37,99,235,0.15)',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            margin: '0 auto 12px', color: 'var(--primary)',
+          }}>
+            <BookOpen size={24} strokeWidth={2} />
+          </div>
           <p style={{ fontWeight: 700, color: 'var(--text-primary)', fontSize: '15px' }}>Nenhum registro ainda</p>
           <p style={{ color: 'var(--text-muted)', fontSize: '13px', marginTop: '4px' }}>
             Registre sua primeira semana acima

@@ -32,12 +32,64 @@ function loadProfile(): UserProfile {
   return DEFAULT_PROFILE
 }
 
-const NAV_TABS: { id: Tab; icon: string; label: string }[] = [
-  { id: 'dashboard',  icon: '🏠', label: 'Início'    },
-  { id: 'progress',   icon: '📊', label: 'Progresso' },
-  { id: 'health',     icon: '🌿', label: 'Saúde'     },
-  { id: 'calculator', icon: '💉', label: 'Calcular'  },
-  { id: 'laboratory', icon: '🧪', label: 'Lab'       },
+// ── Inline SVG nav icons ─────────────────────────────────────────────────────
+function NavIcon({ tabId }: { tabId: Tab }) {
+  const s = {
+    width: 20, height: 20,
+    fill: 'none' as const,
+    stroke: 'currentColor',
+    strokeWidth: 1.8,
+    strokeLinecap: 'round' as const,
+    strokeLinejoin: 'round' as const,
+    viewBox: '0 0 24 24',
+  }
+
+  switch (tabId) {
+    case 'dashboard':
+      return (
+        <svg {...s}>
+          <path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/>
+          <polyline points="9 22 9 12 15 12 15 22"/>
+        </svg>
+      )
+    case 'progress':
+      return (
+        <svg {...s}>
+          <line x1="18" y1="20" x2="18" y2="10"/>
+          <line x1="12" y1="20" x2="12" y2="4"/>
+          <line x1="6"  y1="20" x2="6"  y2="14"/>
+        </svg>
+      )
+    case 'health':
+      return (
+        <svg {...s}>
+          <path d="M20.84 4.61a5.5 5.5 0 00-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 00-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 000-7.78z"/>
+        </svg>
+      )
+    case 'calculator':
+      return (
+        <svg {...s}>
+          <path d="M22 12h-4l-3 9L9 3l-3 9H2"/>
+        </svg>
+      )
+    case 'laboratory':
+      return (
+        <svg {...s}>
+          <path d="M10 2v7.527a2 2 0 01-.211.896L4.72 20.55a1 1 0 00.9 1.45h12.76a1 1 0 00.9-1.45l-5.069-10.127A2 2 0 0114 9.527V2"/>
+          <line x1="8.5" y1="2" x2="15.5" y2="2"/>
+        </svg>
+      )
+    default:
+      return null
+  }
+}
+
+const NAV_TABS: { id: Tab; label: string }[] = [
+  { id: 'dashboard',  label: 'Início'    },
+  { id: 'progress',   label: 'Progresso' },
+  { id: 'health',     label: 'Saúde'     },
+  { id: 'calculator', label: 'Calcular'  },
+  { id: 'laboratory', label: 'Lab'       },
 ]
 
 export default function App() {
@@ -70,7 +122,6 @@ export default function App() {
     return <ProfileSetup onComplete={setProfile} />
   }
 
-  // Perfil é acessado via avatar no header — não aparece na nav
   const showProfile = activeTab === 'profile'
 
   function renderTab() {
@@ -116,7 +167,6 @@ export default function App() {
         {renderTab()}
       </main>
 
-      {/* Bottom nav — oculto na tela de perfil */}
       {!showProfile && (
         <nav className={`bottom-nav${navVisible ? '' : ' nav-hidden'}`}>
           <div className="bottom-nav-inner">
@@ -127,7 +177,9 @@ export default function App() {
                 onClick={() => { setActiveTab(tab.id); window.scrollTo({ top: 0, behavior: 'instant' }) }}
                 aria-label={tab.label}
               >
-                <span className="nav-tab-icon">{tab.icon}</span>
+                <span className="nav-tab-icon">
+                  <NavIcon tabId={tab.id} />
+                </span>
                 <span className="nav-tab-label">{tab.label}</span>
                 <span className="nav-tab-dot" />
               </button>

@@ -1,4 +1,9 @@
 import { useState } from 'react'
+import {
+  Dumbbell, Activity, ArrowDown, Zap, Sparkles,
+  Droplets, Moon, Waves, Lightbulb, Info,
+  RotateCcw, ChevronDown, BarChart2,
+} from 'lucide-react'
 
 type Sex = 'M' | 'F'
 type Level = 'beginner' | 'intermediate' | 'advanced'
@@ -20,7 +25,6 @@ interface ExItem {
 interface WorkoutDay {
   label: string
   name: string
-  icon: string
   color: string
   gym: ExItem[]
   home: ExItem[]
@@ -47,7 +51,7 @@ const SPLITS: Record<SplitKey, WorkoutDay[]> = {
   // ── 2 dias ────────────────────────────────────────────────────────────────
   '2_M': [
     {
-      label: 'A', name: 'Empurrar + Core', icon: '💪', color: '#059669',
+      label: 'A', name: 'Empurrar + Core', color: '#059669',
       gym: [
         { name: 'Supino reto com barra', tip: 'Desça a barra até o peito' },
         { name: 'Desenvolvimento militar', tip: 'Core contraído, sem arquear lombar' },
@@ -64,7 +68,7 @@ const SPLITS: Record<SplitKey, WorkoutDay[]> = {
       ],
     },
     {
-      label: 'B', name: 'Puxar + Posterior', icon: '🏋️', color: '#7C3AED',
+      label: 'B', name: 'Puxar + Posterior', color: '#7C3AED',
       gym: [
         { name: 'Puxador frontal (pegada aberta)', tip: 'Puxe pelo cotovelo, não pela mão' },
         { name: 'Remada curvada com barra', tip: 'Tronco a 45°, barra ao umbigo' },
@@ -83,7 +87,7 @@ const SPLITS: Record<SplitKey, WorkoutDay[]> = {
   ],
   '2_F': [
     {
-      label: 'A', name: 'Glúteos + Pernas', icon: '🍑', color: '#EC4899',
+      label: 'A', name: 'Glúteos + Pernas', color: '#EC4899',
       gym: [
         { name: 'Hip thrust com barra', tip: 'Esprema o glúteo 2s no topo' },
         { name: 'Agachamento livre', tip: 'Profundidade paralela ou abaixo' },
@@ -100,7 +104,7 @@ const SPLITS: Record<SplitKey, WorkoutDay[]> = {
       ],
     },
     {
-      label: 'B', name: 'Superior + Core', icon: '🤸', color: '#7C3AED',
+      label: 'B', name: 'Superior + Core', color: '#7C3AED',
       gym: [
         { name: 'Supino inclinado com halteres', tip: 'Toque os halteres no peito' },
         { name: 'Puxador frontal', tip: 'Foco em puxar pelo cotovelo' },
@@ -121,7 +125,7 @@ const SPLITS: Record<SplitKey, WorkoutDay[]> = {
   // ── 3 dias ────────────────────────────────────────────────────────────────
   '3_M': [
     {
-      label: 'A', name: 'Peito + Tríceps', icon: '🫁', color: '#059669',
+      label: 'A', name: 'Peito + Tríceps', color: '#059669',
       gym: [
         { name: 'Supino reto com barra' },
         { name: 'Supino inclinado com halteres' },
@@ -138,7 +142,7 @@ const SPLITS: Record<SplitKey, WorkoutDay[]> = {
       ],
     },
     {
-      label: 'B', name: 'Costas + Bíceps', icon: '🦾', color: '#7C3AED',
+      label: 'B', name: 'Costas + Bíceps', color: '#7C3AED',
       gym: [
         { name: 'Puxador frontal (pegada aberta)' },
         { name: 'Remada curvada com barra' },
@@ -155,7 +159,7 @@ const SPLITS: Record<SplitKey, WorkoutDay[]> = {
       ],
     },
     {
-      label: 'C', name: 'Pernas + Core', icon: '🦵', color: '#0EA5E9',
+      label: 'C', name: 'Pernas + Core', color: '#0EA5E9',
       gym: [
         { name: 'Agachamento livre com barra' },
         { name: 'Leg press 45°' },
@@ -174,7 +178,7 @@ const SPLITS: Record<SplitKey, WorkoutDay[]> = {
   ],
   '3_F': [
     {
-      label: 'A', name: 'Glúteos + Isquios', icon: '🍑', color: '#EC4899',
+      label: 'A', name: 'Glúteos + Isquios', color: '#EC4899',
       gym: [
         { name: 'Hip thrust com barra', tip: '2s no topo' },
         { name: 'Agachamento profundo com barra' },
@@ -191,7 +195,7 @@ const SPLITS: Record<SplitKey, WorkoutDay[]> = {
       ],
     },
     {
-      label: 'B', name: 'Peito + Costas + Ombros', icon: '💪', color: '#7C3AED',
+      label: 'B', name: 'Peito + Costas + Ombros', color: '#7C3AED',
       gym: [
         { name: 'Supino inclinado com halteres' },
         { name: 'Puxador frontal' },
@@ -208,7 +212,7 @@ const SPLITS: Record<SplitKey, WorkoutDay[]> = {
       ],
     },
     {
-      label: 'C', name: 'Pernas + Core', icon: '🦵', color: '#059669',
+      label: 'C', name: 'Pernas + Core', color: '#059669',
       gym: [
         { name: 'Avanço com halteres' },
         { name: 'Cadeira flexora deitada' },
@@ -229,7 +233,7 @@ const SPLITS: Record<SplitKey, WorkoutDay[]> = {
   // ── 4 dias ────────────────────────────────────────────────────────────────
   '4_M': [
     {
-      label: 'A', name: 'Peito + Tríceps', icon: '🫁', color: '#059669',
+      label: 'A', name: 'Peito + Tríceps', color: '#059669',
       gym: [
         { name: 'Supino reto com barra' },
         { name: 'Supino inclinado com halteres' },
@@ -246,7 +250,7 @@ const SPLITS: Record<SplitKey, WorkoutDay[]> = {
       ],
     },
     {
-      label: 'B', name: 'Costas + Bíceps', icon: '🦾', color: '#7C3AED',
+      label: 'B', name: 'Costas + Bíceps', color: '#7C3AED',
       gym: [
         { name: 'Puxador frontal (pegada aberta)' },
         { name: 'Remada curvada com barra' },
@@ -263,7 +267,7 @@ const SPLITS: Record<SplitKey, WorkoutDay[]> = {
       ],
     },
     {
-      label: 'C', name: 'Pernas', icon: '🦵', color: '#0EA5E9',
+      label: 'C', name: 'Pernas', color: '#0EA5E9',
       gym: [
         { name: 'Agachamento livre com barra' },
         { name: 'Leg press 45°' },
@@ -280,7 +284,7 @@ const SPLITS: Record<SplitKey, WorkoutDay[]> = {
       ],
     },
     {
-      label: 'D', name: 'Ombros + Core', icon: '🏔️', color: '#F59E0B',
+      label: 'D', name: 'Ombros + Core', color: '#F59E0B',
       gym: [
         { name: 'Desenvolvimento militar com barra' },
         { name: 'Elevação lateral com halteres' },
@@ -299,7 +303,7 @@ const SPLITS: Record<SplitKey, WorkoutDay[]> = {
   ],
   '4_F': [
     {
-      label: 'A', name: 'Glúteos', icon: '🍑', color: '#EC4899',
+      label: 'A', name: 'Glúteos', color: '#EC4899',
       gym: [
         { name: 'Hip thrust com barra', tip: '2s no topo' },
         { name: 'Agachamento profundo com barra' },
@@ -316,7 +320,7 @@ const SPLITS: Record<SplitKey, WorkoutDay[]> = {
       ],
     },
     {
-      label: 'B', name: 'Peito + Tríceps', icon: '💪', color: '#059669',
+      label: 'B', name: 'Peito + Tríceps', color: '#059669',
       gym: [
         { name: 'Supino inclinado com halteres' },
         { name: 'Crossover no cabo' },
@@ -333,7 +337,7 @@ const SPLITS: Record<SplitKey, WorkoutDay[]> = {
       ],
     },
     {
-      label: 'C', name: 'Pernas + Panturrilha', icon: '🦵', color: '#0EA5E9',
+      label: 'C', name: 'Pernas + Panturrilha', color: '#0EA5E9',
       gym: [
         { name: 'Leg press (pegada alta)' },
         { name: 'Stiff com barra' },
@@ -350,7 +354,7 @@ const SPLITS: Record<SplitKey, WorkoutDay[]> = {
       ],
     },
     {
-      label: 'D', name: 'Costas + Bíceps', icon: '🦾', color: '#7C3AED',
+      label: 'D', name: 'Costas + Bíceps', color: '#7C3AED',
       gym: [
         { name: 'Puxador frontal' },
         { name: 'Remada unilateral com halter' },
@@ -371,7 +375,7 @@ const SPLITS: Record<SplitKey, WorkoutDay[]> = {
   // ── 5 dias ────────────────────────────────────────────────────────────────
   '5_M': [
     {
-      label: 'A', name: 'Peito', icon: '🫁', color: '#059669',
+      label: 'A', name: 'Peito', color: '#059669',
       gym: [
         { name: 'Supino reto com barra' },
         { name: 'Supino inclinado com halteres' },
@@ -388,7 +392,7 @@ const SPLITS: Record<SplitKey, WorkoutDay[]> = {
       ],
     },
     {
-      label: 'B', name: 'Costas', icon: '🦾', color: '#7C3AED',
+      label: 'B', name: 'Costas', color: '#7C3AED',
       gym: [
         { name: 'Barra fixa (pull-up)' },
         { name: 'Remada curvada com barra' },
@@ -405,7 +409,7 @@ const SPLITS: Record<SplitKey, WorkoutDay[]> = {
       ],
     },
     {
-      label: 'C', name: 'Pernas', icon: '🦵', color: '#0EA5E9',
+      label: 'C', name: 'Pernas', color: '#0EA5E9',
       gym: [
         { name: 'Agachamento livre com barra' },
         { name: 'Leg press 45°' },
@@ -422,7 +426,7 @@ const SPLITS: Record<SplitKey, WorkoutDay[]> = {
       ],
     },
     {
-      label: 'D', name: 'Ombros', icon: '🏔️', color: '#F59E0B',
+      label: 'D', name: 'Ombros', color: '#F59E0B',
       gym: [
         { name: 'Desenvolvimento militar com barra' },
         { name: 'Elevação lateral com halteres' },
@@ -439,7 +443,7 @@ const SPLITS: Record<SplitKey, WorkoutDay[]> = {
       ],
     },
     {
-      label: 'E', name: 'Bíceps + Tríceps', icon: '💪', color: '#DC2626',
+      label: 'E', name: 'Bíceps + Tríceps', color: '#DC2626',
       gym: [
         { name: 'Rosca direta com barra' },
         { name: 'Rosca concentrada com halter' },
@@ -458,7 +462,7 @@ const SPLITS: Record<SplitKey, WorkoutDay[]> = {
   ],
   '5_F': [
     {
-      label: 'A', name: 'Glúteos', icon: '🍑', color: '#EC4899',
+      label: 'A', name: 'Glúteos', color: '#EC4899',
       gym: [
         { name: 'Hip thrust com barra', tip: '2s no topo' },
         { name: 'Agachamento profundo com barra' },
@@ -475,7 +479,7 @@ const SPLITS: Record<SplitKey, WorkoutDay[]> = {
       ],
     },
     {
-      label: 'B', name: 'Pernas', icon: '🦵', color: '#0EA5E9',
+      label: 'B', name: 'Pernas', color: '#0EA5E9',
       gym: [
         { name: 'Leg press (pegada alta)' },
         { name: 'Cadeira flexora deitada' },
@@ -492,7 +496,7 @@ const SPLITS: Record<SplitKey, WorkoutDay[]> = {
       ],
     },
     {
-      label: 'C', name: 'Peito + Costas', icon: '💪', color: '#7C3AED',
+      label: 'C', name: 'Peito + Costas', color: '#7C3AED',
       gym: [
         { name: 'Supino inclinado com halteres' },
         { name: 'Puxador frontal' },
@@ -509,7 +513,7 @@ const SPLITS: Record<SplitKey, WorkoutDay[]> = {
       ],
     },
     {
-      label: 'D', name: 'Glúteos 2 + Isquios', icon: '🔥', color: '#F97316',
+      label: 'D', name: 'Glúteos 2 + Isquios', color: '#F97316',
       gym: [
         { name: 'Levantamento terra romeno' },
         { name: 'Cadeira flexora deitada' },
@@ -526,7 +530,7 @@ const SPLITS: Record<SplitKey, WorkoutDay[]> = {
       ],
     },
     {
-      label: 'E', name: 'Ombros + Braços + Core', icon: '🏔️', color: '#059669',
+      label: 'E', name: 'Ombros + Braços + Core', color: '#059669',
       gym: [
         { name: 'Desenvolvimento com halteres' },
         { name: 'Elevação lateral com halteres' },
@@ -545,6 +549,15 @@ const SPLITS: Record<SplitKey, WorkoutDay[]> = {
   ],
 }
 
+// ── Day icon map ─────────────────────────────────────────────────────────────
+const DAY_ICON_MAP: Record<string, React.ReactNode> = {
+  A: <Dumbbell  size={18} strokeWidth={2} />,
+  B: <Activity  size={18} strokeWidth={2} />,
+  C: <ArrowDown size={18} strokeWidth={2} />,
+  D: <Zap       size={18} strokeWidth={2} />,
+  E: <Sparkles  size={18} strokeWidth={2} />,
+}
+
 // ── Small helpers ────────────────────────────────────────────────────────────
 
 function Pill({
@@ -555,9 +568,9 @@ function Pill({
       onClick={onClick}
       style={{
         flex: 1, padding: '10px 8px', borderRadius: '12px', cursor: 'pointer',
-        fontFamily: "'Plus Jakarta Sans', sans-serif", fontWeight: 700, fontSize: '13px',
+        fontFamily: "Inter, -apple-system, sans-serif", fontWeight: 700, fontSize: '13px',
         border: active ? '2px solid var(--primary)' : '1.5px solid var(--border)',
-        background: active ? 'rgba(5,150,105,0.1)' : 'var(--surface-2)',
+        background: active ? 'var(--primary-light)' : 'var(--surface-2)',
         color: active ? 'var(--primary)' : 'var(--text-secondary)',
         transition: 'all 0.15s',
       }}
@@ -642,8 +655,8 @@ export default function Exercise() {
               Sexo biológico
             </p>
             <div style={{ display: 'flex', gap: '8px' }}>
-              <Pill active={form.sex === 'M'} onClick={() => setForm(f => ({ ...f, sex: 'M' }))}>♂ Masculino</Pill>
-              <Pill active={form.sex === 'F'} onClick={() => setForm(f => ({ ...f, sex: 'F' }))}>♀ Feminino</Pill>
+              <Pill active={form.sex === 'M'} onClick={() => setForm(f => ({ ...f, sex: 'M' }))}>Masculino</Pill>
+              <Pill active={form.sex === 'F'} onClick={() => setForm(f => ({ ...f, sex: 'F' }))}>Feminino</Pill>
             </div>
           </div>
 
@@ -653,9 +666,9 @@ export default function Exercise() {
               Nível de experiência
             </p>
             <div style={{ display: 'flex', gap: '8px' }}>
-              <Pill active={form.level === 'beginner'}     onClick={() => setForm(f => ({ ...f, level: 'beginner' }))}>🌱 Iniciante</Pill>
-              <Pill active={form.level === 'intermediate'} onClick={() => setForm(f => ({ ...f, level: 'intermediate' }))}>⚡ Intermediário</Pill>
-              <Pill active={form.level === 'advanced'}     onClick={() => setForm(f => ({ ...f, level: 'advanced' }))}>🔥 Avançado</Pill>
+              <Pill active={form.level === 'beginner'}     onClick={() => setForm(f => ({ ...f, level: 'beginner' }))}>Iniciante</Pill>
+              <Pill active={form.level === 'intermediate'} onClick={() => setForm(f => ({ ...f, level: 'intermediate' }))}>Intermediário</Pill>
+              <Pill active={form.level === 'advanced'}     onClick={() => setForm(f => ({ ...f, level: 'advanced' }))}>Avançado</Pill>
             </div>
           </div>
 
@@ -665,8 +678,8 @@ export default function Exercise() {
               Local de treino
             </p>
             <div style={{ display: 'flex', gap: '8px' }}>
-              <Pill active={form.location === 'gym'}  onClick={() => setForm(f => ({ ...f, location: 'gym' }))}>🏋️ Academia</Pill>
-              <Pill active={form.location === 'home'} onClick={() => setForm(f => ({ ...f, location: 'home' }))}>🏠 Em casa</Pill>
+              <Pill active={form.location === 'gym'}  onClick={() => setForm(f => ({ ...f, location: 'gym' }))}>Academia</Pill>
+              <Pill active={form.location === 'home'} onClick={() => setForm(f => ({ ...f, location: 'home' }))}>Em casa</Pill>
             </div>
           </div>
 
@@ -698,25 +711,28 @@ export default function Exercise() {
             disabled={!formComplete}
             style={{
               width: '100%', padding: '14px', borderRadius: '14px', border: 'none',
-              fontFamily: "'Plus Jakarta Sans', sans-serif", fontWeight: 800, fontSize: '15px',
+              fontFamily: "Inter, -apple-system, sans-serif", fontWeight: 800, fontSize: '15px',
               cursor: formComplete ? 'pointer' : 'not-allowed',
-              background: formComplete
-                ? 'linear-gradient(135deg, var(--primary) 0%, #0D9488 100%)'
-                : 'var(--surface-3)',
+              background: formComplete ? 'linear-gradient(135deg, #2563EB 0%, #7C3AED 100%)' : 'var(--surface-3)',
               color: formComplete ? '#fff' : 'var(--text-muted)',
               opacity: formComplete ? 1 : 0.6,
               transition: 'all 0.2s',
               boxShadow: formComplete ? 'var(--shadow-green)' : 'none',
+              display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px',
             }}
           >
-            🏋️ Gerar Meu Plano
+            <Dumbbell size={16} strokeWidth={2.5} />
+            Gerar Meu Plano
           </button>
         </div>
 
         <div className="card-warning">
-          <p style={{ fontSize: '11px', color: 'var(--warn-text)', lineHeight: 1.6, margin: 0 }}>
-            ⚕️ Os treinos são sugestões educativas e não substituem a orientação de um educador físico. Em caso de dores ou sintomas durante o exercício, interrompa e consulte seu médico.
-          </p>
+          <div style={{ display: 'flex', gap: '8px', alignItems: 'flex-start' }}>
+            <Info size={13} strokeWidth={2} style={{ flexShrink: 0, marginTop: '1px', color: 'var(--warn-text)' }} />
+            <p style={{ fontSize: '11px', color: 'var(--warn-text)', lineHeight: 1.6, margin: 0 }}>
+              Os treinos são sugestões educativas e não substituem a orientação de um educador físico. Em caso de dores ou sintomas durante o exercício, interrompa e consulte seu médico.
+            </p>
+          </div>
         </div>
       </div>
     )
@@ -745,9 +761,9 @@ export default function Exercise() {
         </p>
         <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
           {[
-            profile!.sex === 'M' ? '♂ Masculino' : '♀ Feminino',
+            profile!.sex === 'M' ? 'Masculino' : 'Feminino',
             vol!.tag,
-            profile!.location === 'gym' ? '🏋️ Academia' : '🏠 Em casa',
+            profile!.location === 'gym' ? 'Academia' : 'Em casa',
           ].map(tag => (
             <span key={tag} style={{
               fontSize: '11px', fontWeight: 700, padding: '3px 9px', borderRadius: '99px',
@@ -761,9 +777,10 @@ export default function Exercise() {
 
       {/* Volume info */}
       <div className="card" style={{ padding: '12px 16px' }}>
-        <p style={{ fontSize: '12px', fontWeight: 700, color: 'var(--text-primary)', marginBottom: '8px' }}>
-          📊 Volume recomendado
-        </p>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '7px', marginBottom: '8px' }}>
+          <BarChart2 size={14} strokeWidth={2} style={{ color: 'var(--primary)', flexShrink: 0 }} />
+          <p style={{ fontSize: '12px', fontWeight: 700, color: 'var(--text-primary)', margin: 0 }}>Volume recomendado</p>
+        </div>
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '8px' }}>
           {[
             { label: 'Séries', value: vol!.sets },
@@ -797,16 +814,16 @@ export default function Exercise() {
               style={{
                 width: '100%', padding: '14px 16px', background: 'none', border: 'none',
                 cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '12px',
-                textAlign: 'left', fontFamily: "'Plus Jakarta Sans', sans-serif",
+                textAlign: 'left', fontFamily: "Inter, -apple-system, sans-serif",
               }}
             >
               <div style={{
                 width: '44px', height: '44px', borderRadius: '12px', flexShrink: 0,
                 background: `${day.color}18`, border: `1px solid ${day.color}30`,
                 display: 'flex', alignItems: 'center', justifyContent: 'center',
-                flexDirection: 'column', gap: '1px',
+                flexDirection: 'column', gap: '2px', color: day.color,
               }}>
-                <span style={{ fontSize: '18px', lineHeight: 1 }}>{day.icon}</span>
+                {DAY_ICON_MAP[day.label] ?? <Dumbbell size={18} strokeWidth={2} />}
                 <span style={{ fontSize: '9px', fontWeight: 900, color: day.color, letterSpacing: '0.05em' }}>
                   {day.label}
                 </span>
@@ -820,10 +837,10 @@ export default function Exercise() {
                 </p>
               </div>
               <span style={{
-                fontSize: '11px', color: 'var(--text-muted)', flexShrink: 0,
-                transition: 'transform 0.2s', display: 'inline-block',
+                flexShrink: 0, color: 'var(--text-muted)',
+                transition: 'transform 0.2s', display: 'inline-flex',
                 transform: isOpen ? 'rotate(180deg)' : 'none',
-              }}>▼</span>
+              }}><ChevronDown size={16} strokeWidth={2} /></span>
             </button>
 
             {isOpen && (
@@ -851,9 +868,10 @@ export default function Exercise() {
                         {ex.name}
                       </p>
                       {ex.tip && (
-                        <p style={{ fontSize: '11px', color: 'var(--text-muted)', marginTop: '2px', lineHeight: 1.4 }}>
-                          💡 {ex.tip}
-                        </p>
+                        <div style={{ display: 'flex', gap: '5px', alignItems: 'flex-start', marginTop: '3px' }}>
+                          <Lightbulb size={11} strokeWidth={2} style={{ flexShrink: 0, marginTop: '1px', color: 'var(--text-muted)' }} />
+                          <p style={{ fontSize: '11px', color: 'var(--text-muted)', lineHeight: 1.4, margin: 0 }}>{ex.tip}</p>
+                        </div>
                       )}
                     </div>
                     <span style={{
@@ -873,17 +891,18 @@ export default function Exercise() {
 
       {/* Tips */}
       <div className="card" style={{ padding: '14px 16px', display: 'flex', flexDirection: 'column', gap: '10px' }}>
-        <p style={{ fontWeight: 700, fontSize: '13px', color: 'var(--text-primary)', margin: 0 }}>
-          💡 Dicas práticas
-        </p>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '7px' }}>
+          <Lightbulb size={14} strokeWidth={2} style={{ color: 'var(--primary)', flexShrink: 0 }} />
+          <p style={{ fontWeight: 700, fontSize: '13px', color: 'var(--text-primary)', margin: 0 }}>Dicas práticas</p>
+        </div>
         {[
-          { icon: '💧', text: 'Hidratação: aumente a ingestão de água nos dias de treino' },
-          { icon: '🥩', text: 'Proteína pós-treino: 20–30g auxilia na recuperação muscular' },
-          { icon: '😴', text: 'Sono: ao menos 7h para o corpo recuperar e recompor a massa' },
-          { icon: '🤢', text: 'Sintomas de GLP-1? Caminhada leve de 15 min já é válida e benéfica' },
+          { icon: <Droplets size={14} strokeWidth={2} />, text: 'Hidratação: aumente a ingestão de água nos dias de treino' },
+          { icon: <Dumbbell size={14} strokeWidth={2} />, text: 'Proteína pós-treino: 20–30g auxilia na recuperação muscular' },
+          { icon: <Moon     size={14} strokeWidth={2} />, text: 'Sono: ao menos 7h para o corpo recuperar e recompor a massa' },
+          { icon: <Waves    size={14} strokeWidth={2} />, text: 'Sintomas de GLP-1? Caminhada leve de 15 min já é válida e benéfica' },
         ].map((t, i) => (
-          <div key={i} style={{ display: 'flex', gap: '8px', alignItems: 'flex-start' }}>
-            <span style={{ fontSize: '15px', flexShrink: 0, marginTop: '1px' }}>{t.icon}</span>
+          <div key={i} style={{ display: 'flex', gap: '8px', alignItems: 'flex-start', color: 'var(--text-muted)' }}>
+            <span style={{ flexShrink: 0, marginTop: '1px' }}>{t.icon}</span>
             <p style={{ fontSize: '12px', color: 'var(--text-secondary)', lineHeight: 1.5, margin: 0 }}>{t.text}</p>
           </div>
         ))}
@@ -895,17 +914,22 @@ export default function Exercise() {
         style={{
           width: '100%', padding: '12px', borderRadius: '12px', border: '1.5px solid var(--border)',
           background: 'var(--surface-2)', cursor: 'pointer',
-          fontFamily: "'Plus Jakarta Sans', sans-serif", fontWeight: 700, fontSize: '13px',
+          fontFamily: "Inter, -apple-system, sans-serif", fontWeight: 700, fontSize: '13px',
           color: 'var(--text-secondary)',
+          display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '7px',
         }}
       >
-        🔄 Refazer avaliação
+        <RotateCcw size={14} strokeWidth={2} />
+        Refazer avaliação
       </button>
 
       <div className="card-warning">
-        <p style={{ fontSize: '11px', color: 'var(--warn-text)', lineHeight: 1.6, margin: 0 }}>
-          ⚕️ Os treinos são sugestões educativas e não substituem a orientação de um educador físico. Em caso de dores ou sintomas durante o exercício, interrompa e consulte seu médico.
-        </p>
+        <div style={{ display: 'flex', gap: '8px', alignItems: 'flex-start' }}>
+          <Info size={13} strokeWidth={2} style={{ flexShrink: 0, marginTop: '1px', color: 'var(--warn-text)' }} />
+          <p style={{ fontSize: '11px', color: 'var(--warn-text)', lineHeight: 1.6, margin: 0 }}>
+            Os treinos são sugestões educativas e não substituem a orientação de um educador físico. Em caso de dores ou sintomas durante o exercício, interrompa e consulte seu médico.
+          </p>
+        </div>
       </div>
     </div>
   )

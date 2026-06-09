@@ -1,4 +1,9 @@
 import { useState } from 'react'
+import {
+  Zap, Heart, Activity, Droplets, Sun, FlaskConical, Thermometer,
+  ChevronDown, FileText, Download, Info, Check, AlertTriangle, XCircle,
+  ClipboardList, BarChart2,
+} from 'lucide-react'
 import { UserProfile, Sex } from '../types'
 
 interface Props {
@@ -13,19 +18,38 @@ type CategoryId = 'metabolic' | 'lipid' | 'liver' | 'renal' | 'vitamins' | 'horm
 // ── Category definitions ─────────────────────────────────────────────────────
 interface Category {
   id: CategoryId
-  icon: string
   title: string
   checkupLabel: string
 }
 
+const CATEGORY_ICON: Record<CategoryId, React.ReactNode> = {
+  metabolic:    <Zap          size={18} strokeWidth={2} />,
+  lipid:        <Heart        size={18} strokeWidth={2} />,
+  liver:        <Activity     size={18} strokeWidth={2} />,
+  renal:        <Droplets     size={18} strokeWidth={2} />,
+  vitamins:     <Sun          size={18} strokeWidth={2} />,
+  hormonal:     <FlaskConical size={18} strokeWidth={2} />,
+  inflammation: <Thermometer  size={18} strokeWidth={2} />,
+}
+
+const CATEGORY_ICON_SM: Record<CategoryId, React.ReactNode> = {
+  metabolic:    <Zap          size={14} strokeWidth={2} />,
+  lipid:        <Heart        size={14} strokeWidth={2} />,
+  liver:        <Activity     size={14} strokeWidth={2} />,
+  renal:        <Droplets     size={14} strokeWidth={2} />,
+  vitamins:     <Sun          size={14} strokeWidth={2} />,
+  hormonal:     <FlaskConical size={14} strokeWidth={2} />,
+  inflammation: <Thermometer  size={14} strokeWidth={2} />,
+}
+
 const CATEGORIES: Category[] = [
-  { id: 'metabolic',    icon: '🩸', title: 'Metabólico',            checkupLabel: 'Controle metabólico adequado'       },
-  { id: 'lipid',        icon: '💊', title: 'Perfil Lipídico',        checkupLabel: 'Perfil lipídico adequado'           },
-  { id: 'liver',        icon: '🫁', title: 'Função Hepática',        checkupLabel: 'Função hepática preservada'         },
-  { id: 'renal',        icon: '💧', title: 'Função Renal',           checkupLabel: 'Função renal preservada'            },
-  { id: 'vitamins',     icon: '🌿', title: 'Vitaminas e Nutrientes', checkupLabel: 'Vitaminas e nutrientes adequados'   },
-  { id: 'hormonal',     icon: '⚗️', title: 'Hormonal',               checkupLabel: 'Perfil hormonal adequado'           },
-  { id: 'inflammation', icon: '🌡️', title: 'Inflamação',             checkupLabel: 'Marcadores inflamatórios normais'   },
+  { id: 'metabolic',    title: 'Metabólico',            checkupLabel: 'Controle metabólico adequado'       },
+  { id: 'lipid',        title: 'Perfil Lipídico',        checkupLabel: 'Perfil lipídico adequado'           },
+  { id: 'liver',        title: 'Função Hepática',        checkupLabel: 'Função hepática preservada'         },
+  { id: 'renal',        title: 'Função Renal',           checkupLabel: 'Função renal preservada'            },
+  { id: 'vitamins',     title: 'Vitaminas e Nutrientes', checkupLabel: 'Vitaminas e nutrientes adequados'   },
+  { id: 'hormonal',     title: 'Hormonal',               checkupLabel: 'Perfil hormonal adequado'           },
+  { id: 'inflammation', title: 'Inflamação',             checkupLabel: 'Marcadores inflamatórios normais'   },
 ]
 
 // ── Exam definitions ─────────────────────────────────────────────────────────
@@ -412,7 +436,7 @@ const EXAMS: ExamDef[] = [
 ]
 
 // ── Status helpers ───────────────────────────────────────────────────────────
-const STATUS_LABEL: Record<ExamStatus, string> = { normal: '✓ Normal', low: '↓ Baixo', high: '↑ Alto' }
+const STATUS_LABEL: Record<ExamStatus, string> = { normal: 'Normal', low: 'Baixo', high: 'Alto' }
 
 const STATUS_COLOR: Record<ExamStatus, string> = {
   normal: 'var(--primary)',
@@ -517,7 +541,7 @@ export default function Laboratory({ profile, onUpdateProfile }: Props) {
       }).join('')
 
       return `
-        <h2>${cat.icon} ${cat.title}</h2>
+        <h2>${cat.title}</h2>
         <table>
           <thead><tr><th>Exame</th><th>Unidade</th><th>Referência (plataforma)</th><th>Resultado</th></tr></thead>
           <tbody>${rows}</tbody>
@@ -546,7 +570,7 @@ export default function Laboratory({ profile, onUpdateProfile }: Props) {
   </style>
 </head>
 <body>
-  <h1>🧪 Minha Tize — Solicitação de Exames Essenciais</h1>
+  <h1>Minha Tize — Solicitação de Exames Essenciais</h1>
   <p class="sub">Gerado em ${today} · Leve ao seu médico, nutricionista ou laboratório</p>
   ${sections}
   <div class="disc">
@@ -567,7 +591,7 @@ export default function Laboratory({ profile, onUpdateProfile }: Props) {
     const today = new Date().toLocaleDateString('pt-BR', { day: '2-digit', month: 'long', year: 'numeric' })
 
     const statusColor: Record<ExamStatus, string> = { normal: '#059669', low: '#B45309', high: '#DC2626' }
-    const statusLabel: Record<ExamStatus, string> = { normal: '✓ Normal', low: '↓ Baixo', high: '↑ Alto' }
+    const statusLabel: Record<ExamStatus, string> = { normal: 'Normal', low: 'Baixo', high: 'Alto' }
 
     const sections = CATEGORIES.map(cat => {
       const catExams = EXAMS.filter(e => e.category === cat.id)
@@ -595,7 +619,7 @@ export default function Laboratory({ profile, onUpdateProfile }: Props) {
       }).join('')
 
       return `
-        <h2>${cat.icon} ${cat.title}</h2>
+        <h2>${cat.title}</h2>
         <table>
           <thead><tr><th>Exame</th><th>Resultado</th><th>Referência (plataforma)</th><th>Status</th></tr></thead>
           <tbody>${rows}</tbody>
@@ -626,7 +650,7 @@ export default function Laboratory({ profile, onUpdateProfile }: Props) {
   </style>
 </head>
 <body>
-  <h1>🧪 Minha Tize — Resultados de Exames</h1>
+  <h1>Minha Tize — Resultados de Exames</h1>
   <p class="sub">Gerado em ${today} · ${filledCount} exame${filledCount !== 1 ? 's' : ''} preenchido${filledCount !== 1 ? 's' : ''}</p>
   ${sections}
   <div class="disc">
@@ -669,9 +693,14 @@ export default function Laboratory({ profile, onUpdateProfile }: Props) {
             flexShrink: 0, width: '44px', height: '44px', borderRadius: '50%',
             background: priority === 'green' ? 'var(--primary-light)' : priority === 'yellow' ? 'rgba(245,158,11,0.1)' : 'rgba(239,68,68,0.08)',
             border: `2px solid ${priority === 'green' ? 'var(--primary)' : priority === 'yellow' ? '#F59E0B' : '#EF4444'}`,
-            display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '22px',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            color: priority === 'green' ? 'var(--primary)' : priority === 'yellow' ? '#F59E0B' : '#EF4444',
           }}>
-            {priority === 'green' ? '🟢' : priority === 'yellow' ? '🟡' : '🔴'}
+            {priority === 'green'
+              ? <Check          size={20} strokeWidth={2.5} />
+              : priority === 'yellow'
+              ? <AlertTriangle  size={20} strokeWidth={2.5} />
+              : <XCircle        size={20} strokeWidth={2.5} />}
           </div>
         )}
       </div>
@@ -684,18 +713,21 @@ export default function Laboratory({ profile, onUpdateProfile }: Props) {
           border: `1px solid ${priority === 'green' ? 'rgba(16,185,129,0.2)' : priority === 'yellow' ? 'rgba(245,158,11,0.25)' : 'rgba(239,68,68,0.25)'}`,
           color: priority === 'green' ? 'var(--primary)' : priority === 'yellow' ? '#B45309' : '#DC2626',
         }}>
-          {priority === 'green' && '✅ Todos os exames analisados dentro da referência'}
-          {priority === 'yellow' && `⚠️ ${abnormal.length} alteração${abnormal.length > 1 ? 'ões' : ''} identificada${abnormal.length > 1 ? 's' : ''} — veja a análise`}
-          {priority === 'red'    && `🔴 Múltiplas alterações identificadas — discuta com seu médico`}
+          {priority === 'green' && 'Todos os exames analisados dentro da referência'}
+          {priority === 'yellow' && `${abnormal.length} alteração${abnormal.length > 1 ? 'ões' : ''} identificada${abnormal.length > 1 ? 's' : ''} — veja a análise`}
+          {priority === 'red'    && 'Múltiplas alterações identificadas — discuta com seu médico'}
         </div>
       )}
 
       {/* Sex notice */}
       {!sex && EXAMS.some(e => e.sexDependent && savedResults.some(r => r.examId === e.id)) && (
         <div className="card-warning">
-          <p style={{ fontSize: '12px', color: 'var(--warn-text)', lineHeight: 1.5 }}>
-            ℹ️ Você tem exames que dependem do sexo para referência. Configure o sexo no seu <strong>Perfil → Editar</strong> para uma análise mais precisa.
-          </p>
+          <div style={{ display: 'flex', gap: '8px', alignItems: 'flex-start' }}>
+            <Info size={13} strokeWidth={2} style={{ flexShrink: 0, marginTop: '1px', color: 'var(--warn-text)' }} />
+            <p style={{ fontSize: '12px', color: 'var(--warn-text)', lineHeight: 1.5, margin: 0 }}>
+              Você tem exames que dependem do sexo para referência. Configure o sexo no seu <strong>Perfil → Editar</strong> para uma análise mais precisa.
+            </p>
+          </div>
         </div>
       )}
 
@@ -705,8 +737,8 @@ export default function Laboratory({ profile, onUpdateProfile }: Props) {
         background: 'var(--surface-2)', borderRadius: '14px', padding: '4px',
       }}>
         {([
-          { id: 'exams'    as const, label: '📋 Exames'    },
-          { id: 'analysis' as const, label: `📊 Análise${filledExams.length > 0 ? ` (${filledExams.length})` : ''}` },
+          { id: 'exams'    as const, label: 'Exames',    icon: <ClipboardList size={14} strokeWidth={2} /> },
+          { id: 'analysis' as const, label: `Análise${filledExams.length > 0 ? ` (${filledExams.length})` : ''}`, icon: <BarChart2 size={14} strokeWidth={2} /> },
         ]).map(t => (
           <button
             key={t.id}
@@ -716,11 +748,14 @@ export default function Laboratory({ profile, onUpdateProfile }: Props) {
               background: innerTab === t.id ? 'var(--primary)' : 'transparent',
               color: innerTab === t.id ? '#fff' : 'var(--text-muted)',
               fontWeight: 700, fontSize: '13px', cursor: 'pointer',
-              transition: 'all 0.2s', fontFamily: "'Plus Jakarta Sans', sans-serif",
+              transition: 'all 0.2s', fontFamily: "Inter, -apple-system, sans-serif",
               boxShadow: innerTab === t.id ? '0 2px 8px rgba(16,185,129,0.3)' : 'none',
             }}
           >
-            {t.label}
+            <span style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '5px' }}>
+              {t.icon}
+              {t.label}
+            </span>
           </button>
         ))}
       </div>
@@ -735,9 +770,10 @@ export default function Laboratory({ profile, onUpdateProfile }: Props) {
               <div style={{
                 width: '42px', height: '42px', borderRadius: '12px', flexShrink: 0,
                 background: 'var(--primary-light)',
-                display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '20px',
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+              color: 'var(--primary)',
               }}>
-                📄
+                <FileText size={20} strokeWidth={2} />
               </div>
               <div style={{ minWidth: 0 }}>
                 <p style={{ fontWeight: 800, fontSize: '14px', color: 'var(--text-primary)', margin: 0 }}>
@@ -748,8 +784,9 @@ export default function Laboratory({ profile, onUpdateProfile }: Props) {
                 </p>
               </div>
             </div>
-            <button onClick={downloadRequest} className="btn-primary" style={{ width: '100%' }}>
-              ⬇️ Baixar PDF
+            <button onClick={downloadRequest} className="btn-primary" style={{ width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}>
+              <Download size={15} strokeWidth={2.5} />
+              Baixar PDF
             </button>
           </div>
 
@@ -765,7 +802,13 @@ export default function Laboratory({ profile, onUpdateProfile }: Props) {
               }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                    <span style={{ fontSize: '18px' }}>🧪</span>
+                    <div style={{
+                      width: '32px', height: '32px', borderRadius: '9px',
+                      background: 'var(--primary-light)', display: 'flex',
+                      alignItems: 'center', justifyContent: 'center', color: 'var(--primary)',
+                    }}>
+                      <FlaskConical size={16} strokeWidth={2} />
+                    </div>
                     <p style={{ fontWeight: 700, fontSize: '13px', color: 'var(--text-primary)', margin: 0 }}>
                       Resultados Laboratoriais
                     </p>
@@ -791,9 +834,12 @@ export default function Laboratory({ profile, onUpdateProfile }: Props) {
 
           {/* Disclaimer */}
           <div className="card-warning">
-            <p style={{ fontSize: '11px', color: 'var(--warn-text)', lineHeight: 1.5 }}>
-              ⚠️ Os valores de referência são gerais e podem variar entre laboratórios, métodos e contexto clínico. Quando houver divergência, prevalece o valor do seu laudo. A plataforma <strong>não realiza diagnóstico</strong>.
-            </p>
+            <div style={{ display: 'flex', gap: '8px', alignItems: 'flex-start' }}>
+              <Info size={13} strokeWidth={2} style={{ flexShrink: 0, marginTop: '1px', color: 'var(--warn-text)' }} />
+              <p style={{ fontSize: '11px', color: 'var(--warn-text)', lineHeight: 1.5, margin: 0 }}>
+                Os valores de referência são gerais e podem variar entre laboratórios, métodos e contexto clínico. Quando houver divergência, prevalece o valor do seu laudo. A plataforma <strong>não realiza diagnóstico</strong>.
+              </p>
+            </div>
           </div>
 
           {/* Categories */}
@@ -814,10 +860,17 @@ export default function Laboratory({ profile, onUpdateProfile }: Props) {
                   style={{
                     width: '100%', display: 'flex', alignItems: 'center', gap: '10px',
                     padding: '14px 16px', background: 'none', border: 'none',
-                    cursor: 'pointer', textAlign: 'left', fontFamily: "'Plus Jakarta Sans', sans-serif",
+                    cursor: 'pointer', textAlign: 'left', fontFamily: "Inter, -apple-system, sans-serif",
                   }}
                 >
-                  <span style={{ fontSize: '20px' }}>{cat.icon}</span>
+                  <div style={{
+                    width: '36px', height: '36px', borderRadius: '10px', flexShrink: 0,
+                    background: 'var(--primary-light)',
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    color: 'var(--primary)',
+                  }}>
+                    {CATEGORY_ICON[cat.id]}
+                  </div>
                   <div style={{ flex: 1, minWidth: 0 }}>
                     <p style={{ fontWeight: 700, fontSize: '14px', color: 'var(--text-primary)', margin: 0 }}>
                       {cat.title}
@@ -830,10 +883,10 @@ export default function Laboratory({ profile, onUpdateProfile }: Props) {
                     <span className="badge badge-green" style={{ marginRight: '4px' }}>{filledCnt}</span>
                   )}
                   <span style={{
-                    fontSize: '11px', color: 'var(--text-muted)',
+                    color: 'var(--text-muted)',
                     transition: 'transform 0.2s', transform: isOpen ? 'rotate(180deg)' : 'none',
-                    display: 'inline-block',
-                  }}>▼</span>
+                    display: 'inline-flex',
+                  }}><ChevronDown size={16} strokeWidth={2} /></span>
                 </button>
 
                 {/* Exam fields */}
@@ -914,7 +967,13 @@ export default function Laboratory({ profile, onUpdateProfile }: Props) {
 
           {filledExams.length === 0 ? (
             <div style={{ textAlign: 'center', padding: '40px 0' }}>
-              <p style={{ fontSize: '44px', marginBottom: '12px' }}>🧪</p>
+              <div style={{
+                width: '56px', height: '56px', borderRadius: '18px', margin: '0 auto 14px',
+                background: 'var(--primary-light)', display: 'flex', alignItems: 'center',
+                justifyContent: 'center', color: 'var(--primary)',
+              }}>
+                <FlaskConical size={26} strokeWidth={2} />
+              </div>
               <p style={{ fontWeight: 700, fontSize: '15px', color: 'var(--text-primary)' }}>
                 Nenhum exame preenchido
               </p>
@@ -931,12 +990,18 @@ export default function Laboratory({ profile, onUpdateProfile }: Props) {
 
                 return (
                   <div key={cat.id} style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                    <p style={{
-                      fontWeight: 700, fontSize: '11px', color: 'var(--text-muted)',
-                      textTransform: 'uppercase', letterSpacing: '0.07em', margin: 0,
+                    <div style={{
+                      display: 'flex', alignItems: 'center', gap: '6px',
+                      color: 'var(--text-muted)',
                     }}>
-                      {cat.icon} {cat.title}
-                    </p>
+                      {CATEGORY_ICON_SM[cat.id]}
+                      <p style={{
+                        fontWeight: 700, fontSize: '11px',
+                        textTransform: 'uppercase', letterSpacing: '0.07em', margin: 0,
+                      }}>
+                        {cat.title}
+                      </p>
+                    </div>
 
                     {catResults.map(({ exam, value, status }) => (
                       <div key={exam.id} style={{
@@ -976,8 +1041,9 @@ export default function Laboratory({ profile, onUpdateProfile }: Props) {
                 border: '1px solid var(--border)', borderRadius: '18px', padding: '18px 20px',
                 boxShadow: 'var(--shadow-card)',
               }}>
-                <p style={{ fontWeight: 800, fontSize: '16px', color: 'var(--text-primary)', marginBottom: '14px' }}>
-                  🏥 Seu Checkup Minha Tize
+                <p style={{ fontWeight: 800, fontSize: '16px', color: 'var(--text-primary)', marginBottom: '14px', display: 'flex', alignItems: 'center', gap: '7px' }}>
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--primary)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg>
+                  Seu Checkup Minha Tize
                 </p>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '7px' }}>
                   {checkupItems.map((item, i) => (
@@ -986,8 +1052,11 @@ export default function Laboratory({ profile, onUpdateProfile }: Props) {
                       padding: '8px 11px', borderRadius: '10px',
                       background: item.ok ? 'var(--primary-light)' : 'rgba(245,158,11,0.07)',
                     }}>
-                      <span style={{ fontSize: '14px', lineHeight: 1.4, flexShrink: 0 }}>
-                        {item.ok ? '✔' : '⚠'}
+                      <span style={{ lineHeight: 1.4, flexShrink: 0, display: 'flex', color: item.ok ? 'var(--primary)' : '#92400E' }}>
+                        {item.ok
+                          ? <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+                          : <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+                        }
                       </span>
                       <p style={{
                         fontSize: '13px', fontWeight: 600, margin: 0,
@@ -1005,15 +1074,19 @@ export default function Laboratory({ profile, onUpdateProfile }: Props) {
               </div>
 
               {/* Download resultados */}
-              <button onClick={downloadResults} className="btn-primary" style={{ width: '100%' }}>
-                📄 Baixar PDF com Resultados
+              <button onClick={downloadResults} className="btn-primary" style={{ width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}>
+                <Download size={15} strokeWidth={2.5} />
+                Baixar PDF com Resultados
               </button>
 
               {/* Disclaimer */}
               <div className="card-warning">
-                <p style={{ fontSize: '11px', color: 'var(--warn-text)', lineHeight: 1.65 }}>
-                  ⚠️ <strong>Aviso importante:</strong> A Minha Tize não substitui avaliação médica. Os valores de referência são gerais e podem variar entre laboratórios, métodos analíticos, equipamentos, sexo, idade e contexto clínico. Quando houver divergência entre a plataforma e o laudo laboratorial, prevalece o valor de referência informado pelo laboratório. Esta ferramenta fornece apenas orientação educativa — não realiza diagnóstico, não sugere tratamento, medicamentos ou suplementação específica.
-                </p>
+                <div style={{ display: 'flex', gap: '8px', alignItems: 'flex-start' }}>
+                  <Info size={13} strokeWidth={2} style={{ flexShrink: 0, marginTop: '1px', color: 'var(--warn-text)' }} />
+                  <p style={{ fontSize: '11px', color: 'var(--warn-text)', lineHeight: 1.65, margin: 0 }}>
+                    <strong>Aviso importante:</strong> A Minha Tize não substitui avaliação médica. Os valores de referência são gerais e podem variar entre laboratórios, métodos analíticos, equipamentos, sexo, idade e contexto clínico. Quando houver divergência entre a plataforma e o laudo laboratorial, prevalece o valor de referência informado pelo laboratório. Esta ferramenta fornece apenas orientação educativa — não realiza diagnóstico, não sugere tratamento, medicamentos ou suplementação específica.
+                  </p>
+                </div>
               </div>
             </>
           )}

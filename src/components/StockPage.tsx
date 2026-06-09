@@ -109,7 +109,7 @@ export default function StockPage({ profile, onUpdateProfile }: Props) {
               padding: '4px 10px', borderRadius: '99px', fontSize: '11px', fontWeight: 700,
               background: stockOk ? 'rgba(255,255,255,0.2)' : 'rgba(239,68,68,0.3)',
             }}>
-              {stockOk ? '✓ OK' : '⚠️ Baixo'}
+              {stockOk ? 'OK' : 'Baixo'}
             </span>
           )}
         </div>
@@ -120,7 +120,11 @@ export default function StockPage({ profile, onUpdateProfile }: Props) {
         display: 'flex', alignItems: 'center', gap: '10px', padding: '12px 14px',
         borderRadius: '12px', background: 'var(--primary-light)', border: '1px solid rgba(16,185,129,0.2)',
       }}>
-        <span style={{ fontSize: '18px' }}>💉</span>
+        <div style={{ width: '32px', height: '32px', borderRadius: '9px', flexShrink: 0,
+          background: 'var(--primary-light)', display: 'flex', alignItems: 'center', justifyContent: 'center',
+          color: 'var(--primary)', border: '1px solid rgba(37,99,235,0.15)' }}>
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M18 2l4 4-14 14H4v-4L18 2z"/></svg>
+        </div>
         <p style={{ fontSize: '13px', color: 'var(--text-secondary)' }}>
           Calculando para dose atual de{' '}
           <strong style={{ color: 'var(--primary)' }}>{profile.currentDose}mg</strong>.
@@ -152,7 +156,7 @@ export default function StockPage({ profile, onUpdateProfile }: Props) {
         </div>
 
         <button className="btn-primary" style={{ width: '100%' }} onClick={handleSave}>
-          {saved ? '✓ Estoque atualizado!' : 'Calcular e salvar'}
+          {saved ? 'Estoque atualizado!' : 'Calcular e salvar'}
         </button>
       </div>
 
@@ -180,8 +184,9 @@ export default function StockPage({ profile, onUpdateProfile }: Props) {
 
           {stockLow && (
             <div className="card-warning" style={{ marginTop: '4px' }}>
-              <p style={{ fontSize: '12px', color: 'var(--warn-text)', fontWeight: 600 }}>
-                ⚠️ Menos de 4 semanas de tratamento. Providencie a reposição o quanto antes.
+              <p style={{ fontSize: '12px', color: 'var(--warn-text)', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '5px' }}>
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+                Menos de 4 semanas de tratamento. Providencie a reposição o quanto antes.
               </p>
             </div>
           )}
@@ -190,8 +195,9 @@ export default function StockPage({ profile, onUpdateProfile }: Props) {
 
       {/* Dica */}
       <div className="card-warning">
-        <p style={{ fontSize: '13px', color: 'var(--warn-text)', fontWeight: 700, marginBottom: '6px' }}>
-          💡 Dica importante
+        <p style={{ fontSize: '13px', color: 'var(--warn-text)', fontWeight: 700, marginBottom: '6px', display: 'flex', alignItems: 'center', gap: '5px' }}>
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>
+          Dica importante
         </p>
         <p style={{ fontSize: '12px', color: 'var(--warn-text)', lineHeight: 1.6 }}>
           Mantenha pelo menos <strong>4 semanas</strong> de estoque em casa.

@@ -1,3 +1,5 @@
+import { Info } from 'lucide-react'
+
 export default function Footer() {
   return (
     <footer
@@ -7,10 +9,11 @@ export default function Footer() {
       <div className="max-w-lg mx-auto px-4 py-8 space-y-6">
         <div className="card-warning">
           <h3
-            className="font-jakarta font-700 text-sm mb-2 flex items-center gap-2"
-            style={{ color: 'var(--warn-text)' }}
+            className="font-700 text-sm mb-2"
+            style={{ color: 'var(--warn-text)', display: 'flex', alignItems: 'center', gap: '6px', fontFamily: 'Inter, -apple-system, sans-serif' }}
           >
-            ⚠️ Aviso Legal Importante
+            <Info size={13} strokeWidth={2} style={{ flexShrink: 0 }} />
+            Aviso Legal Importante
           </h3>
           <p
             className="text-xs font-jakarta leading-relaxed"

@@ -1,4 +1,10 @@
 import { useState } from 'react'
+import {
+  Activity, Utensils, Dumbbell, TrendingDown, Pill, Target, Package,
+  ChevronLeft, ChevronRight, Waves, AlertCircle, ArrowDown, Droplets,
+  Flame, Battery, RotateCcw, Circle, Minus, X, Lightbulb,
+  Zap, Moon, Sun, Heart, Shield, Fish, Sparkles, Feather, Info,
+} from 'lucide-react'
 import FoodGuide from './FoodGuide'
 import Weaning from './Weaning'
 import SideEffects from './SideEffects'
@@ -14,10 +20,60 @@ interface Props {
 
 type HealthTab = 'symptoms' | 'food' | 'exercise' | 'weaning' | 'supplementation' | 'antiplato' | 'storage'
 
+// ── Section icons ─────────────────────────────────────────────────────────────
+const SECTION_ICON_MAP: Record<HealthTab, React.ReactNode> = {
+  symptoms:       <Activity      size={26} strokeWidth={2} color="rgba(255,255,255,0.95)" />,
+  food:           <Utensils      size={26} strokeWidth={2} color="rgba(255,255,255,0.95)" />,
+  exercise:       <Dumbbell      size={26} strokeWidth={2} color="rgba(255,255,255,0.95)" />,
+  weaning:        <TrendingDown  size={26} strokeWidth={2} color="rgba(255,255,255,0.95)" />,
+  supplementation:<Pill          size={26} strokeWidth={2} color="rgba(255,255,255,0.95)" />,
+  antiplato:      <Target        size={26} strokeWidth={2} color="rgba(255,255,255,0.95)" />,
+  storage:        <Package       size={26} strokeWidth={2} color="rgba(255,255,255,0.95)" />,
+}
+
+const SECTION_ICON_SM: Record<HealthTab, React.ReactNode> = {
+  symptoms:       <Activity      size={18} strokeWidth={2} color="rgba(255,255,255,0.95)" />,
+  food:           <Utensils      size={18} strokeWidth={2} color="rgba(255,255,255,0.95)" />,
+  exercise:       <Dumbbell      size={18} strokeWidth={2} color="rgba(255,255,255,0.95)" />,
+  weaning:        <TrendingDown  size={18} strokeWidth={2} color="rgba(255,255,255,0.95)" />,
+  supplementation:<Pill          size={18} strokeWidth={2} color="rgba(255,255,255,0.95)" />,
+  antiplato:      <Target        size={18} strokeWidth={2} color="rgba(255,255,255,0.95)" />,
+  storage:        <Package       size={18} strokeWidth={2} color="rgba(255,255,255,0.95)" />,
+}
+
+// ── Symptom icon lookup ───────────────────────────────────────────────────────
+const SYMPTOM_ICON_MAP: Record<string, React.ReactNode> = {
+  nausea:       <Waves       size={18} strokeWidth={2} />,
+  vomiting:     <AlertCircle size={18} strokeWidth={2} />,
+  constipation: <ArrowDown   size={18} strokeWidth={2} />,
+  diarrhea:     <Droplets    size={18} strokeWidth={2} />,
+  reflux:       <Flame       size={18} strokeWidth={2} />,
+  fatigue:      <Battery     size={18} strokeWidth={2} />,
+  dizziness:    <RotateCcw   size={18} strokeWidth={2} />,
+  abdominal:    <Circle      size={18} strokeWidth={2} />,
+  headache:     <Minus       size={18} strokeWidth={2} />,
+  appetite:     <X           size={18} strokeWidth={2} />,
+}
+
+// ── Supplementation icon lookup ───────────────────────────────────────────────
+const SUPP_ICON_MAP: Record<string, React.ReactNode> = {
+  'Proteína Adequada':   <Dumbbell size={18} strokeWidth={2} />,
+  'Creatina':            <Zap      size={18} strokeWidth={2} />,
+  'Multivitamínico':     <Pill     size={18} strokeWidth={2} />,
+  'Magnésio':            <Moon     size={18} strokeWidth={2} />,
+  'Vitamina D':          <Sun      size={18} strokeWidth={2} />,
+  'Vitamina B12':        <Droplets size={18} strokeWidth={2} />,
+  'Ferro':               <Heart    size={18} strokeWidth={2} />,
+  'Zinco':               <Shield   size={18} strokeWidth={2} />,
+  'Ômega 3':             <Fish     size={18} strokeWidth={2} />,
+  'Colágeno Hidrolisado':<Sparkles size={18} strokeWidth={2} />,
+  'Biotina':             <Feather  size={18} strokeWidth={2} />,
+}
+
 // ── Symptom tips mapping ──────────────────────────────────────────────────────
-const SYMPTOM_TIPS: Record<string, { emoji: string; title: string; tips: string[] }> = {
+const SYMPTOM_TIPS: Record<string, { title: string; tips: string[] }> = {
   nausea: {
-    emoji: '🤢', title: 'Náusea',
+    title: 'Náusea',
     tips: [
       'Prefira 5–6 refeições pequenas em vez de grandes volumes',
       'Evite alimentos gordurosos, fritos ou muito condimentados',
@@ -26,7 +82,7 @@ const SYMPTOM_TIPS: Record<string, { emoji: string; title: string; tips: string[
     ],
   },
   vomiting: {
-    emoji: '🤮', title: 'Vômito',
+    title: 'Vômito',
     tips: [
       'Priorize hidratação em pequenos goles frequentes',
       'Reintroduza alimentos gradualmente: arroz, banana, torrada',
@@ -35,7 +91,7 @@ const SYMPTOM_TIPS: Record<string, { emoji: string; title: string; tips: string[
     ],
   },
   constipation: {
-    emoji: '😣', title: 'Constipação',
+    title: 'Constipação',
     tips: [
       'Beba pelo menos 2L de água por dia — fundamental',
       'Ameixa, mamão e kiwi são aliados do trânsito intestinal',
@@ -44,7 +100,7 @@ const SYMPTOM_TIPS: Record<string, { emoji: string; title: string; tips: string[
     ],
   },
   diarrhea: {
-    emoji: '🚽', title: 'Diarreia',
+    title: 'Diarreia',
     tips: [
       'Hidratação é prioridade: água, água de coco, soro oral',
       'Prefira arroz, banana, maçã cozida e torrada temporariamente',
@@ -53,7 +109,7 @@ const SYMPTOM_TIPS: Record<string, { emoji: string; title: string; tips: string[
     ],
   },
   reflux: {
-    emoji: '🔥', title: 'Refluxo / Azia',
+    title: 'Refluxo / Azia',
     tips: [
       'Espere ao menos 2h antes de deitar após comer',
       'Faça refeições menores e mais frequentes',
@@ -62,7 +118,7 @@ const SYMPTOM_TIPS: Record<string, { emoji: string; title: string; tips: string[
     ],
   },
   fatigue: {
-    emoji: '😴', title: 'Fadiga',
+    title: 'Fadiga',
     tips: [
       'Garanta 7–9 horas de sono de qualidade por noite',
       'Verifique a ingestão de proteínas (1,2–1,5g/kg de peso)',
@@ -71,7 +127,7 @@ const SYMPTOM_TIPS: Record<string, { emoji: string; title: string; tips: string[
     ],
   },
   dizziness: {
-    emoji: '💫', title: 'Tontura',
+    title: 'Tontura',
     tips: [
       'Levante-se devagar ao sair da cama ou de cadeiras',
       'Mantenha hidratação constante ao longo do dia',
@@ -80,7 +136,7 @@ const SYMPTOM_TIPS: Record<string, { emoji: string; title: string; tips: string[
     ],
   },
   abdominal: {
-    emoji: '🫃', title: 'Dor abdominal',
+    title: 'Dor abdominal',
     tips: [
       'Coma devagar e mastigue bem — a digestão começa na boca',
       'Evite alimentos produtores de gás (feijão, repolho, brócolis cru)',
@@ -89,7 +145,7 @@ const SYMPTOM_TIPS: Record<string, { emoji: string; title: string; tips: string[
     ],
   },
   headache: {
-    emoji: '🤕', title: 'Dor de cabeça',
+    title: 'Dor de cabeça',
     tips: [
       'Verifique sua hidratação — a GLP-1 pode reduzir a sensação de sede',
       'Faça refeições regulares, evitando jejuns prolongados',
@@ -98,7 +154,7 @@ const SYMPTOM_TIPS: Record<string, { emoji: string; title: string; tips: string[
     ],
   },
   appetite: {
-    emoji: '🍽️', title: 'Falta de apetite',
+    title: 'Falta de apetite',
     tips: [
       'Faça refeições programadas mesmo sem sentir fome',
       'Priorize proteínas e gorduras boas em porções pequenas',
@@ -108,25 +164,24 @@ const SYMPTOM_TIPS: Record<string, { emoji: string; title: string; tips: string[
   },
 }
 
-
 // ── Supplementation levels ────────────────────────────────────────────────────
 const SUPP_LEVELS = [
   {
     level: 1,
     title: 'Essenciais',
     subtitle: 'Quase todo paciente',
-    gradient: 'linear-gradient(135deg, #059669 0%, #10B981 100%)',
-    bg: 'rgba(5,150,105,0.06)',
-    border: 'rgba(5,150,105,0.2)',
-    badgeBg: 'rgba(5,150,105,0.12)',
+    gradient: 'linear-gradient(150deg, #065F46 0%, #047857 100%)',
+    bg: 'rgba(5,150,105,0.05)',
+    border: 'rgba(5,150,105,0.18)',
+    badgeBg: 'rgba(5,150,105,0.10)',
     badgeColor: '#059669',
-    iconBg: 'rgba(5,150,105,0.1)',
+    iconBg: 'rgba(5,150,105,0.10)',
     iconColor: '#059669',
     items: [
-      { icon: '🥩', name: 'Proteína Adequada',  detail: 'Whey, caseína ou fontes alimentares — 1,2–1,6g/kg' },
-      { icon: '⚡', name: 'Creatina',           detail: '3–5g/dia — preserva e aumenta massa muscular' },
-      { icon: '💊', name: 'Multivitamínico',    detail: 'Suporte geral de micronutrientes na restrição calórica' },
-      { icon: '🌙', name: 'Magnésio',           detail: 'Qualidade do sono, cãibras e função muscular' },
+      { name: 'Proteína Adequada',  detail: 'Whey, caseína ou fontes alimentares — 1,2–1,6g/kg' },
+      { name: 'Creatina',           detail: '3–5g/dia — preserva e aumenta massa muscular' },
+      { name: 'Multivitamínico',    detail: 'Suporte geral de micronutrientes na restrição calórica' },
+      { name: 'Magnésio',           detail: 'Qualidade do sono, cãibras e função muscular' },
     ],
     note: 'Esses são os suplementos mais frequentemente utilizados para ajudar na manutenção da massa magra, recuperação muscular e suporte nutricional durante o processo de emagrecimento.',
   },
@@ -134,18 +189,18 @@ const SUPP_LEVELS = [
     level: 2,
     title: 'Importantes',
     subtitle: 'Guiados por exames',
-    gradient: 'linear-gradient(135deg, #D97706 0%, #F59E0B 100%)',
-    bg: 'rgba(217,119,6,0.06)',
-    border: 'rgba(217,119,6,0.2)',
-    badgeBg: 'rgba(217,119,6,0.12)',
-    badgeColor: '#D97706',
-    iconBg: 'rgba(217,119,6,0.1)',
-    iconColor: '#D97706',
+    gradient: 'linear-gradient(150deg, #92400E 0%, #B45309 100%)',
+    bg: 'rgba(180,83,9,0.05)',
+    border: 'rgba(180,83,9,0.18)',
+    badgeBg: 'rgba(180,83,9,0.10)',
+    badgeColor: '#B45309',
+    iconBg: 'rgba(180,83,9,0.10)',
+    iconColor: '#B45309',
     items: [
-      { icon: '☀️', name: 'Vitamina D',  detail: 'Essencial para imunidade, ossos e humor' },
-      { icon: '🔴', name: 'Vitamina B12', detail: 'Produção de energia e saúde neurológica' },
-      { icon: '🩸', name: 'Ferro',       detail: 'Prevenção de anemia, especialmente em mulheres' },
-      { icon: '🔧', name: 'Zinco',       detail: 'Sistema imune, cicatrização e metabolismo' },
+      { name: 'Vitamina D',  detail: 'Essencial para imunidade, ossos e humor' },
+      { name: 'Vitamina B12', detail: 'Produção de energia e saúde neurológica' },
+      { name: 'Ferro',       detail: 'Prevenção de anemia, especialmente em mulheres' },
+      { name: 'Zinco',       detail: 'Sistema imune, cicatrização e metabolismo' },
     ],
     note: 'Esses nutrientes idealmente devem ser avaliados através de exames laboratoriais antes da utilização.',
   },
@@ -153,17 +208,17 @@ const SUPP_LEVELS = [
     level: 3,
     title: 'Opcionais / Estéticos',
     subtitle: 'Conforme prioridade e orçamento',
-    gradient: 'linear-gradient(135deg, #7C3AED 0%, #6D28D9 100%)',
-    bg: 'rgba(124,58,237,0.05)',
-    border: 'rgba(124,58,237,0.2)',
-    badgeBg: 'rgba(124,58,237,0.1)',
+    gradient: 'linear-gradient(150deg, #4C1D95 0%, #5B21B6 100%)',
+    bg: 'rgba(91,33,182,0.05)',
+    border: 'rgba(91,33,182,0.18)',
+    badgeBg: 'rgba(91,33,182,0.10)',
     badgeColor: '#7C3AED',
-    iconBg: 'rgba(124,58,237,0.1)',
+    iconBg: 'rgba(91,33,182,0.10)',
     iconColor: '#7C3AED',
     items: [
-      { icon: '🐟', name: 'Ômega 3',              detail: 'Anti-inflamatório e saúde cardiovascular' },
-      { icon: '✨', name: 'Colágeno Hidrolisado',  detail: 'Pele, articulações e tecido conjuntivo' },
-      { icon: '💅', name: 'Biotina',               detail: 'Cabelo, pele e unhas' },
+      { name: 'Ômega 3',              detail: 'Anti-inflamatório e saúde cardiovascular' },
+      { name: 'Colágeno Hidrolisado',  detail: 'Pele, articulações e tecido conjuntivo' },
+      { name: 'Biotina',               detail: 'Cabelo, pele e unhas' },
     ],
     note: 'Podem ser utilizados em situações específicas, mas normalmente não possuem prioridade maior que os itens dos níveis anteriores.',
   },
@@ -179,7 +234,6 @@ function getMondayOf(d: Date) {
 // ── Section card definitions ──────────────────────────────────────────────────
 const SECTION_CARDS: {
   id: HealthTab
-  icon: string
   title: string
   subtitle: string
   gradient: string
@@ -188,66 +242,59 @@ const SECTION_CARDS: {
 }[] = [
   {
     id: 'symptoms',
-    icon: '🤢',
     title: 'Sintomas',
     subtitle: 'Registre e acompanhe efeitos colaterais',
-    gradient: 'linear-gradient(135deg, #059669 0%, #0D9488 100%)',
-    shadow: '0 8px 24px rgba(5,150,105,0.28)',
-    accentColor: '#059669',
+    gradient: 'linear-gradient(150deg, #1E4D6B 0%, #0F3347 100%)',
+    shadow: '0 8px 28px rgba(30,77,107,0.35)',
+    accentColor: '#1E4D6B',
   },
   {
     id: 'food',
-    icon: '🥗',
     title: 'Alimentação',
     subtitle: 'Alimentos aliados e o que evitar',
-    gradient: 'linear-gradient(135deg, #D97706 0%, #EA580C 100%)',
-    shadow: '0 8px 24px rgba(217,119,6,0.28)',
-    accentColor: '#D97706',
+    gradient: 'linear-gradient(150deg, #16653A 0%, #0E4A29 100%)',
+    shadow: '0 8px 28px rgba(22,101,58,0.35)',
+    accentColor: '#16653A',
   },
   {
     id: 'exercise',
-    icon: '🏃',
     title: 'Exercício',
     subtitle: 'Guia de treino com GLP-1',
-    gradient: 'linear-gradient(135deg, #7C3AED 0%, #6D28D9 100%)',
-    shadow: '0 8px 24px rgba(124,58,237,0.28)',
-    accentColor: '#7C3AED',
+    gradient: 'linear-gradient(150deg, #1D4ED8 0%, #1338A6 100%)',
+    shadow: '0 8px 28px rgba(29,78,216,0.35)',
+    accentColor: '#1D4ED8',
   },
   {
     id: 'weaning',
-    icon: '📉',
     title: 'Desmame',
     subtitle: 'Protocolo de interrupção gradual',
-    gradient: 'linear-gradient(135deg, #2563EB 0%, #4F46E5 100%)',
-    shadow: '0 8px 24px rgba(37,99,235,0.28)',
-    accentColor: '#2563EB',
+    gradient: 'linear-gradient(150deg, #374151 0%, #1F2937 100%)',
+    shadow: '0 8px 28px rgba(55,65,81,0.40)',
+    accentColor: '#374151',
   },
   {
     id: 'supplementation',
-    icon: '💊',
     title: 'Suplementação',
     subtitle: 'O que priorizar durante o tratamento',
-    gradient: 'linear-gradient(135deg, #0F766E 0%, #059669 100%)',
-    shadow: '0 8px 24px rgba(15,118,110,0.28)',
+    gradient: 'linear-gradient(150deg, #0F766E 0%, #0A5952 100%)',
+    shadow: '0 8px 28px rgba(15,118,110,0.35)',
     accentColor: '#0F766E',
   },
   {
     id: 'antiplato',
-    icon: '🚧',
     title: 'Anti-Platô',
     subtitle: 'Identifique e desbloqueie seu platô',
-    gradient: 'linear-gradient(135deg, #E11D48 0%, #9F1239 100%)',
-    shadow: '0 8px 24px rgba(225,29,72,0.28)',
-    accentColor: '#E11D48',
+    gradient: 'linear-gradient(150deg, #5B21B6 0%, #3E1480 100%)',
+    shadow: '0 8px 28px rgba(91,33,182,0.35)',
+    accentColor: '#5B21B6',
   },
   {
     id: 'storage',
-    icon: '❄️',
     title: 'Armazenamento',
     subtitle: 'Como guardar sua medicação corretamente',
-    gradient: 'linear-gradient(135deg, #0EA5E9 0%, #0284C7 100%)',
-    shadow: '0 8px 24px rgba(14,165,233,0.28)',
-    accentColor: '#0EA5E9',
+    gradient: 'linear-gradient(150deg, #0369A1 0%, #024F7B 100%)',
+    shadow: '0 8px 28px rgba(3,105,161,0.35)',
+    accentColor: '#0369A1',
   },
 ]
 
@@ -255,7 +302,6 @@ const SECTION_CARDS: {
 export default function HealthHub({ profile, onUpdateProfile }: Props) {
   const [activeSection, setActiveSection] = useState<HealthTab | null>(null)
 
-  // Current week's symptoms
   const thisWeek       = getMondayOf(new Date())
   const currentEntry   = profile.sideEffects?.find(e => e.date === thisWeek)
   const activeSymptoms = currentEntry?.symptoms.filter(s => s.intensity > 0) ?? []
@@ -263,10 +309,10 @@ export default function HealthHub({ profile, onUpdateProfile }: Props) {
     ? Math.max(...activeSymptoms.map(s => s.intensity)) : 0
 
   const symptomBadge =
-    maxIntensity === 0 ? { label: 'Sem sintomas', color: '#10B981', dot: '🟢' }
-    : maxIntensity === 1 ? { label: `${activeSymptoms.length} leve${activeSymptoms.length > 1 ? 's' : ''}`, color: '#10B981', dot: '🟢' }
-    : maxIntensity === 2 ? { label: `${activeSymptoms.length} moderado${activeSymptoms.length > 1 ? 's' : ''}`, color: '#F59E0B', dot: '🟡' }
-    : { label: `${activeSymptoms.length} intenso${activeSymptoms.length > 1 ? 's' : ''}`, color: '#EF4444', dot: '🔴' }
+    maxIntensity === 0 ? { label: 'Sem sintomas', color: '#10B981', dotColor: '#10B981' }
+    : maxIntensity === 1 ? { label: `${activeSymptoms.length} leve${activeSymptoms.length > 1 ? 's' : ''}`, color: '#10B981', dotColor: '#10B981' }
+    : maxIntensity === 2 ? { label: `${activeSymptoms.length} moderado${activeSymptoms.length > 1 ? 's' : ''}`, color: '#F59E0B', dotColor: '#F59E0B' }
+    : { label: `${activeSymptoms.length} intenso${activeSymptoms.length > 1 ? 's' : ''}`, color: '#EF4444', dotColor: '#EF4444' }
 
   const currentCard = SECTION_CARDS.find(c => c.id === activeSection)
 
@@ -284,23 +330,21 @@ export default function HealthHub({ profile, onUpdateProfile }: Props) {
               width: '38px', height: '38px', borderRadius: '12px',
               border: '1.5px solid var(--border-strong)',
               background: 'var(--surface)', cursor: 'pointer',
-              fontFamily: "'Plus Jakarta Sans', sans-serif",
-              fontSize: '16px', color: 'var(--text-secondary)',
+              color: 'var(--text-secondary)',
               transition: 'all 0.15s',
               flexShrink: 0,
             }}
           >
-            ←
+            <ChevronLeft size={18} strokeWidth={2} />
           </button>
           <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flex: 1, minWidth: 0 }}>
             <div style={{
               width: '36px', height: '36px', borderRadius: '10px', flexShrink: 0,
               background: currentCard?.gradient,
               display: 'flex', alignItems: 'center', justifyContent: 'center',
-              fontSize: '18px',
               boxShadow: currentCard?.shadow,
             }}>
-              {currentCard?.icon}
+              {activeSection && SECTION_ICON_SM[activeSection]}
             </div>
             <div style={{ minWidth: 0 }}>
               <h2 style={{ fontSize: '18px', fontWeight: 800, color: 'var(--text-primary)', margin: 0, lineHeight: 1.2 }}>
@@ -349,7 +393,14 @@ export default function HealthHub({ profile, onUpdateProfile }: Props) {
                           background: `${intensityColor}08`,
                           borderBottom: `1px solid ${intensityColor}20`,
                         }}>
-                          <span style={{ fontSize: '20px' }}>{tip.emoji}</span>
+                          <div style={{
+                            width: '32px', height: '32px', borderRadius: '9px', flexShrink: 0,
+                            background: `${intensityColor}15`,
+                            display: 'flex', alignItems: 'center', justifyContent: 'center',
+                            color: intensityColor,
+                          }}>
+                            {SYMPTOM_ICON_MAP[s.id]}
+                          </div>
                           <p style={{ fontWeight: 800, fontSize: '14px', color: 'var(--text-primary)', flex: 1, margin: 0 }}>
                             {tip.title}
                           </p>
@@ -380,9 +431,12 @@ export default function HealthHub({ profile, onUpdateProfile }: Props) {
                   })}
 
                   <div className="card-warning">
-                    <p style={{ fontSize: '11px', color: 'var(--warn-text)', lineHeight: 1.5 }}>
-                      ⚕️ Estas dicas são educativas. Se os sintomas persistirem ou forem intensos, consulte o médico responsável pelo seu protocolo.
-                    </p>
+                    <div style={{ display: 'flex', gap: '8px', alignItems: 'flex-start' }}>
+                      <Info size={13} strokeWidth={2} style={{ flexShrink: 0, marginTop: '1px', color: 'var(--warn-text)' }} />
+                      <p style={{ fontSize: '11px', color: 'var(--warn-text)', lineHeight: 1.5, margin: 0 }}>
+                        Estas dicas são educativas. Se os sintomas persistirem ou forem intensos, consulte o médico responsável pelo seu protocolo.
+                      </p>
+                    </div>
                   </div>
                 </div>
               )}
@@ -399,7 +453,7 @@ export default function HealthHub({ profile, onUpdateProfile }: Props) {
                   background: 'rgba(245,158,11,0.07)',
                   border: '1px solid rgba(245,158,11,0.25)',
                 }}>
-                  <span style={{ fontSize: '18px' }}>💡</span>
+                  <Lightbulb size={16} strokeWidth={2} style={{ flexShrink: 0, color: '#B45309' }} />
                   <p style={{ fontSize: '12px', color: '#B45309', fontWeight: 600, lineHeight: 1.4, margin: 0 }}>
                     Você tem sintomas digestivos esta semana. Priorize os alimentos da lista <strong>Aliados</strong> e evite os listados em <strong>Evitar</strong>.
                   </p>
@@ -436,7 +490,7 @@ export default function HealthHub({ profile, onUpdateProfile }: Props) {
                   }}>
                     <div style={{
                       width: '28px', height: '28px', borderRadius: '8px', flexShrink: 0,
-                      background: 'rgba(255,255,255,0.25)',
+                      background: 'rgba(255,255,255,0.22)',
                       display: 'flex', alignItems: 'center', justifyContent: 'center',
                       fontSize: '12px', fontWeight: 800, color: '#fff',
                     }}>
@@ -446,7 +500,7 @@ export default function HealthHub({ profile, onUpdateProfile }: Props) {
                       <p style={{ fontWeight: 800, fontSize: '15px', color: '#fff', margin: 0, lineHeight: 1.2 }}>
                         {lvl.title}
                       </p>
-                      <p style={{ fontSize: '11px', color: 'rgba(255,255,255,0.75)', margin: 0, marginTop: '2px' }}>
+                      <p style={{ fontSize: '11px', color: 'rgba(255,255,255,0.72)', margin: 0, marginTop: '2px' }}>
                         {lvl.subtitle}
                       </p>
                     </div>
@@ -465,9 +519,9 @@ export default function HealthHub({ profile, onUpdateProfile }: Props) {
                           width: '36px', height: '36px', borderRadius: '10px', flexShrink: 0,
                           background: lvl.iconBg,
                           display: 'flex', alignItems: 'center', justifyContent: 'center',
-                          fontSize: '18px',
+                          color: lvl.iconColor,
                         }}>
-                          {item.icon}
+                          {SUPP_ICON_MAP[item.name]}
                         </div>
                         <div style={{ flex: 1, minWidth: 0 }}>
                           <p style={{ fontWeight: 800, fontSize: '13px', color: 'var(--text-primary)', margin: 0 }}>
@@ -486,7 +540,7 @@ export default function HealthHub({ profile, onUpdateProfile }: Props) {
                       padding: '10px 12px', borderRadius: '10px',
                       background: 'var(--surface-2)',
                     }}>
-                      <span style={{ fontSize: '14px', flexShrink: 0, marginTop: '1px' }}>💡</span>
+                      <Lightbulb size={14} strokeWidth={2} style={{ flexShrink: 0, marginTop: '1px', color: 'var(--text-muted)' }} />
                       <p style={{ fontSize: '11px', color: 'var(--text-muted)', lineHeight: 1.5, margin: 0 }}>
                         {lvl.note}
                       </p>
@@ -496,9 +550,12 @@ export default function HealthHub({ profile, onUpdateProfile }: Props) {
               ))}
 
               <div className="card-warning">
-                <p style={{ fontSize: '11px', color: 'var(--warn-text)', lineHeight: 1.5 }}>
-                  ⚕️ Esta seção possui caráter educativo e não substitui orientação médica ou nutricional. A necessidade de suplementação deve ser avaliada individualmente.
-                </p>
+                <div style={{ display: 'flex', gap: '8px', alignItems: 'flex-start' }}>
+                  <Info size={13} strokeWidth={2} style={{ flexShrink: 0, marginTop: '1px', color: 'var(--warn-text)' }} />
+                  <p style={{ fontSize: '11px', color: 'var(--warn-text)', lineHeight: 1.5, margin: 0 }}>
+                    Esta seção possui caráter educativo e não substitui orientação médica ou nutricional. A necessidade de suplementação deve ser avaliada individualmente.
+                  </p>
+                </div>
               </div>
             </div>
           )}
@@ -540,11 +597,14 @@ export default function HealthHub({ profile, onUpdateProfile }: Props) {
             : maxIntensity === 2
             ? 'rgba(245,158,11,0.06)'
             : 'var(--primary-light)',
-          border: `1.5px solid ${maxIntensity >= 3 ? 'rgba(239,68,68,0.2)' : maxIntensity === 2 ? 'rgba(245,158,11,0.25)' : 'rgba(5,150,105,0.2)'}`,
-          fontFamily: "'Plus Jakarta Sans', sans-serif",
+          border: `1.5px solid ${maxIntensity >= 3 ? 'rgba(239,68,68,0.20)' : maxIntensity === 2 ? 'rgba(245,158,11,0.25)' : 'rgba(37,99,235,0.18)'}`,
         }}
       >
-        <span style={{ fontSize: '22px' }}>{symptomBadge.dot}</span>
+        <div style={{
+          width: '10px', height: '10px', borderRadius: '50%', flexShrink: 0,
+          background: symptomBadge.dotColor,
+          boxShadow: `0 0 0 3px ${symptomBadge.dotColor}22`,
+        }} />
         <div style={{ flex: 1, minWidth: 0 }}>
           <p style={{ fontWeight: 800, fontSize: '13px', color: 'var(--text-primary)', margin: 0 }}>
             Esta semana
@@ -553,10 +613,13 @@ export default function HealthHub({ profile, onUpdateProfile }: Props) {
             {symptomBadge.label}
           </p>
         </div>
-        <span style={{ fontSize: '12px', color: 'var(--text-muted)', fontWeight: 700 }}>Ver →</span>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '4px', color: 'var(--text-muted)' }}>
+          <span style={{ fontSize: '11px', fontWeight: 700 }}>Ver</span>
+          <ChevronRight size={14} strokeWidth={2.5} />
+        </div>
       </button>
 
-      {/* 2×3 card grid — all equal */}
+      {/* 2×3 card grid */}
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
         {SECTION_CARDS.map(card => (
           <button
@@ -565,7 +628,7 @@ export default function HealthHub({ profile, onUpdateProfile }: Props) {
             style={{
               background: card.gradient,
               borderRadius: '20px',
-              padding: '20px 16px 18px',
+              padding: '18px 16px 16px',
               border: 'none',
               cursor: 'pointer',
               textAlign: 'left',
@@ -573,8 +636,7 @@ export default function HealthHub({ profile, onUpdateProfile }: Props) {
               display: 'flex',
               flexDirection: 'column',
               gap: '10px',
-              minHeight: '130px',
-              fontFamily: "'Plus Jakarta Sans', sans-serif",
+              minHeight: '140px',
               transition: 'transform 0.15s ease',
               position: 'relative',
               overflow: 'hidden',
@@ -584,34 +646,58 @@ export default function HealthHub({ profile, onUpdateProfile }: Props) {
             onTouchStart={e => (e.currentTarget.style.transform = 'scale(0.97)')}
             onTouchEnd={e => (e.currentTarget.style.transform = 'scale(1)')}
           >
+            {/* Subtle inner highlight */}
             <div style={{
-              position: 'absolute', top: '-18px', right: '-18px',
-              width: '80px', height: '80px', borderRadius: '50%',
-              background: 'rgba(255,255,255,0.1)', pointerEvents: 'none',
+              position: 'absolute', inset: 0,
+              background: 'linear-gradient(150deg, rgba(255,255,255,0.07) 0%, transparent 55%)',
+              borderRadius: 'inherit',
+              pointerEvents: 'none',
             }} />
 
-            <span style={{ fontSize: '32px', lineHeight: 1, display: 'block' }}>
-              {card.icon}
-            </span>
+            {/* Decorative circle */}
+            <div style={{
+              position: 'absolute', top: '-20px', right: '-20px',
+              width: '80px', height: '80px', borderRadius: '50%',
+              background: 'rgba(255,255,255,0.06)', pointerEvents: 'none',
+            }} />
+
+            {/* Glassmorphism icon container */}
+            <div style={{
+              width: '52px', height: '52px', borderRadius: '16px',
+              background: 'rgba(255,255,255,0.14)',
+              backdropFilter: 'blur(20px)',
+              WebkitBackdropFilter: 'blur(20px)',
+              border: '1px solid rgba(255,255,255,0.18)',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.15)',
+              flexShrink: 0,
+              position: 'relative',
+            }}>
+              {SECTION_ICON_MAP[card.id]}
+            </div>
 
             <div>
-              <p style={{ fontSize: '15px', fontWeight: 800, color: '#fff', margin: 0, letterSpacing: '-0.2px' }}>
+              <p style={{ fontSize: '14px', fontWeight: 800, color: '#fff', margin: 0, letterSpacing: '-0.2px' }}>
                 {card.title}
               </p>
-              <p style={{ fontSize: '10px', color: 'rgba(255,255,255,0.72)', margin: 0, marginTop: '4px', lineHeight: 1.4 }}>
+              <p style={{ fontSize: '10px', color: 'rgba(255,255,255,0.65)', margin: 0, marginTop: '4px', lineHeight: 1.4 }}>
                 {card.subtitle}
               </p>
             </div>
 
             {card.id === 'symptoms' && activeSymptoms.length > 0 && (
               <span style={{
-                display: 'inline-flex', alignItems: 'center', gap: '4px',
+                display: 'inline-flex', alignItems: 'center', gap: '5px',
                 padding: '3px 8px', borderRadius: '99px',
-                background: 'rgba(255,255,255,0.2)',
+                background: 'rgba(255,255,255,0.18)',
                 fontSize: '10px', fontWeight: 700, color: '#fff',
                 alignSelf: 'flex-start',
               }}>
-                {symptomBadge.dot} {symptomBadge.label}
+                <div style={{
+                  width: '6px', height: '6px', borderRadius: '50%',
+                  background: symptomBadge.dotColor, flexShrink: 0,
+                }} />
+                {symptomBadge.label}
               </span>
             )}
           </button>
