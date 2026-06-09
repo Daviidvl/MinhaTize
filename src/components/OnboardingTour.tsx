@@ -1,210 +1,211 @@
-import { useState } from 'react'
-import {
-  Home, TrendingUp, Activity, Utensils, Dumbbell,
-  Calculator, ChevronLeft, ChevronRight, Check, X,
-} from 'lucide-react'
+import { useState, useEffect } from 'react'
+import { ChevronLeft, ChevronRight, Check, X } from 'lucide-react'
 
 export const TOUR_KEY = 'tizetrack_tour_done'
 
-interface Step {
-  icon: React.ReactNode
-  color: string
-  gradient: string
-  title: string
-  description: string
-  tip?: string
-}
+interface Step { target: string; title: string; description: string }
 
 const STEPS: Step[] = [
   {
-    icon: <Home size={34} strokeWidth={1.5} />,
-    color: '#2563EB',
-    gradient: 'linear-gradient(135deg, #1D4ED8 0%, #3B82F6 100%)',
-    title: 'Dashboard',
-    description: 'Sua central de controle. Veja o peso atual, progresso em relação à meta, status da próxima aplicação e alertas de estoque — tudo em um só lugar.',
-    tip: 'Toque no peso para ir direto ao gráfico de evolução.',
+    target: 'tab-dashboard',
+    title: 'Início',
+    description: 'Central de controle. Peso atual, progresso na meta, próxima aplicação e alertas — tudo em um só lugar.',
   },
   {
-    icon: <Activity size={34} strokeWidth={1.5} />,
-    color: '#0891B2',
-    gradient: 'linear-gradient(135deg, #0E7490 0%, #0891B2 100%)',
-    title: 'Aplicações',
-    description: 'Registre cada aplicação semanal no calendário. O TizeTrack acompanha automaticamente os dias e calcula quando será a próxima dose.',
-    tip: 'Toque no dia de hoje quando aplicar para registrar.',
-  },
-  {
-    icon: <TrendingUp size={34} strokeWidth={1.5} />,
-    color: '#059669',
-    gradient: 'linear-gradient(135deg, #047857 0%, #059669 100%)',
+    target: 'tab-progress',
     title: 'Progresso',
-    description: 'Registre seu peso semanalmente e acompanhe a curva de evolução. Visualize IMC, total perdido e quanto falta para atingir a meta.',
-    tip: 'Registre toda semana no mesmo horário para maior precisão.',
+    description: 'Registre seu peso semanalmente e visualize a curva de evolução, IMC e quanto falta para a meta.',
   },
   {
-    icon: <Activity size={34} strokeWidth={1.5} />,
-    color: '#1E4D6B',
-    gradient: 'linear-gradient(135deg, #1E4D6B 0%, #0F3347 100%)',
-    title: 'Sintomas',
-    description: 'Registre efeitos colaterais semanais como náusea, constipação e refluxo. O app gera dicas personalizadas para cada sintoma que você reportar.',
-    tip: 'Na aba Saúde → Sintomas.',
+    target: 'tab-health',
+    title: 'Saúde',
+    description: 'Efeitos colaterais com dicas, plano alimentar de 30 dias personalizado e treinos adaptados para quem usa GLP-1.',
   },
   {
-    icon: <Utensils size={34} strokeWidth={1.5} />,
-    color: '#16653A',
-    gradient: 'linear-gradient(135deg, #16653A 0%, #0E4A29 100%)',
-    title: 'Alimentação',
-    description: 'Plano alimentar de 30 dias personalizado por sexo, elaborado por nutricionista especialmente para quem usa GLP-1. Inclui cardápio e módulo para semanas de pouca fome.',
-    tip: 'Na aba Saúde → Alimentação.',
+    target: 'tab-calculator',
+    title: 'Calculadora',
+    description: 'Calcule doses e diluições com precisão para cada semana do protocolo.',
   },
   {
-    icon: <Dumbbell size={34} strokeWidth={1.5} />,
-    color: '#1D4ED8',
-    gradient: 'linear-gradient(135deg, #1D4ED8 0%, #1338A6 100%)',
-    title: 'Exercícios',
-    description: 'Treino personalizado por sexo, nível de experiência e local — academia ou em casa. Adaptado às necessidades de quem está em protocolo GLP-1.',
-    tip: 'Na aba Saúde → Exercícios.',
-  },
-  {
-    icon: <Calculator size={34} strokeWidth={1.5} />,
-    color: '#7C3AED',
-    gradient: 'linear-gradient(135deg, #5B21B6 0%, #7C3AED 100%)',
-    title: 'Calculadora & Lab',
-    description: 'Calcule doses e diluições com precisão. Acompanhe seus exames laboratoriais ao longo do tratamento e veja a evolução dos resultados.',
-    tip: 'Nas abas Calcular e Lab.',
+    target: 'tab-laboratory',
+    title: 'Laboratório',
+    description: 'Registre exames e acompanhe a evolução dos resultados ao longo do tratamento.',
   },
 ]
 
-interface Props {
-  onDone: () => void
-}
+interface Rect { top: number; left: number; width: number; height: number }
 
-export default function OnboardingTour({ onDone }: Props) {
+export default function OnboardingTour({ onDone }: { onDone: () => void }) {
   const [step, setStep] = useState(0)
+  const [rect, setRect] = useState<Rect | null>(null)
+
   const cur    = STEPS[step]
   const isLast = step === STEPS.length - 1
+
+  useEffect(() => {
+    function measure() {
+      const el = document.querySelector<HTMLElement>(`[data-tour="${cur.target}"]`)
+      if (el) {
+        const r = el.getBoundingClientRect()
+        setRect({ top: r.top, left: r.left, width: r.width, height: r.height })
+      }
+    }
+    const t = setTimeout(measure, 40)
+    window.addEventListener('resize', measure)
+    return () => { clearTimeout(t); window.removeEventListener('resize', measure) }
+  }, [step, cur.target])
 
   function finish() {
     localStorage.setItem(TOUR_KEY, '1')
     onDone()
   }
 
+  if (!rect) return null
+
+  const PAD = 8
+  const GAP = 10
+  const ARR = 9
+
+  const spotTop  = rect.top  - PAD
+  const spotLeft = rect.left - PAD
+  const spotW    = rect.width  + PAD * 2
+  const spotH    = rect.height + PAD * 2
+
+  // Nav is at the bottom → card appears above
+  const isBelow = rect.top > window.innerHeight * 0.5
+
+  // Arrow horizontal position within card, aligned to target center
+  const tooltipMaxW   = Math.min(window.innerWidth - 32, 360)
+  const tooltipLeftPx = (window.innerWidth - tooltipMaxW) / 2
+  const targetCenterX = rect.left + rect.width / 2
+  const arrowLeft     = Math.max(18, Math.min(tooltipMaxW - 36, targetCenterX - tooltipLeftPx - 9))
+
+  const arrowStyle: React.CSSProperties = {
+    position: 'absolute',
+    left:     arrowLeft,
+    width:    0,
+    height:   0,
+    borderLeft:  '9px solid transparent',
+    borderRight: '9px solid transparent',
+  }
+  if (isBelow) {
+    arrowStyle.bottom    = -ARR
+    arrowStyle.borderTop = `${ARR}px solid var(--surface)`
+  } else {
+    arrowStyle.top          = -ARR
+    arrowStyle.borderBottom = `${ARR}px solid var(--surface)`
+  }
+
   return (
-    <div
-      style={{
-        position: 'fixed', inset: 0, zIndex: 9999,
-        background: 'rgba(0,0,0,0.70)',
-        backdropFilter: 'blur(6px)',
-        WebkitBackdropFilter: 'blur(6px)',
-        display: 'flex', alignItems: 'center', justifyContent: 'center',
-        padding: '20px',
-      }}
-      onClick={e => { if (e.target === e.currentTarget) finish() }}
-    >
+    <>
+      {/* Spotlight "hole" — box-shadow darkens everything outside the target rect */}
       <div
-        className="fade-in"
         style={{
-          background: 'var(--surface)',
-          borderRadius: '28px',
-          padding: '28px 24px 24px',
-          maxWidth: '400px', width: '100%',
-          boxShadow: '0 32px 80px rgba(0,0,0,0.45), 0 4px 16px rgba(0,0,0,0.2)',
-          position: 'relative',
+          position:  'fixed',
+          top:       spotTop,
+          left:      spotLeft,
+          width:     spotW,
+          height:    spotH,
+          borderRadius: '14px',
+          boxShadow: '0 0 0 9999px rgba(0,0,0,0.78)',
+          border:    '2px solid rgba(255,255,255,0.30)',
+          zIndex:    9990,
+          pointerEvents: 'none',
+          transition: 'top 0.25s ease, left 0.25s ease, width 0.25s ease, height 0.25s ease',
+        }}
+      />
+
+      {/* Tooltip card */}
+      <div
+        style={{
+          position:  'fixed',
+          left:      '50%',
+          transform: 'translateX(-50%)',
+          width:     'calc(100% - 32px)',
+          maxWidth:  `${tooltipMaxW}px`,
+          ...(isBelow
+            ? { bottom: window.innerHeight - spotTop + GAP + ARR }
+            : { top:    spotTop + spotH + GAP + ARR }
+          ),
+          background:   'var(--surface)',
+          borderRadius: '20px',
+          border:       '1px solid var(--border)',
+          padding:      '20px 20px 16px',
+          zIndex:       9995,
+          boxShadow:    '0 24px 64px rgba(0,0,0,0.45), 0 4px 16px rgba(0,0,0,0.15)',
+          transition:   'bottom 0.25s ease, top 0.25s ease',
         }}
       >
-        {/* Close */}
+        {/* Arrow pointing toward target */}
+        <div style={arrowStyle} />
+
+        {/* Close button */}
         <button
           onClick={finish}
           style={{
-            position: 'absolute', top: '16px', right: '16px',
-            width: '32px', height: '32px', borderRadius: '50%',
+            position: 'absolute', top: '14px', right: '14px',
+            width: '28px', height: '28px', borderRadius: '50%',
             border: '1px solid var(--border)', background: 'var(--surface-2)',
-            cursor: 'pointer',
-            display: 'flex', alignItems: 'center', justifyContent: 'center',
-            color: 'var(--text-muted)', transition: 'all 0.15s',
+            cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center',
+            color: 'var(--text-muted)',
           }}
           aria-label="Fechar"
         >
-          <X size={13} strokeWidth={2.5} />
+          <X size={12} strokeWidth={2.5} />
         </button>
 
-        {/* Icon */}
-        <div style={{
-          width: '76px', height: '76px', borderRadius: '24px',
-          background: cur.gradient,
-          display: 'flex', alignItems: 'center', justifyContent: 'center',
-          color: '#fff', marginBottom: '22px',
-          boxShadow: `0 10px 28px ${cur.color}40`,
-        }}>
-          {cur.icon}
-        </div>
-
-        {/* Counter */}
-        <p style={{
-          fontSize: '10px', fontWeight: 700, color: 'var(--text-muted)',
-          textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: '6px',
-        }}>
-          {step + 1} / {STEPS.length}
-        </p>
-
-        {/* Title */}
-        <h2 style={{
-          fontSize: '22px', fontWeight: 800, color: 'var(--text-primary)',
-          letterSpacing: '-0.4px', marginBottom: '10px',
-          fontFamily: 'Inter, -apple-system, sans-serif',
-        }}>
-          {cur.title}
-        </h2>
-
-        {/* Description */}
-        <p style={{
-          fontSize: '13px', color: 'var(--text-secondary)', lineHeight: 1.65,
-          marginBottom: cur.tip ? '12px' : '24px',
-          fontFamily: 'Inter, -apple-system, sans-serif',
-        }}>
-          {cur.description}
-        </p>
-
-        {/* Tip */}
-        {cur.tip && (
-          <div style={{
-            padding: '9px 12px', borderRadius: '10px',
-            background: cur.color + '10',
-            border: `1px solid ${cur.color}22`,
-            marginBottom: '20px',
-          }}>
-            <p style={{ fontSize: '11px', color: cur.color, fontWeight: 600, margin: 0, lineHeight: 1.4 }}>
-              {cur.tip}
-            </p>
-          </div>
-        )}
-
         {/* Progress dots */}
-        <div style={{ display: 'flex', gap: '5px', justifyContent: 'center', marginBottom: '18px' }}>
+        <div style={{ display: 'flex', gap: '5px', justifyContent: 'center', marginBottom: '16px' }}>
           {STEPS.map((_, i) => (
             <button
               key={i}
               onClick={() => setStep(i)}
               style={{
-                width: i === step ? '20px' : '6px', height: '6px',
-                borderRadius: '99px', border: 'none', cursor: 'pointer', padding: 0,
+                width:  i === step ? '22px' : '6px',
+                height: '6px',
+                borderRadius: '99px',
+                border:     'none',
+                padding:    0,
+                background: i === step ? 'var(--primary)' : 'var(--surface-3)',
+                cursor:     'pointer',
                 transition: 'all 0.3s ease',
-                background: i === step ? cur.color : 'var(--surface-3)',
               }}
             />
           ))}
         </div>
 
-        {/* Navigation */}
+        <p style={{
+          fontSize: '10px', fontWeight: 700, color: 'var(--text-muted)',
+          textTransform: 'uppercase', letterSpacing: '0.08em',
+          margin: '0 0 4px', fontFamily: 'Inter, -apple-system, sans-serif',
+        }}>
+          {step + 1} de {STEPS.length}
+        </p>
+
+        <h3 style={{
+          fontWeight: 800, fontSize: '18px', color: 'var(--text-primary)',
+          margin: '0 0 8px', fontFamily: 'Inter, -apple-system, sans-serif',
+          letterSpacing: '-0.3px',
+        }}>
+          {cur.title}
+        </h3>
+
+        <p style={{
+          fontSize: '13px', color: 'var(--text-secondary)', lineHeight: 1.6,
+          margin: '0 0 18px', fontFamily: 'Inter, -apple-system, sans-serif',
+        }}>
+          {cur.description}
+        </p>
+
         <div style={{ display: 'flex', gap: '8px' }}>
           {step > 0 && (
             <button
               onClick={() => setStep(s => s - 1)}
               style={{
-                padding: '12px 14px', borderRadius: '13px',
+                padding: '11px 14px', borderRadius: '12px',
                 border: '1px solid var(--border)', background: 'var(--surface-2)',
-                cursor: 'pointer',
+                cursor: 'pointer', color: 'var(--text-primary)',
                 display: 'flex', alignItems: 'center', justifyContent: 'center',
-                color: 'var(--text-primary)',
               }}
             >
               <ChevronLeft size={16} strokeWidth={2.5} />
@@ -213,18 +214,17 @@ export default function OnboardingTour({ onDone }: Props) {
           <button
             onClick={() => isLast ? finish() : setStep(s => s + 1)}
             style={{
-              flex: 1, padding: '13px', borderRadius: '13px', border: 'none',
-              background: cur.gradient, color: '#fff', cursor: 'pointer',
-              fontFamily: 'Inter, -apple-system, sans-serif',
-              fontSize: '14px', fontWeight: 800,
-              boxShadow: `0 6px 18px ${cur.color}40`,
+              flex: 1, padding: '12px 16px', borderRadius: '12px', border: 'none',
+              background: 'linear-gradient(135deg, #1D4ED8 0%, #3B82F6 100%)',
+              color: '#fff', fontWeight: 700, fontSize: '14px',
+              cursor: 'pointer', fontFamily: 'Inter, -apple-system, sans-serif',
               display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '7px',
-              transition: 'opacity 0.15s',
+              boxShadow: '0 4px 14px rgba(37,99,235,0.4)',
             }}
           >
             {isLast
-              ? <><Check size={15} strokeWidth={2.5} />Começar a usar</>
-              : <>Próximo <ChevronRight size={15} strokeWidth={2.5} /></>
+              ? <><Check size={14} strokeWidth={2.5} /> Começar!</>
+              : <>Próximo <ChevronRight size={14} strokeWidth={2.5} /></>
             }
           </button>
         </div>
@@ -233,16 +233,16 @@ export default function OnboardingTour({ onDone }: Props) {
           <button
             onClick={finish}
             style={{
-              display: 'block', margin: '12px auto 0',
+              display: 'block', margin: '10px auto 0',
               background: 'none', border: 'none', cursor: 'pointer',
               fontSize: '12px', color: 'var(--text-muted)', fontWeight: 600,
               fontFamily: 'Inter, -apple-system, sans-serif',
             }}
           >
-            Pular tutorial
+            Pular tour
           </button>
         )}
       </div>
-    </div>
+    </>
   )
 }
