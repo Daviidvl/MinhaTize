@@ -101,13 +101,9 @@ export default function App() {
   const [showTour, setShowTour]     = useState(() =>
     !!loadProfile().name && !localStorage.getItem(TOUR_KEY)
   )
-  const lastScrollY   = useRef(0)
-  const showTourRef   = useRef(showTour)
+  const lastScrollY = useRef(0)
 
   const isFirstAccess = !profile.name
-
-  // Keep ref in sync so the navbar effect can read it without a dependency
-  showTourRef.current = showTour
 
   function handleProfileComplete(p: UserProfile) {
     setProfile(p)
@@ -119,40 +115,16 @@ export default function App() {
   }, [profile])
 
   useEffect(() => {
-    let idleTimer: ReturnType<typeof setTimeout> | null = null
-
-    function startIdleTimer() {
-      if (idleTimer) clearTimeout(idleTimer)
-      // Never hide while the onboarding tour is running (tour spotlights the nav)
-      if (showTourRef.current) return
-      idleTimer = setTimeout(() => setNavVisible(false), 3000)
-    }
-    function showAndReset() {
-      setNavVisible(true)
-      startIdleTimer()
-    }
     function onScroll() {
       const current = window.scrollY
       const delta   = current - lastScrollY.current
       lastScrollY.current = current
-      // Scroll down → hide immediately; anything else → show + restart idle
-      if (delta > 6) {
-        if (idleTimer) { clearTimeout(idleTimer); idleTimer = null }
-        setNavVisible(false)
-      } else {
-        showAndReset()
-      }
+      if (current < 10)      setNavVisible(true)   // sempre visível no topo
+      else if (delta >  8)   setNavVisible(false)  // deslizou para baixo → esconde
+      else if (delta < -8)   setNavVisible(true)   // deslizou para cima  → mostra
     }
-
-    // Begin idle countdown as soon as the app renders
-    startIdleTimer()
-    window.addEventListener('scroll',     onScroll,    { passive: true })
-    window.addEventListener('pointerdown', showAndReset, { passive: true })
-    return () => {
-      window.removeEventListener('scroll',     onScroll)
-      window.removeEventListener('pointerdown', showAndReset)
-      if (idleTimer) clearTimeout(idleTimer)
-    }
+    window.addEventListener('scroll', onScroll, { passive: true })
+    return () => window.removeEventListener('scroll', onScroll)
   }, [])
 
   if (isFirstAccess) {
