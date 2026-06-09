@@ -369,7 +369,7 @@ export default function ProfilePage({ profile, onUpdateProfile, onBack }: Props)
               <div style={{ display: 'flex', gap: '8px', alignItems: 'flex-start' }}>
                 <Lightbulb size={13} strokeWidth={2} style={{ flexShrink: 0, marginTop: '1px', color: 'var(--warn-text)' }} />
                 <p style={{ fontSize: '12px', color: 'var(--warn-text)', lineHeight: 1.6, margin: 0 }}>
-                  Mantenha ao menos <strong>4 semanas</strong> de estoque. O medicamento pode demorar alguns dias após o pedido.
+                  Mantenha ao menos <strong>4 semanas </strong> de estoque. O medicamento pode demorar alguns dias após o pedido.
                 </p>
               </div>
             </div>
