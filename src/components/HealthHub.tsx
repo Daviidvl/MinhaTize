@@ -4,6 +4,7 @@ import Weaning from './Weaning'
 import SideEffects from './SideEffects'
 import AntiPlato from './AntiPlato'
 import Storage from './Storage'
+import Exercise from './Exercise'
 import { UserProfile } from '../types'
 
 interface Props {
@@ -107,78 +108,6 @@ const SYMPTOM_TIPS: Record<string, { emoji: string; title: string; tips: string[
   },
 }
 
-// ── Exercise guide content ────────────────────────────────────────────────────
-const EXERCISE_CATS = [
-  {
-    id: 'strength',
-    icon: '💪',
-    title: 'Musculação',
-    badge: 'Prioridade #1',
-    badgeColor: 'var(--primary)',
-    badgeBg: 'var(--primary-light)',
-    accent: 'var(--primary)',
-    accentBg: 'rgba(5,150,105,0.07)',
-    accentBorder: 'rgba(5,150,105,0.2)',
-    freq: '2–3x por semana',
-    summary: 'Preservar massa muscular é a prioridade durante o emagrecimento com GLP-1.',
-    tips: [
-      { icon: '🎯', text: 'Foque nos grandes grupos musculares: pernas, costas, peito e ombros' },
-      { icon: '📈', text: 'Progrida a carga gradualmente — 2–5% a mais quando conseguir completar todas as séries' },
-      { icon: '⏱️', text: 'Séries: 3–4 séries de 8–12 repetições por exercício' },
-      { icon: '🔁', text: 'Exemplos: agachamento, levantamento terra, supino, remada, rosca, tríceps' },
-      { icon: '💤', text: 'Descanse 48h o mesmo grupo muscular entre os treinos' },
-    ],
-  },
-  {
-    id: 'cardio',
-    icon: '🏃',
-    title: 'Cardio',
-    badge: 'Prioridade #2',
-    badgeColor: '#7C3AED',
-    badgeBg: 'rgba(124,58,237,0.1)',
-    accent: '#7C3AED',
-    accentBg: 'rgba(124,58,237,0.05)',
-    accentBorder: 'rgba(124,58,237,0.2)',
-    freq: '150 min/semana',
-    summary: 'Saúde cardiovascular e potencialização dos resultados.',
-    tips: [
-      { icon: '🎯', text: 'Meta: 150 min/semana de intensidade moderada (OMS)' },
-      { icon: '🚶', text: 'Caminhada rápida, bicicleta e natação são as melhores opções' },
-      { icon: '📈', text: 'Comece com 20–30 min, 3x/semana e progrida gradualmente' },
-      { icon: '❤️', text: 'Intensidade moderada: consegue falar, mas não cantar' },
-      { icon: '🤢', text: 'Em dias de náusea: 15 min de caminhada leve já é suficiente' },
-    ],
-  },
-  {
-    id: 'mobility',
-    icon: '🧘',
-    title: 'Mobilidade',
-    badge: 'Diariamente',
-    badgeColor: '#F59E0B',
-    badgeBg: 'rgba(245,158,11,0.1)',
-    accent: '#F59E0B',
-    accentBg: 'rgba(245,158,11,0.05)',
-    accentBorder: 'rgba(245,158,11,0.2)',
-    freq: '10–15 min/dia',
-    summary: 'Reduz dores, melhora postura e auxilia a recuperação muscular.',
-    tips: [
-      { icon: '🌅', text: 'Inclua 10–15 min de alongamento após os treinos ou ao acordar' },
-      { icon: '🧘', text: 'Yoga e pilates são excelentes opções — reduzem estresse também' },
-      { icon: '🔄', text: 'Trabalhe mobilidade de quadril, coluna torácica e ombros' },
-      { icon: '😴', text: 'Melhora a qualidade do sono, que é fundamental no protocolo' },
-    ],
-  },
-]
-
-const WEEKLY_SCHEDULE = [
-  { day: 'Seg', activity: '💪', label: 'Força',   color: 'var(--primary)', bg: 'var(--primary-light)' },
-  { day: 'Ter', activity: '🏃', label: 'Cardio',  color: '#7C3AED',        bg: 'rgba(124,58,237,0.1)' },
-  { day: 'Qua', activity: '🧘', label: 'Mobil.',  color: '#F59E0B',        bg: 'rgba(245,158,11,0.1)' },
-  { day: 'Qui', activity: '💪', label: 'Força',   color: 'var(--primary)', bg: 'var(--primary-light)' },
-  { day: 'Sex', activity: '🏃', label: 'Cardio',  color: '#7C3AED',        bg: 'rgba(124,58,237,0.1)' },
-  { day: 'Sáb', activity: '💪', label: 'Força',   color: 'var(--primary)', bg: 'var(--primary-light)' },
-  { day: 'Dom', activity: '😌', label: 'Repouso', color: 'var(--text-muted)', bg: 'var(--surface-2)'  },
-]
 
 // ── Supplementation levels ────────────────────────────────────────────────────
 const SUPP_LEVELS = [
@@ -325,7 +254,6 @@ const SECTION_CARDS: {
 // ── Component ─────────────────────────────────────────────────────────────────
 export default function HealthHub({ profile, onUpdateProfile }: Props) {
   const [activeSection, setActiveSection] = useState<HealthTab | null>(null)
-  const [expandedEx, setExpandedEx]       = useState<Set<string>>(new Set(['strength']))
 
   // Current week's symptoms
   const thisWeek       = getMondayOf(new Date())
@@ -482,131 +410,7 @@ export default function HealthHub({ profile, onUpdateProfile }: Props) {
           )}
 
           {/* ── EXERCÍCIO ──────────────────────────────────────────────── */}
-          {activeSection === 'exercise' && (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
-              <div style={{
-                background: 'linear-gradient(135deg, var(--primary) 0%, #0D9488 100%)',
-                borderRadius: '20px', padding: '18px 20px', color: '#fff',
-                boxShadow: 'var(--shadow-green)',
-              }}>
-                <p style={{ fontSize: '11px', fontWeight: 700, opacity: 0.7, textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: '6px' }}>
-                  Por que se exercitar com GLP-1?
-                </p>
-                <p style={{ fontSize: '17px', fontWeight: 800, lineHeight: 1.3, letterSpacing: '-0.3px', marginBottom: '10px' }}>
-                  Exercício protege sua massa muscular durante o emagrecimento
-                </p>
-                <p style={{ fontSize: '12px', opacity: 0.85, lineHeight: 1.5 }}>
-                  A perda de peso rápida pode incluir massa magra. Movimentar-se preserva o metabolismo, melhora resultados e o bem-estar geral.
-                </p>
-              </div>
-
-              <div className="card">
-                <p style={{ fontWeight: 700, fontSize: '13px', color: 'var(--text-primary)', marginBottom: '12px' }}>
-                  📅 Sugestão de semana
-                </p>
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: '4px' }}>
-                  {WEEKLY_SCHEDULE.map(d => (
-                    <div key={d.day} style={{
-                      textAlign: 'center', padding: '8px 4px', borderRadius: '10px',
-                      background: d.bg, border: `1px solid ${d.color}25`,
-                    }}>
-                      <p style={{ fontSize: '8px', fontWeight: 700, color: 'var(--text-muted)', marginBottom: '4px' }}>{d.day}</p>
-                      <span style={{ fontSize: '16px', display: 'block', marginBottom: '3px' }}>{d.activity}</span>
-                      <p style={{ fontSize: '7px', fontWeight: 700, color: d.color, lineHeight: 1.2 }}>{d.label}</p>
-                    </div>
-                  ))}
-                </div>
-              </div>
-
-              <p style={{ fontWeight: 700, fontSize: '12px', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.07em' }}>
-                Tipos de treino
-              </p>
-
-              {EXERCISE_CATS.map(cat => {
-                const isOpen = expandedEx.has(cat.id)
-                return (
-                  <div key={cat.id} style={{
-                    borderRadius: '16px', overflow: 'hidden',
-                    border: `1.5px solid ${isOpen ? cat.accentBorder : 'var(--border)'}`,
-                    background: isOpen ? cat.accentBg : 'var(--surface)',
-                    transition: 'all 0.2s', boxShadow: 'var(--shadow-card)',
-                  }}>
-                    <button
-                      onClick={() => setExpandedEx(prev => {
-                        const next = new Set(prev)
-                        if (next.has(cat.id)) next.delete(cat.id)
-                        else next.add(cat.id)
-                        return next
-                      })}
-                      style={{
-                        width: '100%', padding: '14px 16px', background: 'none', border: 'none',
-                        cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '12px',
-                        textAlign: 'left', fontFamily: "'Plus Jakarta Sans', sans-serif",
-                      }}
-                    >
-                      <div style={{
-                        width: '42px', height: '42px', borderRadius: '12px', flexShrink: 0,
-                        background: `${cat.accent}18`, border: `1px solid ${cat.accent}30`,
-                        display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '20px',
-                      }}>
-                        {cat.icon}
-                      </div>
-                      <div style={{ flex: 1, minWidth: 0 }}>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap' }}>
-                          <p style={{ fontWeight: 800, fontSize: '14px', color: 'var(--text-primary)', margin: 0 }}>{cat.title}</p>
-                          <span style={{ fontSize: '10px', fontWeight: 700, padding: '2px 7px', borderRadius: '99px', background: cat.badgeBg, color: cat.badgeColor }}>
-                            {cat.badge}
-                          </span>
-                        </div>
-                        <p style={{ fontSize: '11px', color: 'var(--text-muted)', marginTop: '2px' }}>{cat.freq} · {cat.summary}</p>
-                      </div>
-                      <span style={{
-                        fontSize: '11px', color: 'var(--text-muted)', flexShrink: 0,
-                        transition: 'transform 0.2s', transform: isOpen ? 'rotate(180deg)' : 'none', display: 'inline-block',
-                      }}>▼</span>
-                    </button>
-                    {isOpen && (
-                      <div style={{ padding: '0 16px 16px', borderTop: `1px solid ${cat.accentBorder}`, display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                        {cat.tips.map((tip, i) => (
-                          <div key={i} style={{
-                            display: 'flex', alignItems: 'flex-start', gap: '10px',
-                            padding: '9px 11px', borderRadius: '10px',
-                            background: 'var(--surface)', border: `1px solid ${cat.accentBorder}`,
-                          }}>
-                            <span style={{ fontSize: '16px', flexShrink: 0, marginTop: '1px' }}>{tip.icon}</span>
-                            <p style={{ fontSize: '12px', color: 'var(--text-secondary)', lineHeight: 1.5, margin: 0 }}>{tip.text}</p>
-                          </div>
-                        ))}
-                      </div>
-                    )}
-                  </div>
-                )
-              })}
-
-              <div className="card" style={{ padding: '14px 16px', display: 'flex', flexDirection: 'column', gap: '10px' }}>
-                <p style={{ fontWeight: 700, fontSize: '13px', color: 'var(--text-primary)', margin: 0 }}>
-                  💡 Dicas práticas
-                </p>
-                {[
-                  { icon: '💧', text: 'Hidratação: aumente a ingestão de água nos dias de treino' },
-                  { icon: '🥩', text: 'Proteína pós-treino: 20–30g auxilia na recuperação muscular' },
-                  { icon: '😴', text: 'Sono: ao menos 7h para que o corpo recupere e recomponha' },
-                  { icon: '🤢', text: 'Sintomas? Caminhada leve de 15 min já é válida e benéfica' },
-                ].map((t, i) => (
-                  <div key={i} style={{ display: 'flex', gap: '8px', alignItems: 'flex-start' }}>
-                    <span style={{ fontSize: '15px', flexShrink: 0, marginTop: '1px' }}>{t.icon}</span>
-                    <p style={{ fontSize: '12px', color: 'var(--text-secondary)', lineHeight: 1.5, margin: 0 }}>{t.text}</p>
-                  </div>
-                ))}
-              </div>
-
-              <div className="card-warning">
-                <p style={{ fontSize: '11px', color: 'var(--warn-text)', lineHeight: 1.5 }}>
-                  ⚕️ Consulte um profissional de educação física para um programa personalizado. Em caso de dores intensas ou sintomas durante o exercício, interrompa e avalie com seu médico.
-                </p>
-              </div>
-            </div>
-          )}
+          {activeSection === 'exercise' && <Exercise />}
 
           {/* ── DESMAME ────────────────────────────────────────────────── */}
           {activeSection === 'weaning' && (
