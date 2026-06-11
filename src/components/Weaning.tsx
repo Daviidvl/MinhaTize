@@ -1,138 +1,107 @@
 import { useState } from 'react'
-import { AlertCircle, AlertTriangle, CheckCircle2, Info, HelpCircle, X, Target, Sparkles, RotateCcw, Star, Clock } from 'lucide-react'
+import { AlertTriangle, RotateCcw, Info, ChevronLeft, Scale, Flame, Zap, Utensils, Dumbbell } from 'lucide-react'
 import { UserProfile } from '../types'
 
 interface Props { profile: UserProfile }
 
-// ─── Tipos ───────────────────────────────────────────────────────────
-type Phase = 'intro' | 'q1' | 'blocked' | 'q2' | 'q3' | 'q4' | 'q5' | 'q6' | 'result'
+// ── Types ─────────────────────────────────────────────────────────────────────
+type Step = 'intro' | '1' | '2' | '3' | '4' | '5' | '6' | '7' | '8' | 'result'
+type ProfileType = 'green' | 'yellow' | 'blue'
 
 interface Answers {
-  q2?: '<30' | '30-60' | '>60'
-  q3?: 'very-controlled' | 'controlled' | 'moderate' | 'strong'
-  q4?: 2.5 | 5 | 7.5 | 10 | 12.5 | 15
-  q5?: 'yes' | 'partial' | 'no'
-  q6?: 'yes' | 'no'
+  q1: string
+  q2: string
+  q3: string
+  q4: string
+  q5: string
+  q6: string
+  q7: string[]
+  q8: string
 }
 
-// ─── Pontuação (fome = maior peso: até 4 pontos) ─────────────────────
-function calcScore(a: Answers): number {
-  let s = 0
-  if (a.q2 === '>60')              s += 3
-  else if (a.q2 === '30-60')       s += 2
-  // Fome — variável mais importante
-  if (a.q3 === 'very-controlled')  s += 4
-  else if (a.q3 === 'controlled')  s += 3
-  else if (a.q3 === 'moderate')    s += 1
-  else if (a.q3 === 'strong')      s -= 3
-  if (a.q4 === 2.5)                s += 3
-  else if (a.q4 === 5)             s += 2
-  else if (a.q4 === 7.5)           s += 1
-  if (a.q5 === 'yes')              s += 2
-  else if (a.q5 === 'partial')     s += 1
-  if (a.q6 === 'yes')              s += 2
-  return s
-}
+const STEP_ORDER: Step[] = ['1', '2', '3', '4', '5', '6', '7', '8']
 
-// ─── Níveis ──────────────────────────────────────────────────────────
-const LEVELS: { icon: React.ReactNode; color: string; bg: string; border: string; label: string; message: string }[] = [
-  {
-    icon: <AlertCircle size={32} strokeWidth={1.5} />, color: '#EF4444', bg: 'rgba(239,68,68,0.08)', border: 'rgba(239,68,68,0.25)',
-    label: 'Baixa prontidão',
-    message: 'Seu organismo ainda necessita do suporte medicamentoso. Evite qualquer redução de dose sem orientação médica.',
-  },
-  {
-    icon: <AlertTriangle size={32} strokeWidth={1.5} />, color: '#F59E0B', bg: 'rgba(245,158,11,0.08)', border: 'rgba(245,158,11,0.25)',
-    label: 'Prontidão intermediária',
-    message: 'Você já apresenta alguns sinais positivos, mas ainda há aspectos a fortalecer. Permaneça mais tempo na etapa atual antes de avançar.',
-  },
-  {
-    icon: <CheckCircle2 size={32} strokeWidth={1.5} />, color: '#10B981', bg: 'rgba(16,185,129,0.08)', border: 'rgba(16,185,129,0.25)',
-    label: 'Boa prontidão',
-    message: 'Você apresenta sinais favoráveis para o desmame.\n\nMantenha seus hábitos atuais e converse com seu médico sobre os próximos passos da redução gradual.',
-  },
-  {
-    icon: <Info size={32} strokeWidth={1.5} />, color: '#6366F1', bg: 'rgba(99,102,241,0.08)', border: 'rgba(99,102,241,0.25)',
-    label: 'Prontidão avançada',
-    message: 'Você apresenta sinais favoráveis para o desmame.\n\nMantenha seus hábitos atuais e converse com seu médico sobre os próximos passos da redução gradual.',
-  },
+const NONE_SYMPTOM = 'Nenhum dos sintomas acima'
+const SEVERE_SYMPTOMS = [
+  'Náusea persistente',
+  'Vômitos',
+  'Dor abdominal importante',
+  'Dificuldade importante para se alimentar',
 ]
 
-function getLevel(score: number, answers: Answers): number {
-  let lvl: number
-  if (score <= 4)       lvl = 0
-  else if (score <= 8)  lvl = 1
-  else if (score <= 12) lvl = 2
-  else                  lvl = 3
-  // Fome voltou forte → máximo intermediária
-  if (answers.q3 === 'strong') lvl = Math.min(lvl, 1)
-  return lvl
+// ── Classification logic ──────────────────────────────────────────────────────
+function classify(a: Answers): ProfileType {
+  const hasSevere = a.q7.some(s => SEVERE_SYMPTOMS.includes(s))
+  if (hasSevere || a.q6 === 'Estou recuperando peso') return 'blue'
+
+  const isGreen =
+    a.q1 === 'Sim' &&
+    (a.q2 === 'Entre 2 e 3 meses' || a.q2 === 'Mais de 3 meses') &&
+    (a.q3 === 'Muito controlada' || a.q3 === 'Moderadamente controlada') &&
+    (a.q4 === 'Bem estruturada' || a.q4 === 'Razoável') &&
+    (a.q5 === 'Sim, 3 ou mais vezes por semana' || a.q5 === 'Eventualmente') &&
+    a.q6 === 'Peso estabilizado' &&
+    (a.q7.length === 0 || (a.q7.length === 1 && a.q7[0] === NONE_SYMPTOM))
+
+  return isGreen ? 'green' : 'yellow'
 }
 
-// ─── Pontos de atenção ────────────────────────────────────────────────
-interface AttentionPoint { id: string; text: string }
-
-function getAttentionPoints(a: Answers): AttentionPoint[] {
-  const pts: AttentionPoint[] = []
-
-  if (a.q2 === '<30')
-    pts.push({
-      id: 'stability',
-      text: 'Seu peso ainda possui pouco tempo de estabilidade. Pode ser interessante consolidar esse período antes de avançar no desmame.',
-    })
-
-  if (a.q3 === 'moderate')
-    pts.push({
-      id: 'hunger-moderate',
-      text: 'Sua fome já apresenta sinais de aumento. Pode ser interessante permanecer mais tempo na etapa atual antes de novas reduções.',
-    })
-
-  if (a.q3 === 'strong')
-    pts.push({
-      id: 'hunger-strong',
-      text: 'O retorno importante da fome pode indicar que seu organismo ainda não está preparado para novas etapas do desmame.',
-    })
-
-  if (a.q5 === 'partial' || a.q5 === 'no')
-    pts.push({
-      id: 'diet',
-      text: 'Sua alimentação ainda não está totalmente estruturada. A manutenção dos resultados após o desmame depende fortemente da consolidação dos hábitos alimentares.',
-    })
-
-  if (a.q6 === 'no')
-    pts.push({
-      id: 'exercise',
-      text: 'Você ainda não possui uma rotina regular de atividade física. A prática de exercícios contribui para manutenção do peso e da massa muscular após a redução da medicação.',
-    })
-
-  return pts
+// ── Tapering plans ────────────────────────────────────────────────────────────
+const TAPER_DOSES: Record<string, string[]> = {
+  '15':   ['15 mg', '12,5 mg', '10 mg', '7,5 mg', '5 mg', '5 mg a cada 10 dias', '5 mg a cada 14 dias'],
+  '12.5': ['12,5 mg', '10 mg', '7,5 mg', '5 mg', '5 mg a cada 10 dias', '5 mg a cada 14 dias'],
+  '10':   ['10 mg', '7,5 mg', '5 mg', '5 mg a cada 10 dias', '5 mg a cada 14 dias'],
+  '7.5':  ['7,5 mg', '5 mg', '5 mg a cada 10 dias', '5 mg a cada 14 dias'],
+  '5':    ['5 mg semanal', '5 mg a cada 10 dias', '5 mg a cada 14 dias'],
+  '2.5':  ['2,5 mg semanal', '2,5 mg a cada 10 dias', '2,5 mg a cada 14 dias'],
 }
 
-// ─── Opção de resposta ────────────────────────────────────────────────
+// ── Profile config ────────────────────────────────────────────────────────────
+const PROFILE_CONFIG = {
+  green: {
+    dot: '#059669',
+    bg: 'rgba(5,150,105,0.08)',
+    border: 'rgba(5,150,105,0.25)',
+    label: 'Boa prontidão para discutir o desmame',
+    message: 'Você apresenta sinais favoráveis para discutir o desmame com seu médico.\n\nUma das estratégias mais utilizadas na prática clínica consiste em reduzir gradualmente a dose e, posteriormente, aumentar o intervalo entre as aplicações.',
+  },
+  yellow: {
+    dot: '#D97706',
+    bg: 'rgba(217,119,6,0.08)',
+    border: 'rgba(217,119,6,0.25)',
+    label: 'Ainda não é o momento ideal',
+    message: 'Neste momento, pode ser mais interessante consolidar os hábitos, estabilizar os resultados e fortalecer a rotina alimentar e de exercícios antes de iniciar o desmame.',
+  },
+  blue: {
+    dot: '#2563EB',
+    bg: 'rgba(37,99,235,0.08)',
+    border: 'rgba(37,99,235,0.25)',
+    label: 'Situações que merecem avaliação individual',
+    message: 'Algumas situações exigem uma avaliação individualizada. Por isso, recomenda-se discutir os próximos passos diretamente com o médico responsável pelo acompanhamento.',
+  },
+}
+
+// ── Option (single select) ────────────────────────────────────────────────────
 function Option({ label, selected, onClick }: { label: string; selected: boolean; onClick: () => void }) {
   return (
     <button
       onClick={onClick}
       style={{
-        width: '100%', padding: '14px 16px', borderRadius: '12px', border: 'none',
-        background: selected
-          ? 'linear-gradient(135deg, var(--primary) 0%, #0D9488 100%)'
-          : 'var(--surface-2)',
-        color: selected ? '#fff' : 'var(--text-primary)',
-        fontWeight: 700, fontSize: '14px', textAlign: 'left',
-        cursor: 'pointer', transition: 'all 0.15s ease',
+        width: '100%', padding: '14px 16px', borderRadius: '14px',
+        border: `1.5px solid ${selected ? 'var(--primary)' : 'var(--border)'}`,
+        background: selected ? 'var(--primary-light)' : 'var(--surface)',
+        color: 'var(--text-primary)',
+        fontWeight: selected ? 700 : 500, fontSize: '14px', textAlign: 'left',
+        cursor: 'pointer', transition: 'all 0.15s',
         fontFamily: 'Inter, -apple-system, sans-serif',
-        boxShadow: selected ? '0 2px 8px rgba(37,99,235,0.25)' : 'none',
-        outline: selected ? 'none' : '1px solid var(--border)',
+        display: 'flex', alignItems: 'center', gap: '12px',
       }}
     >
       <span style={{
-        marginRight: '10px', width: '18px', height: '18px',
-        borderRadius: '50%', flexShrink: 0,
-        background: selected ? 'rgba(255,255,255,0.25)' : 'var(--border)',
-        border: selected ? '2px solid rgba(255,255,255,0.5)' : '2px solid var(--border)',
-        display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
-        verticalAlign: 'middle',
+        width: '18px', height: '18px', borderRadius: '50%', flexShrink: 0,
+        border: `2px solid ${selected ? 'var(--primary)' : 'var(--border)'}`,
+        display: 'flex', alignItems: 'center', justifyContent: 'center',
+        background: selected ? 'var(--primary)' : 'transparent',
       }}>
         {selected && <span style={{ width: '6px', height: '6px', borderRadius: '50%', background: '#fff' }} />}
       </span>
@@ -141,458 +110,590 @@ function Option({ label, selected, onClick }: { label: string; selected: boolean
   )
 }
 
-// ─── Componente principal ─────────────────────────────────────────────
+// ── Option (multi select) ─────────────────────────────────────────────────────
+function MultiOption({ label, selected, onClick }: { label: string; selected: boolean; onClick: () => void }) {
+  return (
+    <button
+      onClick={onClick}
+      style={{
+        width: '100%', padding: '14px 16px', borderRadius: '14px',
+        border: `1.5px solid ${selected ? 'var(--primary)' : 'var(--border)'}`,
+        background: selected ? 'var(--primary-light)' : 'var(--surface)',
+        color: 'var(--text-primary)',
+        fontWeight: selected ? 700 : 500, fontSize: '14px', textAlign: 'left',
+        cursor: 'pointer', transition: 'all 0.15s',
+        fontFamily: 'Inter, -apple-system, sans-serif',
+        display: 'flex', alignItems: 'center', gap: '12px',
+      }}
+    >
+      <span style={{
+        width: '18px', height: '18px', borderRadius: '4px', flexShrink: 0,
+        border: `2px solid ${selected ? 'var(--primary)' : 'var(--border)'}`,
+        background: selected ? 'var(--primary)' : 'transparent',
+        display: 'flex', alignItems: 'center', justifyContent: 'center',
+      }}>
+        {selected && (
+          <svg width="10" height="8" viewBox="0 0 10 8" fill="none">
+            <path d="M1 4l3 3 5-6" stroke="#fff" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+          </svg>
+        )}
+      </span>
+      {label}
+    </button>
+  )
+}
+
+// ── Main component ────────────────────────────────────────────────────────────
 export default function Weaning({ profile }: Props) {
-  const [phase, setPhase]     = useState<Phase>('intro')
+  const defaultDose = profile.currentDose.toString()
+
+  const [step, setStep]       = useState<Step>('intro')
   const [answers, setAnswers] = useState<Answers>({
-    q4: profile.currentDose as Answers['q4'],
+    q1: '', q2: '', q3: '', q4: '', q5: '', q6: '', q7: [], q8: defaultDose,
   })
 
-  const TOTAL_QUESTIONS = 6
-  const phaseToNum: Record<Phase, number> = {
-    intro: 0, q1: 1, blocked: 0, q2: 2, q3: 3, q4: 4, q5: 5, q6: 6, result: 6,
-  }
-  const progressPct = phase === 'result' ? 100 : (phaseToNum[phase] / TOTAL_QUESTIONS) * 100
+  const stepNum  = STEP_ORDER.indexOf(step as Step) + 1
+  const progress = step === 'result' ? 100 : step === 'intro' ? 0 : (stepNum / 8) * 100
 
-  function answer<K extends keyof Answers>(key: K, val: Answers[K]) {
+  function go(next: Step) { setStep(next) }
+  function back() {
+    const order: Step[] = ['intro', '1', '2', '3', '4', '5', '6', '7', '8', 'result']
+    const idx = order.indexOf(step)
+    if (idx > 0) setStep(order[idx - 1])
+  }
+
+  function setQ(key: keyof Omit<Answers, 'q7'>, val: string, next: Step) {
     setAnswers(prev => ({ ...prev, [key]: val }))
+    setStep(next)
+  }
+
+  function toggleQ7(symptom: string) {
+    setAnswers(prev => {
+      if (symptom === NONE_SYMPTOM) return { ...prev, q7: [NONE_SYMPTOM] }
+      const without = prev.q7.filter(s => s !== NONE_SYMPTOM)
+      const already = without.includes(symptom)
+      return { ...prev, q7: already ? without.filter(s => s !== symptom) : [...without, symptom] }
+    })
+  }
+
+  function finish() {
+    setStep('result')
   }
 
   function restart() {
-    setPhase('intro')
-    setAnswers({ q4: profile.currentDose as Answers['q4'] })
+    setStep('intro')
+    setAnswers({ q1: '', q2: '', q3: '', q4: '', q5: '', q6: '', q7: [], q8: defaultDose })
   }
 
-  const score     = calcScore(answers)
-  const level     = getLevel(score, answers)
-  const classif   = LEVELS[level]
-  const attnPts   = getAttentionPoints(answers)
-  const hasRisk   = attnPts.length >= 2
+  const profile_type = classify(answers)
+  const cfg          = PROFILE_CONFIG[profile_type]
+  const taperPlan    = TAPER_DOSES[answers.q8] ?? []
 
-  // Destaque especial: dose mínima + >60d + fome controlada
-  const rule2 = answers.q4 === 2.5
-    && answers.q2 === '>60'
-    && (answers.q3 === 'controlled' || answers.q3 === 'very-controlled')
+  const qBadge = (n: number) => (
+    <p style={{
+      fontSize: '11px', fontWeight: 700, color: 'var(--text-muted)',
+      textTransform: 'uppercase', letterSpacing: '0.08em', margin: '0 0 10px',
+      fontFamily: 'Inter, sans-serif',
+    }}>
+      Pergunta {n} de 8
+    </p>
+  )
+
+  const backBtn = (
+    <button
+      onClick={back}
+      style={{
+        display: 'flex', alignItems: 'center', gap: '4px',
+        background: 'none', border: 'none', cursor: 'pointer', padding: 0,
+        color: 'var(--text-muted)', fontFamily: 'Inter, sans-serif',
+        fontSize: '13px', fontWeight: 600, marginTop: '4px',
+      }}
+    >
+      <ChevronLeft size={14} strokeWidth={2.5} /> Voltar
+    </button>
+  )
 
   return (
     <div className="fade-in" style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
 
-      {/* Header */}
-      <div>
-        <h2 style={{ fontSize: '18px', fontWeight: 800, color: 'var(--text-primary)' }}>
-          Assistente de Desmame
-        </h2>
-        <p style={{ color: 'var(--text-muted)', fontSize: '13px', marginTop: '4px' }}>
-          Avaliação de prontidão — exclusivamente educativa
-        </p>
-      </div>
-
-      {/* Barra de progresso */}
-      {phase !== 'intro' && phase !== 'blocked' && (
-        <div className="progress-track" style={{ height: '5px' }}>
-          <div className="progress-fill" style={{ width: `${progressPct}%` }} />
+      {/* Progress bar */}
+      {step !== 'intro' && (
+        <div style={{ background: 'var(--border)', borderRadius: '99px', height: '4px', overflow: 'hidden' }}>
+          <div style={{
+            height: '100%', borderRadius: '99px', background: 'var(--primary)',
+            width: `${progress}%`, transition: 'width 0.4s cubic-bezier(0.22,1,0.36,1)',
+          }} />
         </div>
       )}
 
-      {/* ── INTRO ──────────────────────────────────────────────────── */}
-      {phase === 'intro' && (
+      {/* ── INTRO ─────────────────────────────────────────────────────────── */}
+      {step === 'intro' && (
         <div className="fade-in" style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
-          <div className="card" style={{
-            background: 'linear-gradient(135deg, var(--primary-light), var(--accent-light))',
-            border: '1px solid rgba(16,185,129,0.2)',
-          }}>
-            <div style={{
-              width: '52px', height: '52px', borderRadius: '14px',
-              background: 'var(--primary-light)', border: '1px solid rgba(37,99,235,0.15)',
-              display: 'flex', alignItems: 'center', justifyContent: 'center',
-              margin: '0 0 12px', color: 'var(--primary)',
+          <div className="card" style={{ padding: '20px' }}>
+            <p style={{
+              fontSize: '11px', fontWeight: 700, color: 'var(--text-muted)',
+              textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: '10px',
+              fontFamily: 'Inter, sans-serif',
             }}>
-              <HelpCircle size={26} strokeWidth={2} />
-            </div>
-            <h3 style={{ fontSize: '17px', fontWeight: 800, color: 'var(--text-primary)', marginBottom: '8px' }}>
-              Meu organismo está pronto para depender menos da medicação?
+              Ferramenta educativa
+            </p>
+            <h3 style={{
+              fontSize: '17px', fontWeight: 800, color: 'var(--text-primary)',
+              margin: '0 0 10px', lineHeight: 1.3, fontFamily: 'Inter, sans-serif',
+            }}>
+              Assistente Inteligente de Desmame da Tirzepatida
             </h3>
-            <p style={{ fontSize: '13px', color: 'var(--text-muted)', lineHeight: 1.6 }}>
-              Esta ferramenta analisa sinais clínicos e comportamentais para oferecer uma classificação educativa sobre sua prontidão para o desmame.
+            <p style={{
+              fontSize: '13px', color: 'var(--text-muted)', lineHeight: 1.6, margin: 0,
+              fontFamily: 'Inter, sans-serif',
+            }}>
+              Esta ferramenta analisa seu momento atual e oferece uma orientação educativa sobre o desmame.
+              Não substitui o acompanhamento médico.
             </p>
           </div>
 
-          <div className="card">
-            <p style={{ fontSize: '13px', fontWeight: 700, color: 'var(--text-primary)', marginBottom: '10px' }}>
-              Esta ferramenta NÃO recomenda:
-            </p>
-            {['Iniciar o desmame', 'Suspender a medicação', 'Aumentar a dose', 'Reduzir a dose'].map(item => (
-              <div key={item} style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '6px' }}>
-                <X size={14} strokeWidth={2.5} color="#EF4444" style={{ flexShrink: 0 }} />
-                <span style={{ fontSize: '13px', color: 'var(--text-muted)' }}>{item}</span>
-              </div>
-            ))}
-            <p style={{ fontSize: '13px', fontWeight: 700, color: 'var(--primary)', marginTop: '12px' }}>
-              Fornece apenas uma classificação educativa baseada nas suas respostas.
+          <div style={{
+            padding: '14px 16px', borderRadius: '14px',
+            background: 'rgba(245,158,11,0.07)', border: '1px solid rgba(245,158,11,0.22)',
+            display: 'flex', gap: '10px', alignItems: 'flex-start',
+          }}>
+            <Info size={14} strokeWidth={2} color="#D97706" style={{ flexShrink: 0, marginTop: '1px' }} />
+            <p style={{ fontSize: '12px', color: 'var(--text-primary)', lineHeight: 1.6, margin: 0, fontFamily: 'Inter, sans-serif' }}>
+              Qualquer ajuste de dose deve ser realizado com orientação do médico responsável.
             </p>
           </div>
 
-          <button className="btn-primary" style={{ width: '100%' }} onClick={() => setPhase('q1')}>
+          <button
+            onClick={() => go('1')}
+            style={{
+              padding: '15px', borderRadius: '14px', border: 'none',
+              background: 'linear-gradient(135deg, #1D4ED8 0%, #3B82F6 100%)',
+              color: '#fff', fontWeight: 700, fontSize: '15px',
+              cursor: 'pointer', fontFamily: 'Inter, sans-serif',
+              boxShadow: '0 4px 14px rgba(37,99,235,0.35)',
+            }}
+          >
             Iniciar avaliação →
           </button>
         </div>
       )}
 
-      {/* ── PERGUNTA 1 ─────────────────────────────────────────────── */}
-      {phase === 'q1' && (
+      {/* ── Q1 ────────────────────────────────────────────────────────────── */}
+      {step === '1' && (
         <div className="fade-in" style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-          <div>
-            <span className="badge badge-green" style={{ marginBottom: '10px', display: 'inline-flex' }}>
-              Pergunta 1 de {TOTAL_QUESTIONS}
-            </span>
-            <p style={{ fontSize: '20px', fontWeight: 800, color: 'var(--text-primary)', lineHeight: 1.3 }}>
-              Você atingiu seu peso objetivo?
-            </p>
-          </div>
+          {qBadge(1)}
+          <p style={{ fontSize: '20px', fontWeight: 800, color: 'var(--text-primary)', lineHeight: 1.3, margin: 0, fontFamily: 'Inter, sans-serif' }}>
+            Você atingiu o peso que considera como objetivo?
+          </p>
           <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginTop: '4px' }}>
-            <Option label="Sim" selected={false} onClick={() => setPhase('q2')} />
-            <Option label="Não" selected={false} onClick={() => setPhase('blocked')} />
+            <Option label="Sim"       selected={answers.q1 === 'Sim'}       onClick={() => setQ('q1', 'Sim',       '2')} />
+            <Option label="Ainda não" selected={answers.q1 === 'Ainda não'} onClick={() => setQ('q1', 'Ainda não', '2')} />
           </div>
-          <button className="btn-ghost" style={{ marginTop: '4px' }} onClick={() => setPhase('intro')}>
-            ← Voltar
-          </button>
+          {backBtn}
         </div>
       )}
 
-      {/* ── BLOQUEIO ───────────────────────────────────────────────── */}
-      {phase === 'blocked' && (
-        <div className="fade-in" style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
-          <div className="card" style={{
-            background: 'rgba(245,158,11,0.07)', border: '1.5px solid rgba(245,158,11,0.25)',
-            textAlign: 'center', padding: '2rem 1.5rem',
-          }}>
-            <div style={{
-              width: '52px', height: '52px', borderRadius: '14px',
-              background: 'rgba(245,158,11,0.12)', border: '1px solid rgba(245,158,11,0.25)',
-              display: 'flex', alignItems: 'center', justifyContent: 'center',
-              margin: '0 auto 12px', color: '#F59E0B',
-            }}>
-              <Target size={26} strokeWidth={2} />
-            </div>
-            <h3 style={{ fontSize: '18px', fontWeight: 800, color: 'var(--text-primary)', marginBottom: '12px', lineHeight: 1.3 }}>
-              Você ainda não atingiu seu peso objetivo.
-            </h3>
-            <p style={{ fontSize: '14px', color: 'var(--text-muted)', lineHeight: 1.6 }}>
-              Neste momento, o foco principal continua sendo a consolidação dos resultados obtidos com o tratamento.
-            </p>
-            <p style={{ fontSize: '14px', color: 'var(--text-muted)', lineHeight: 1.6, marginTop: '10px' }}>
-              Converse com seu médico antes de considerar estratégias de desmame.
-            </p>
-          </div>
-          <div className="card-warning">
-            <div style={{ display: 'flex', gap: '7px', alignItems: 'flex-start' }}>
-              <Info size={13} strokeWidth={2} style={{ flexShrink: 0, marginTop: '1px', color: 'var(--warn-text)' }} />
-              <p style={{ fontSize: '12px', color: 'var(--warn-text)', lineHeight: 1.5, margin: 0 }}>
-                Finalidade exclusivamente educativa. Não substitui avaliação médica.
-              </p>
-            </div>
-          </div>
-          <button className="btn-ghost" style={{ width: '100%' }} onClick={restart}>
-            Refazer avaliação
-          </button>
-        </div>
-      )}
-
-      {/* ── PERGUNTA 2 ─────────────────────────────────────────────── */}
-      {phase === 'q2' && (
+      {/* ── Q2 ────────────────────────────────────────────────────────────── */}
+      {step === '2' && (
         <div className="fade-in" style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-          <div>
-            <span className="badge badge-green" style={{ marginBottom: '10px', display: 'inline-flex' }}>
-              Pergunta 2 de {TOTAL_QUESTIONS}
-            </span>
-            <p style={{ fontSize: '20px', fontWeight: 800, color: 'var(--text-primary)', lineHeight: 1.3 }}>
-              Há quanto tempo seu peso permanece estável?
-            </p>
-          </div>
+          {qBadge(2)}
+          <p style={{ fontSize: '20px', fontWeight: 800, color: 'var(--text-primary)', lineHeight: 1.3, margin: 0, fontFamily: 'Inter, sans-serif' }}>
+            Há quanto tempo seu peso permanece estável?
+          </p>
           <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginTop: '4px' }}>
-            {([
-              { val: '<30',   label: 'Menos de 30 dias' },
-              { val: '30-60', label: 'Entre 30 e 60 dias' },
-              { val: '>60',   label: 'Mais de 60 dias' },
-            ] as const).map(o => (
-              <Option key={o.val} label={o.label} selected={answers.q2 === o.val}
-                onClick={() => { answer('q2', o.val); setPhase('q3') }} />
+            {['Menos de 1 mês', 'Entre 1 e 2 meses', 'Entre 2 e 3 meses', 'Mais de 3 meses'].map(opt => (
+              <Option key={opt} label={opt} selected={answers.q2 === opt} onClick={() => setQ('q2', opt, '3')} />
             ))}
           </div>
-          <button className="btn-ghost" style={{ marginTop: '4px' }} onClick={() => setPhase('q1')}>
-            ← Voltar
-          </button>
+          {backBtn}
         </div>
       )}
 
-      {/* ── PERGUNTA 3 — FOME (mais importante) ────────────────────── */}
-      {phase === 'q3' && (
+      {/* ── Q3 ────────────────────────────────────────────────────────────── */}
+      {step === '3' && (
         <div className="fade-in" style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-          <div>
-            <span className="badge badge-green" style={{ marginBottom: '6px', display: 'inline-flex' }}>
-              Pergunta 3 de {TOTAL_QUESTIONS}
-            </span>
-            <p style={{ fontSize: '20px', fontWeight: 800, color: 'var(--text-primary)', lineHeight: 1.3 }}>
-              Como está sua fome atualmente?
-            </p>
-            <div style={{
-              marginTop: '8px', display: 'inline-flex', alignItems: 'center', gap: '6px',
-              padding: '5px 12px', borderRadius: '99px',
-              background: 'linear-gradient(135deg, var(--primary-light), var(--accent-light))',
-              border: '1px solid rgba(16,185,129,0.2)',
-            }}>
-              <Star size={11} strokeWidth={2} color="var(--primary)" />
-              <span style={{ fontSize: '11px', fontWeight: 700, color: 'var(--primary)' }}>
-                Variável mais importante desta avaliação
-              </span>
-            </div>
-          </div>
+          {qBadge(3)}
+          <p style={{ fontSize: '20px', fontWeight: 800, color: 'var(--text-primary)', lineHeight: 1.3, margin: 0, fontFamily: 'Inter, sans-serif' }}>
+            Como está sua fome atualmente?
+          </p>
           <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginTop: '4px' }}>
-            {([
-              { val: 'very-controlled', label: 'Muito controlada' },
-              { val: 'controlled',      label: 'Controlada' },
-              { val: 'moderate',        label: 'Moderadamente aumentada' },
-              { val: 'strong',          label: 'Voltou forte' },
-            ] as const).map(o => (
-              <Option key={o.val} label={o.label} selected={answers.q3 === o.val}
-                onClick={() => { answer('q3', o.val); setPhase('q4') }} />
+            {['Muito controlada', 'Moderadamente controlada', 'Voltando com frequência', 'Fome intensa'].map(opt => (
+              <Option key={opt} label={opt} selected={answers.q3 === opt} onClick={() => setQ('q3', opt, '4')} />
             ))}
           </div>
-          <button className="btn-ghost" style={{ marginTop: '4px' }} onClick={() => setPhase('q2')}>
-            ← Voltar
-          </button>
+          {backBtn}
         </div>
       )}
 
-      {/* ── PERGUNTA 4 ─────────────────────────────────────────────── */}
-      {phase === 'q4' && (
+      {/* ── Q4 ────────────────────────────────────────────────────────────── */}
+      {step === '4' && (
         <div className="fade-in" style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-          <div>
-            <span className="badge badge-green" style={{ marginBottom: '10px', display: 'inline-flex' }}>
-              Pergunta 4 de {TOTAL_QUESTIONS}
-            </span>
-            <p style={{ fontSize: '20px', fontWeight: 800, color: 'var(--text-primary)', lineHeight: 1.3 }}>
-              Qual sua dose atual?
-            </p>
+          {qBadge(4)}
+          <p style={{ fontSize: '20px', fontWeight: 800, color: 'var(--text-primary)', lineHeight: 1.3, margin: 0, fontFamily: 'Inter, sans-serif' }}>
+            Como está sua rotina alimentar?
+          </p>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginTop: '4px' }}>
+            {['Bem estruturada', 'Razoável', 'Desorganizada'].map(opt => (
+              <Option key={opt} label={opt} selected={answers.q4 === opt} onClick={() => setQ('q4', opt, '5')} />
+            ))}
           </div>
+          {backBtn}
+        </div>
+      )}
+
+      {/* ── Q5 ────────────────────────────────────────────────────────────── */}
+      {step === '5' && (
+        <div className="fade-in" style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+          {qBadge(5)}
+          <p style={{ fontSize: '20px', fontWeight: 800, color: 'var(--text-primary)', lineHeight: 1.3, margin: 0, fontFamily: 'Inter, sans-serif' }}>
+            Você pratica atividade física regularmente?
+          </p>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginTop: '4px' }}>
+            {['Sim, 3 ou mais vezes por semana', 'Eventualmente', 'Não'].map(opt => (
+              <Option key={opt} label={opt} selected={answers.q5 === opt} onClick={() => setQ('q5', opt, '6')} />
+            ))}
+          </div>
+          {backBtn}
+        </div>
+      )}
+
+      {/* ── Q6 ────────────────────────────────────────────────────────────── */}
+      {step === '6' && (
+        <div className="fade-in" style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+          {qBadge(6)}
+          <p style={{ fontSize: '20px', fontWeight: 800, color: 'var(--text-primary)', lineHeight: 1.3, margin: 0, fontFamily: 'Inter, sans-serif' }}>
+            Como está sua perda de peso atualmente?
+          </p>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginTop: '4px' }}>
+            {['Peso estabilizado', 'Ainda estou perdendo peso', 'Estou recuperando peso'].map(opt => (
+              <Option key={opt} label={opt} selected={answers.q6 === opt} onClick={() => setQ('q6', opt, '7')} />
+            ))}
+          </div>
+          {backBtn}
+        </div>
+      )}
+
+      {/* ── Q7 (multi-select) ─────────────────────────────────────────────── */}
+      {step === '7' && (
+        <div className="fade-in" style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+          {qBadge(7)}
+          <p style={{ fontSize: '20px', fontWeight: 800, color: 'var(--text-primary)', lineHeight: 1.3, margin: 0, fontFamily: 'Inter, sans-serif' }}>
+            Você apresenta algum destes sintomas?
+          </p>
+          <p style={{ fontSize: '12px', color: 'var(--text-muted)', margin: '0', fontFamily: 'Inter, sans-serif' }}>
+            Pode selecionar mais de uma opção.
+          </p>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginTop: '4px' }}>
+            {[...SEVERE_SYMPTOMS, NONE_SYMPTOM].map(opt => (
+              <MultiOption
+                key={opt}
+                label={opt}
+                selected={answers.q7.includes(opt)}
+                onClick={() => toggleQ7(opt)}
+              />
+            ))}
+          </div>
+          <button
+            onClick={() => { if (answers.q7.length > 0) go('8') }}
+            disabled={answers.q7.length === 0}
+            style={{
+              padding: '14px', borderRadius: '14px', border: 'none',
+              background: answers.q7.length > 0 ? 'var(--primary)' : 'var(--surface-2)',
+              color: answers.q7.length > 0 ? '#fff' : 'var(--text-muted)',
+              fontWeight: 700, fontSize: '14px', cursor: answers.q7.length > 0 ? 'pointer' : 'default',
+              fontFamily: 'Inter, sans-serif', transition: 'all 0.2s', marginTop: '4px',
+            }}
+          >
+            Próximo →
+          </button>
+          {backBtn}
+        </div>
+      )}
+
+      {/* ── Q8 ────────────────────────────────────────────────────────────── */}
+      {step === '8' && (
+        <div className="fade-in" style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+          {qBadge(8)}
+          <p style={{ fontSize: '20px', fontWeight: 800, color: 'var(--text-primary)', lineHeight: 1.3, margin: 0, fontFamily: 'Inter, sans-serif' }}>
+            Qual a sua dose atual?
+          </p>
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '8px', marginTop: '4px' }}>
-            {([2.5, 5, 7.5, 10, 12.5, 15] as const).map(dose => (
+            {(['2.5', '5', '7.5', '10', '12.5', '15'] as const).map(dose => (
               <button
                 key={dose}
-                onClick={() => { answer('q4', dose); setPhase('q5') }}
+                onClick={() => { setAnswers(prev => ({ ...prev, q8: dose })); finish() }}
                 style={{
-                  padding: '14px 8px', borderRadius: '12px',
-                  border: `2px solid ${answers.q4 === dose ? 'var(--primary)' : 'var(--border)'}`,
-                  background: answers.q4 === dose
-                    ? 'linear-gradient(135deg, var(--primary), #0D9488)'
-                    : 'var(--surface-2)',
-                  color: answers.q4 === dose ? '#fff' : 'var(--text-primary)',
+                  padding: '16px 8px', borderRadius: '14px',
+                  border: `2px solid ${answers.q8 === dose ? 'var(--primary)' : 'var(--border)'}`,
+                  background: answers.q8 === dose ? 'var(--primary-light)' : 'var(--surface)',
+                  color: answers.q8 === dose ? 'var(--primary)' : 'var(--text-primary)',
                   fontWeight: 800, fontSize: '15px', cursor: 'pointer',
-                  transition: 'all 0.15s', fontFamily: 'Inter, -apple-system, sans-serif',
-                  boxShadow: answers.q4 === dose ? '0 2px 8px rgba(37,99,235,0.25)' : 'none',
+                  fontFamily: 'Inter, sans-serif', transition: 'all 0.15s',
                 }}
               >
-                {dose}mg
+                {dose.replace('.', ',')} mg
               </button>
             ))}
           </div>
-          <button className="btn-ghost" style={{ marginTop: '4px' }} onClick={() => setPhase('q3')}>
-            ← Voltar
-          </button>
+          {backBtn}
         </div>
       )}
 
-      {/* ── PERGUNTA 5 ─────────────────────────────────────────────── */}
-      {phase === 'q5' && (
-        <div className="fade-in" style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-          <div>
-            <span className="badge badge-green" style={{ marginBottom: '10px', display: 'inline-flex' }}>
-              Pergunta 5 de {TOTAL_QUESTIONS}
-            </span>
-            <p style={{ fontSize: '20px', fontWeight: 800, color: 'var(--text-primary)', lineHeight: 1.3 }}>
-              Você mantém uma rotina alimentar estruturada?
-            </p>
-            <div style={{ marginTop: '8px', display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
-              {['Planejamento alimentar', 'Controle de porções', 'Proteínas adequadas', 'Rotina consistente'].map(ex => (
-                <span key={ex} style={{
-                  fontSize: '11px', padding: '3px 10px', borderRadius: '99px',
-                  background: 'var(--surface-2)', color: 'var(--text-muted)', fontWeight: 600,
-                  border: '1px solid var(--border)',
-                }}>{ex}</span>
-              ))}
-            </div>
-          </div>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginTop: '4px' }}>
-            {([
-              { val: 'yes',     label: 'Sim' },
-              { val: 'partial', label: 'Parcialmente' },
-              { val: 'no',      label: 'Não' },
-            ] as const).map(o => (
-              <Option key={o.val} label={o.label} selected={answers.q5 === o.val}
-                onClick={() => { answer('q5', o.val); setPhase('q6') }} />
-            ))}
-          </div>
-          <button className="btn-ghost" style={{ marginTop: '4px' }} onClick={() => setPhase('q4')}>
-            ← Voltar
-          </button>
-        </div>
-      )}
+      {/* ── RESULT ────────────────────────────────────────────────────────── */}
+      {step === 'result' && (
+        <div className="fade-in" style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
 
-      {/* ── PERGUNTA 6 ─────────────────────────────────────────────── */}
-      {phase === 'q6' && (
-        <div className="fade-in" style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-          <div>
-            <span className="badge badge-green" style={{ marginBottom: '10px', display: 'inline-flex' }}>
-              Pergunta 6 de {TOTAL_QUESTIONS}
-            </span>
-            <p style={{ fontSize: '20px', fontWeight: 800, color: 'var(--text-primary)', lineHeight: 1.3 }}>
-              Você pratica atividade física regularmente?
-            </p>
-          </div>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginTop: '4px' }}>
-            <Option label="Sim" selected={answers.q6 === 'yes'}
-              onClick={() => { answer('q6', 'yes'); setPhase('result') }} />
-            <Option label="Não" selected={answers.q6 === 'no'}
-              onClick={() => { answer('q6', 'no'); setPhase('result') }} />
-          </div>
-          <button className="btn-ghost" style={{ marginTop: '4px' }} onClick={() => setPhase('q5')}>
-            ← Voltar
-          </button>
-        </div>
-      )}
-
-      {/* ── RESULTADO ──────────────────────────────────────────────── */}
-      {phase === 'result' && (
-        <div className="fade-in" style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
-
-          {/* Classificação principal */}
-          <div className="card" style={{
-            background: classif.bg,
-            border: `1.5px solid ${classif.border}`,
-            padding: '1.5rem',
-          }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '14px' }}>
-              <div style={{
-                width: '52px', height: '52px', borderRadius: '14px', flexShrink: 0,
-                background: classif.bg, border: `1px solid ${classif.border}`,
-                display: 'flex', alignItems: 'center', justifyContent: 'center',
-                color: classif.color,
-              }}>{classif.icon}</div>
-              <div>
-                <p style={{ fontSize: '11px', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: '3px' }}>
-                  Sua classificação
-                </p>
-                <p style={{ fontSize: '17px', fontWeight: 800, color: classif.color, lineHeight: 1.2 }}>
-                  {classif.label}
-                </p>
-              </div>
-            </div>
-            {classif.message.split('\n\n').map((p, i) => (
-              <p key={i} style={{ fontSize: '14px', color: 'var(--text-primary)', lineHeight: 1.6, marginBottom: i < classif.message.split('\n\n').length - 1 ? '10px' : 0 }}>
-                {p}
-              </p>
-            ))}
-          </div>
-
-          {/* Destaque especial — dose mínima + estabilidade + fome controlada */}
-          {rule2 && (
-            <div style={{
-              padding: '14px 16px', borderRadius: '14px',
-              background: 'linear-gradient(135deg, var(--primary-light), var(--accent-light))',
-              border: '1.5px solid rgba(16,185,129,0.3)',
-              display: 'flex', gap: '12px', alignItems: 'flex-start',
-            }}>
-              <Sparkles size={18} strokeWidth={2} color="var(--primary)" style={{ flexShrink: 0 }} />
-              <p style={{ fontSize: '13px', fontWeight: 600, color: 'var(--text-primary)', lineHeight: 1.6 }}>
-                Você já se encontra na menor dose disponível e apresenta sinais favoráveis de estabilidade.
-              </p>
-            </div>
-          )}
-
-          {/* Indicador de risco de reganho (2+ pontos de atenção) */}
-          {hasRisk && (
-            <div style={{
-              padding: '14px 16px', borderRadius: '14px',
-              background: 'rgba(239,68,68,0.07)',
-              border: '1.5px solid rgba(239,68,68,0.3)',
-            }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px' }}>
-                <AlertCircle size={16} strokeWidth={2} color="#EF4444" style={{ flexShrink: 0 }} />
-                <p style={{ fontSize: '13px', fontWeight: 800, color: '#EF4444', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
-                  Risco aumentado de reganho
-                </p>
-              </div>
-              <p style={{ fontSize: '13px', color: 'var(--text-primary)', lineHeight: 1.6 }}>
-                Você apresenta fatores que podem aumentar a probabilidade de recuperação de peso após a redução da medicação.
-                Considere fortalecer esses pilares antes de avançar no processo de desmame.
-              </p>
-            </div>
-          )}
-
-          {/* Pontos de atenção */}
-          {attnPts.length > 0 && (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-              <p style={{ fontSize: '12px', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
-                Pontos de atenção
-              </p>
-              {attnPts.map(pt => (
-                <div key={pt.id} style={{
-                  padding: '12px 14px', borderRadius: '12px',
-                  background: 'rgba(245,158,11,0.07)',
-                  border: '1px solid rgba(245,158,11,0.22)',
-                  display: 'flex', gap: '10px', alignItems: 'flex-start',
-                }}>
-                  <AlertTriangle size={14} strokeWidth={2} color="#F59E0B" style={{ flexShrink: 0, marginTop: '1px' }} />
-                  <p style={{ fontSize: '13px', color: 'var(--text-primary)', lineHeight: 1.6 }}>{pt.text}</p>
-                </div>
-              ))}
-            </div>
-          )}
-
-          {/* Pontuação */}
-          <div className="card" style={{ padding: '1rem 1.25rem' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
-              <p style={{ fontWeight: 700, fontSize: '13px', color: 'var(--text-primary)' }}>Pontuação</p>
-              <span className="badge" style={{ background: classif.bg, color: classif.color, border: `1px solid ${classif.border}` }}>
-                {score} / 14 pontos
-              </span>
-            </div>
-            <div className="progress-track" style={{ height: '8px' }}>
-              <div style={{
-                height: '100%', borderRadius: '99px',
-                width: `${Math.max(0, (score / 14)) * 100}%`,
-                background: `linear-gradient(90deg, ${classif.color}, ${classif.color}99)`,
-                transition: 'width 0.9s cubic-bezier(0.22,1,0.36,1)',
-              }} />
-            </div>
-          </div>
-
-          {/* Não force velocidade */}
+          {/* Profile badge */}
           <div style={{
-            padding: '12px 14px', borderRadius: '12px', textAlign: 'center',
-            background: 'var(--surface-2)', border: '1px solid var(--border)',
+            padding: '20px', borderRadius: '18px',
+            background: cfg.bg, border: `1.5px solid ${cfg.border}`,
           }}>
-            <p style={{ fontSize: '13px', fontWeight: 800, color: 'var(--text-primary)', letterSpacing: '-0.01em', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px' }}>
-              <Clock size={13} strokeWidth={2} color="var(--text-muted)" />
-              Não force velocidade no processo.
+            <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '14px' }}>
+              <div style={{
+                width: '14px', height: '14px', borderRadius: '50%',
+                background: cfg.dot, flexShrink: 0,
+                boxShadow: `0 0 0 4px ${cfg.bg}, 0 0 0 6px ${cfg.border}`,
+              }} />
+              <p style={{
+                fontSize: '11px', fontWeight: 700, color: 'var(--text-muted)',
+                textTransform: 'uppercase', letterSpacing: '0.08em', margin: 0,
+                fontFamily: 'Inter, sans-serif',
+              }}>
+                Seu perfil
+              </p>
+            </div>
+            <h3 style={{
+              fontSize: '17px', fontWeight: 800, color: cfg.dot,
+              margin: '0 0 12px', lineHeight: 1.3, fontFamily: 'Inter, sans-serif',
+            }}>
+              {cfg.label}
+            </h3>
+            {cfg.message.split('\n\n').map((para, i) => (
+              <p key={i} style={{
+                fontSize: '14px', color: 'var(--text-primary)', lineHeight: 1.65,
+                margin: i < cfg.message.split('\n\n').length - 1 ? '0 0 10px' : 0,
+                fontFamily: 'Inter, sans-serif',
+              }}>
+                {para}
+              </p>
+            ))}
+          </div>
+
+          {/* ── Etapa 3: Tapering plan (green only) ─────────────────────── */}
+          {profile_type === 'green' && taperPlan.length > 0 && (
+            <div className="card" style={{ padding: '20px' }}>
+              <p style={{
+                fontSize: '11px', fontWeight: 700, color: 'var(--text-muted)',
+                textTransform: 'uppercase', letterSpacing: '0.08em', margin: '0 0 6px',
+                fontFamily: 'Inter, sans-serif',
+              }}>
+                Estratégia educacional
+              </p>
+              <h4 style={{
+                fontSize: '15px', fontWeight: 800, color: 'var(--text-primary)',
+                margin: '0 0 6px', fontFamily: 'Inter, sans-serif',
+              }}>
+                Estratégia mais frequentemente utilizada
+              </h4>
+              <p style={{
+                fontSize: '12px', color: 'var(--text-muted)', lineHeight: 1.6,
+                margin: '0 0 18px', fontFamily: 'Inter, sans-serif',
+              }}>
+                Não existe um protocolo universal para o desmame da Tirzepatida. Uma das abordagens mais utilizadas na prática clínica consiste em reduzir gradualmente a dose e, posteriormente, aumentar progressivamente o intervalo entre as aplicações.
+              </p>
+
+              {/* Vertical timeline */}
+              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 0 }}>
+                {taperPlan.map((doseLabel, idx) => {
+                  const isFirst = idx === 0
+                  const isLast  = idx === taperPlan.length - 1
+                  return (
+                    <div key={idx} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', width: '100%' }}>
+                      {/* Dose pill */}
+                      <div style={{
+                        padding: isFirst ? '10px 24px' : '9px 20px',
+                        borderRadius: '99px',
+                        background: isFirst
+                          ? 'linear-gradient(135deg, #1D4ED8 0%, #3B82F6 100%)'
+                          : 'var(--surface-2)',
+                        border: isFirst ? 'none' : '1.5px solid var(--border)',
+                        boxShadow: isFirst ? '0 4px 12px rgba(37,99,235,0.28)' : 'none',
+                        color: isFirst ? '#fff' : 'var(--text-primary)',
+                        fontWeight: isFirst ? 800 : 700,
+                        fontSize: isFirst ? '15px' : '14px',
+                        fontFamily: 'Inter, sans-serif',
+                        letterSpacing: '-0.2px',
+                        width: 'fit-content',
+                        maxWidth: '80%',
+                        textAlign: 'center',
+                      }}>
+                        {isFirst && <span style={{ fontSize: '10px', opacity: 0.75, marginRight: '6px', fontWeight: 600 }}>INÍCIO</span>}
+                        {doseLabel}
+                      </div>
+
+                      {/* Connector (not after last dose) */}
+                      {!isLast && (
+                        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', margin: '4px 0' }}>
+                          <div style={{ width: '1.5px', height: '10px', background: 'var(--border)' }} />
+                          <div style={{
+                            padding: '3px 12px', borderRadius: '99px',
+                            background: 'rgba(37,99,235,0.07)', border: '1px solid rgba(37,99,235,0.18)',
+                            fontSize: '10px', fontWeight: 700, color: 'var(--primary)',
+                            fontFamily: 'Inter, sans-serif', letterSpacing: '0.02em',
+                          }}>
+                            2–4 semanas
+                          </div>
+                          <div style={{ width: '1.5px', height: '10px', background: 'var(--border)' }} />
+                          <div style={{
+                            width: 0, height: 0,
+                            borderLeft: '5px solid transparent',
+                            borderRight: '5px solid transparent',
+                            borderTop: '7px solid var(--border)',
+                          }} />
+                        </div>
+                      )}
+                    </div>
+                  )
+                })}
+
+                {/* Final: Reavaliar */}
+                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', width: '100%' }}>
+                  <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', margin: '4px 0' }}>
+                    <div style={{ width: '1.5px', height: '10px', background: 'var(--border)' }} />
+                    <div style={{
+                      width: 0, height: 0,
+                      borderLeft: '5px solid transparent',
+                      borderRight: '5px solid transparent',
+                      borderTop: '7px solid var(--border)',
+                    }} />
+                  </div>
+                  <div style={{
+                    padding: '10px 20px', borderRadius: '99px',
+                    background: 'rgba(5,150,105,0.1)', border: '1.5px solid rgba(5,150,105,0.3)',
+                    color: '#059669', fontWeight: 800, fontSize: '13px',
+                    fontFamily: 'Inter, sans-serif', textAlign: 'center',
+                  }}>
+                    Reavaliar com o médico
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* ── Etapa 4: Monitorização (green only) ─────────────────────── */}
+          {profile_type === 'green' && (
+            <>
+              <div className="card" style={{ padding: '18px 20px' }}>
+                <p style={{
+                  fontSize: '11px', fontWeight: 700, color: 'var(--text-muted)',
+                  textTransform: 'uppercase', letterSpacing: '0.08em', margin: '0 0 12px',
+                  fontFamily: 'Inter, sans-serif',
+                }}>
+                  Monitorização
+                </p>
+                <p style={{
+                  fontSize: '13px', color: 'var(--text-muted)', lineHeight: 1.6,
+                  margin: '0 0 14px', fontFamily: 'Inter, sans-serif',
+                }}>
+                  Durante o desmame, pode ser interessante acompanhar:
+                </p>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                  {[
+                    { icon: <Scale size={15} strokeWidth={2} />, label: 'Peso', sub: 'Acompanhe semanalmente' },
+                    { icon: <Flame size={15} strokeWidth={2} />, label: 'Fome', sub: 'Observe variações ao longo do dia' },
+                    { icon: <Zap size={15} strokeWidth={2} />, label: 'Energia', sub: 'Note mudanças na disposição' },
+                    { icon: <Utensils size={15} strokeWidth={2} />, label: 'Alimentação', sub: 'Mantenha a rotina estruturada' },
+                    { icon: <Dumbbell size={15} strokeWidth={2} />, label: 'Exercícios', sub: 'Continue a atividade física regular' },
+                  ].map(item => (
+                    <div key={item.label} style={{
+                      display: 'flex', alignItems: 'center', gap: '12px',
+                      padding: '10px 12px', borderRadius: '12px',
+                      background: 'var(--surface-2)', border: '1px solid var(--border)',
+                    }}>
+                      <div style={{
+                        width: '32px', height: '32px', borderRadius: '8px', flexShrink: 0,
+                        background: 'var(--primary-light)', display: 'flex',
+                        alignItems: 'center', justifyContent: 'center', color: 'var(--primary)',
+                      }}>
+                        {item.icon}
+                      </div>
+                      <div>
+                        <p style={{ fontSize: '13px', fontWeight: 700, color: 'var(--text-primary)', margin: 0, fontFamily: 'Inter, sans-serif' }}>
+                          {item.label}
+                        </p>
+                        <p style={{ fontSize: '11px', color: 'var(--text-muted)', margin: 0, marginTop: '1px', fontFamily: 'Inter, sans-serif' }}>
+                          {item.sub}
+                        </p>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* Alert signs */}
+              <div style={{
+                padding: '16px', borderRadius: '14px',
+                background: 'rgba(245,158,11,0.07)', border: '1.5px solid rgba(245,158,11,0.25)',
+              }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '10px' }}>
+                  <AlertTriangle size={15} strokeWidth={2} color="#D97706" style={{ flexShrink: 0 }} />
+                  <p style={{
+                    fontSize: '12px', fontWeight: 800, color: '#D97706',
+                    textTransform: 'uppercase', letterSpacing: '0.06em', margin: 0,
+                    fontFamily: 'Inter, sans-serif',
+                  }}>
+                    Sinais de atenção
+                  </p>
+                </div>
+                <p style={{ fontSize: '12px', color: 'var(--text-muted)', margin: '0 0 8px', fontFamily: 'Inter, sans-serif', lineHeight: 1.5 }}>
+                  Se durante o desmame ocorrer:
+                </p>
+                <ul style={{ margin: '0 0 10px', paddingLeft: '16px' }}>
+                  {['Retorno importante da fome', 'Episódios de compulsão alimentar', 'Ganho progressivo de peso'].map(s => (
+                    <li key={s} style={{ fontSize: '12px', color: 'var(--text-primary)', marginBottom: '4px', lineHeight: 1.5, fontFamily: 'Inter, sans-serif' }}>
+                      {s}
+                    </li>
+                  ))}
+                </ul>
+                <p style={{
+                  fontSize: '13px', fontWeight: 600, color: 'var(--text-primary)',
+                  lineHeight: 1.6, margin: 0, fontFamily: 'Inter, sans-serif',
+                  fontStyle: 'italic',
+                }}>
+                  "Pode ser interessante permanecer mais tempo na etapa atual ou discutir os próximos passos com o médico."
+                </p>
+              </div>
+            </>
+          )}
+
+          {/* Disclaimer */}
+          <div style={{
+            padding: '12px 14px', borderRadius: '12px',
+            background: 'var(--surface-2)', border: '1px solid var(--border)',
+            display: 'flex', gap: '8px', alignItems: 'flex-start',
+          }}>
+            <Info size={13} strokeWidth={2} color="var(--text-muted)" style={{ flexShrink: 0, marginTop: '1px' }} />
+            <p style={{ fontSize: '11px', color: 'var(--text-muted)', lineHeight: 1.6, margin: 0, fontFamily: 'Inter, sans-serif' }}>
+              Esta ferramenta possui finalidade exclusivamente educativa e não substitui avaliação médica. Qualquer ajuste de dose deve ser realizado com acompanhamento profissional.
             </p>
           </div>
 
-          {/* Aviso legal */}
-          <div className="card-warning">
-            <div style={{ display: 'flex', gap: '7px', alignItems: 'flex-start' }}>
-              <Info size={13} strokeWidth={2} style={{ flexShrink: 0, marginTop: '1px', color: 'var(--warn-text)' }} />
-              <p style={{ fontSize: '12px', color: 'var(--warn-text)', lineHeight: 1.6, margin: 0 }}>
-                Esta ferramenta possui finalidade exclusivamente educativa. Os resultados não substituem avaliação médica. Qualquer ajuste de dose deve ser realizado com acompanhamento profissional.
-              </p>
-            </div>
-          </div>
-
-          <button className="btn-ghost" style={{ width: '100%', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: '6px' }} onClick={restart}>
-            <RotateCcw size={14} strokeWidth={2} />Refazer avaliação
+          {/* Restart */}
+          <button
+            onClick={restart}
+            style={{
+              display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '7px',
+              padding: '13px', borderRadius: '14px', border: '1.5px solid var(--border)',
+              background: 'var(--surface)', color: 'var(--text-muted)',
+              fontWeight: 600, fontSize: '13px', cursor: 'pointer',
+              fontFamily: 'Inter, sans-serif',
+            }}
+          >
+            <RotateCcw size={14} strokeWidth={2} /> Refazer avaliação
           </button>
         </div>
       )}
+
     </div>
   )
 }

@@ -94,14 +94,22 @@ const NAV_TABS: { id: Tab; label: string }[] = [
 ]
 
 export default function App() {
-  const { isDark, toggle }          = useDarkMode()
-  const [activeTab, setActiveTab]   = useState<Tab>('dashboard')
-  const [profile, setProfile]       = useState<UserProfile>(loadProfile)
-  const [navVisible, setNavVisible] = useState(false)
-  const [showTour, setShowTour]     = useState(() =>
+  const { isDark, toggle }            = useDarkMode()
+  const [activeTab, setActiveTab]     = useState<Tab>('dashboard')
+  const [deepSection, setDeepSection] = useState<string | null>(null)
+  const [profile, setProfile]         = useState<UserProfile>(loadProfile)
+  const [navVisible, setNavVisible]   = useState(true)
+  const [showTour, setShowTour]       = useState(() =>
     !!loadProfile().name && !localStorage.getItem(TOUR_KEY)
   )
-  const lastScrollY = useRef(0)
+  const lastScrollY  = useRef(0)
+  const prevTabRef   = useRef<Tab>('dashboard')
+
+  function handleNavigate(tab: Tab, section?: string) {
+    setActiveTab(tab)
+    setDeepSection(section ?? null)
+    window.scrollTo({ top: 0, behavior: 'instant' })
+  }
 
   const isFirstAccess = !profile.name
 
@@ -138,23 +146,24 @@ export default function App() {
         <ProfilePage
           profile={profile}
           onUpdateProfile={setProfile}
-          onBack={() => setActiveTab('dashboard')}
+          onBack={() => { setActiveTab(prevTabRef.current); setDeepSection(null) }}
+          initialSection={deepSection ?? undefined}
         />
       )
     }
     switch (activeTab) {
       case 'dashboard':
-        return <Dashboard profile={profile} onUpdateProfile={setProfile} onNavigate={setActiveTab} />
+        return <Dashboard profile={profile} onUpdateProfile={setProfile} onNavigate={handleNavigate} />
       case 'progress':
         return <ProgressHub profile={profile} onUpdateProfile={setProfile} />
       case 'health':
-        return <HealthHub profile={profile} onUpdateProfile={setProfile} />
+        return <HealthHub profile={profile} onUpdateProfile={setProfile} initialSection={deepSection ?? undefined} />
       case 'calculator':
         return <Calculator />
       case 'laboratory':
         return <Laboratory profile={profile} onUpdateProfile={setProfile} />
       default:
-        return <Dashboard profile={profile} onUpdateProfile={setProfile} onNavigate={setActiveTab} />
+        return <Dashboard profile={profile} onUpdateProfile={setProfile} onNavigate={handleNavigate} />
     }
   }
 
@@ -164,7 +173,11 @@ export default function App() {
         isDark={isDark}
         onToggle={toggle}
         profile={profile}
-        onProfileClick={() => setActiveTab('profile')}
+        onProfileClick={() => {
+          prevTabRef.current = activeTab
+          setActiveTab('profile')
+          setDeepSection(null)
+        }}
       />
 
       <main
@@ -177,27 +190,25 @@ export default function App() {
 
       {showTour && <OnboardingTour onDone={() => setShowTour(false)} />}
 
-      {!showProfile && (
-        <nav className={`bottom-nav${navVisible ? '' : ' nav-hidden'}`}>
-          <div className="bottom-nav-inner">
-            {NAV_TABS.map(tab => (
-              <button
-                key={tab.id}
-                data-tour={`tab-${tab.id}`}
-                className={`nav-tab${activeTab === tab.id ? ' active' : ''}`}
-                onClick={() => { setActiveTab(tab.id); window.scrollTo({ top: 0, behavior: 'instant' }) }}
-                aria-label={tab.label}
-              >
-                <span className="nav-tab-icon">
-                  <NavIcon tabId={tab.id} />
-                </span>
-                <span className="nav-tab-label">{tab.label}</span>
-                <span className="nav-tab-dot" />
-              </button>
-            ))}
-          </div>
-        </nav>
-      )}
+      <nav className={`bottom-nav${navVisible ? '' : ' nav-hidden'}`}>
+        <div className="bottom-nav-inner">
+          {NAV_TABS.map(tab => (
+            <button
+              key={tab.id}
+              data-tour={`tab-${tab.id}`}
+              className={`nav-tab${activeTab === tab.id ? ' active' : ''}`}
+              onClick={() => { setActiveTab(tab.id); setDeepSection(null); window.scrollTo({ top: 0, behavior: 'instant' }) }}
+              aria-label={tab.label}
+            >
+              <span className="nav-tab-icon">
+                <NavIcon tabId={tab.id} />
+              </span>
+              <span className="nav-tab-label">{tab.label}</span>
+              <span className="nav-tab-dot" />
+            </button>
+          ))}
+        </div>
+      </nav>
     </div>
   )
 }

@@ -2,7 +2,7 @@ import { useState } from 'react'
 import {
   Dumbbell, Activity, ArrowDown, Zap, Sparkles,
   Droplets, Moon, Waves, Lightbulb, Info,
-  RotateCcw, ChevronDown, BarChart2,
+  RotateCcw, ChevronDown, BarChart2, Check, Flame,
 } from 'lucide-react'
 
 type Sex = 'M' | 'F'
@@ -15,6 +15,7 @@ interface WorkoutProfile {
   level: Level
   location: Location
   days: WorkoutDays
+  preferredDays: number[]  // 0=Dom … 6=Sáb
 }
 
 interface ExItem {
@@ -31,6 +32,65 @@ interface WorkoutDay {
 }
 
 const STORAGE_KEY = 'tizetrack_workout'
+const LOG_KEY     = 'tizetrack_workout_log'
+
+const DAY_INITIALS  = ['D', 'S', 'T', 'Q', 'Q', 'S', 'S']
+const DAY_NAMES     = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb']
+const DAY_FULL      = ['Domingo', 'Segunda-feira', 'Terça-feira', 'Quarta-feira', 'Quinta-feira', 'Sexta-feira', 'Sábado']
+
+function toDateStr(d: Date): string {
+  return d.toISOString().split('T')[0]
+}
+
+function getWeekDays(): Date[] {
+  const today = new Date()
+  const sunday = new Date(today)
+  sunday.setDate(today.getDate() - today.getDay())
+  sunday.setHours(0, 0, 0, 0)
+  return Array.from({ length: 7 }, (_, i) => {
+    const d = new Date(sunday)
+    d.setDate(sunday.getDate() + i)
+    return d
+  })
+}
+
+function calcStreak(log: string[]): number {
+  if (log.length === 0) return 0
+  let streak = 0
+  const now = new Date()
+  const sunday = new Date(now)
+  sunday.setDate(now.getDate() - now.getDay())
+  sunday.setHours(0, 0, 0, 0)
+
+  for (let w = 0; w <= 52; w++) {
+    const weekStart = new Date(sunday)
+    weekStart.setDate(sunday.getDate() - w * 7)
+    let done = 0
+    for (let i = 0; i < 7; i++) {
+      const d = new Date(weekStart)
+      d.setDate(weekStart.getDate() + i)
+      if (d > now) continue
+      if (log.includes(toDateStr(d))) done++
+    }
+    if (done > 0) streak++
+    else if (w > 0) break
+  }
+  return streak
+}
+
+function getMotivation(done: number, target: number, streak: number): string {
+  if (streak >= 12) return 'Três meses seguidos. Isso é transformação de verdade.'
+  if (streak >= 8)  return `${streak} semanas sem parar. Você é extraordinária!`
+  if (streak >= 4)  return `${streak} semanas de constância. O hábito já está formado.`
+  if (streak >= 2)  return `${streak} semanas seguidas. Continue assim.`
+  if (done === 0)   return 'A primeira marcação da semana faz toda a diferença.'
+  if (done > target) return 'Além da meta. Que dedicação essa semana.'
+  if (done >= target) return 'Meta da semana batida. Você arrasou.'
+  if (done === 1)   return 'Primeiro treino da semana. Ótimo começo.'
+  if (done === 2)   return 'Dois treinos marcados. Você está no ritmo!'
+  if (done === target - 1) return 'Falta só um treino para bater a meta da semana.'
+  return `${done} treinos essa semana. Siga em frente.`
+}
 
 const VOLUME = {
   beginner:     { sets: '2–3', reps: '12–15', rest: '60s',  tag: 'Iniciante',     tagBg: 'rgba(5,150,105,0.1)',   tagColor: '#047857' },
@@ -592,7 +652,31 @@ export default function Exercise() {
   const [showForm, setShowForm] = useState(profile === null)
   const [expandedDays, setExpandedDays] = useState<Set<string>>(new Set(['A']))
 
-  const formComplete = !!(form.sex && form.level && form.location && form.days)
+  const formComplete = !!(
+    form.sex && form.level && form.location && form.days &&
+    form.preferredDays?.length === form.days
+  )
+
+  function togglePreferredDay(idx: number) {
+    setForm(f => {
+      const prev = f.preferredDays ?? []
+      const next = prev.includes(idx) ? prev.filter(d => d !== idx) : [...prev, idx]
+      return { ...f, preferredDays: next }
+    })
+  }
+
+  const [workoutLog, setWorkoutLog] = useState<string[]>(() => {
+    try { return JSON.parse(localStorage.getItem(LOG_KEY) || '[]') }
+    catch { return [] }
+  })
+
+  function toggleLog(date: string) {
+    setWorkoutLog(prev => {
+      const next = prev.includes(date) ? prev.filter(d => d !== date) : [...prev, date]
+      localStorage.setItem(LOG_KEY, JSON.stringify(next))
+      return next
+    })
+  }
 
   function saveProfile() {
     if (!formComplete) return
@@ -705,6 +789,48 @@ export default function Exercise() {
             )}
           </div>
 
+          {/* Dias da semana */}
+          {form.days && (
+            <div>
+              <p style={{ fontSize: '12px', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.07em', marginBottom: '6px' }}>
+                Quais dias você costuma treinar?
+              </p>
+              <p style={{ fontSize: '11px', color: 'var(--text-muted)', marginBottom: '10px' }}>
+                Selecione exatamente <strong>{form.days}</strong> dia{form.days > 1 ? 's' : ''}
+              </p>
+              <div style={{ display: 'flex', gap: '6px', justifyContent: 'space-between' }}>
+                {DAY_NAMES.map((name, idx) => {
+                  const sel = (form.preferredDays ?? []).includes(idx)
+                  const full = (form.preferredDays ?? []).length >= form.days! && !sel
+                  return (
+                    <button
+                      key={idx}
+                      onClick={() => !full && togglePreferredDay(idx)}
+                      style={{
+                        flex: 1, paddingTop: '8px', paddingBottom: '8px',
+                        borderRadius: '10px', cursor: full ? 'not-allowed' : 'pointer',
+                        fontFamily: "Inter, -apple-system, sans-serif",
+                        fontWeight: 700, fontSize: '11px',
+                        border: sel ? '2px solid var(--primary)' : '1.5px solid var(--border)',
+                        background: sel ? 'var(--primary-light)' : 'var(--surface-2)',
+                        color: sel ? 'var(--primary)' : full ? 'var(--text-muted)' : 'var(--text-secondary)',
+                        opacity: full ? 0.45 : 1,
+                        transition: 'all 0.15s',
+                      }}
+                    >
+                      {name}
+                    </button>
+                  )
+                })}
+              </div>
+              {(form.preferredDays?.length ?? 0) > 0 && (form.preferredDays?.length ?? 0) < form.days && (
+                <p style={{ fontSize: '11px', color: 'var(--primary)', marginTop: '7px' }}>
+                  {form.days - (form.preferredDays?.length ?? 0)} dia{form.days - (form.preferredDays?.length ?? 0) > 1 ? 's' : ''} restante{form.days - (form.preferredDays?.length ?? 0) > 1 ? 's' : ''}
+                </p>
+              )}
+            </div>
+          )}
+
           {/* Submit */}
           <button
             onClick={saveProfile}
@@ -775,6 +901,99 @@ export default function Exercise() {
         </div>
       </div>
 
+      {/* Weekly calendar */}
+      {(() => {
+        const preferred   = profile!.preferredDays ?? []
+        const weekDays    = getWeekDays()
+        const todayStr    = toDateStr(new Date())
+        const doneThisWeek = weekDays.filter(d => workoutLog.includes(toDateStr(d))).length
+        const streak       = calcStreak(workoutLog)
+
+        return (
+          <div className="card" style={{ padding: '14px 16px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '7px', marginBottom: '12px' }}>
+              <Flame size={14} strokeWidth={2} style={{ color: 'var(--primary)', flexShrink: 0 }} />
+              <p style={{ fontSize: '12px', fontWeight: 700, color: 'var(--text-primary)', margin: 0 }}>
+                Semana de treino
+              </p>
+            </div>
+
+            {/* Day circles */}
+            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '10px' }}>
+              {weekDays.map((d, i) => {
+                const ds       = toDateStr(d)
+                const isPref   = preferred.includes(d.getDay())
+                const isDone   = workoutLog.includes(ds)
+                const isToday  = ds === todayStr
+                let bg        = isPref ? 'var(--surface-2)' : 'transparent'
+                let border    = isPref ? '1.5px solid var(--border)' : '1px dashed var(--border)'
+                let color     = isPref ? 'var(--text-secondary)' : 'var(--text-muted)'
+                let showCheck = false
+                let pulsing   = false
+
+                if (isDone) {
+                  bg = 'var(--primary)'; border = '1.5px solid var(--primary)'
+                  color = '#fff'; showCheck = true
+                } else if (isToday) {
+                  border = '2px solid var(--primary)'; color = 'var(--primary)'
+                  bg = 'transparent'; pulsing = true
+                }
+
+                return (
+                  <div key={i} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '4px' }}>
+                    <button
+                      onClick={() => toggleLog(ds)}
+                      style={{
+                        width: '36px', height: '36px', borderRadius: '50%',
+                        background: bg, border, color,
+                        cursor: 'pointer',
+                        display: 'flex', alignItems: 'center', justifyContent: 'center',
+                        fontFamily: "Inter, -apple-system, sans-serif",
+                        animation: pulsing ? 'pulse-ring 1.8s ease-in-out infinite' : 'none',
+                        transition: 'all 0.18s', flexShrink: 0,
+                      }}
+                    >
+                      {showCheck
+                        ? <Check size={16} strokeWidth={3} />
+                        : <span style={{ fontSize: '12px', fontWeight: 700 }}>{DAY_INITIALS[i]}</span>
+                      }
+                    </button>
+                    <span style={{
+                      width: '4px', height: '4px', borderRadius: '50%', display: 'block',
+                      background: isPref ? 'var(--primary)' : 'transparent',
+                      opacity: isDone ? 0 : 0.6,
+                    }} />
+                  </div>
+                )
+              })}
+            </div>
+
+            {/* Stats */}
+            <p style={{ fontSize: '11px', color: 'var(--text-muted)', marginBottom: '10px' }}>
+              <span style={{ fontWeight: 700, color: 'var(--text-primary)' }}>{doneThisWeek}</span>
+              {doneThisWeek === 1 ? ' treino' : ' treinos'} essa semana
+              {streak > 0 && (
+                <>
+                  {' · '}
+                  <span style={{ fontWeight: 700, color: 'var(--primary)' }}>{streak}</span>
+                  {streak === 1 ? ' semana consecutiva' : ' semanas consecutivas'}
+                </>
+              )}
+            </p>
+
+            {/* Motivational message */}
+            <div style={{
+              padding: '9px 12px', borderRadius: '12px',
+              background: 'var(--surface-2)', border: '1px solid var(--border)',
+            }}>
+              <p style={{ fontSize: '12px', fontWeight: 600, color: 'var(--text-secondary)', margin: 0, lineHeight: 1.4 }}>
+                {getMotivation(doneThisWeek, profile!.days, streak)}
+              </p>
+            </div>
+          </div>
+        )
+      })()}
+
       {/* Volume info */}
       <div className="card" style={{ padding: '12px 16px' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '7px', marginBottom: '8px' }}>
@@ -799,9 +1018,12 @@ export default function Exercise() {
       </div>
 
       {/* Day cards */}
-      {splitDays.map(day => {
+      {(() => {
+        const sorted = [...(profile!.preferredDays ?? [])].sort((a, b) => a - b)
+        return splitDays.map((day, dayIdx) => {
         const isOpen = expandedDays.has(day.label)
         const exercises = profile!.location === 'gym' ? day.gym : day.home
+        const dayName = sorted[dayIdx] !== undefined ? DAY_FULL[sorted[dayIdx]] : null
         return (
           <div key={day.label} style={{
             borderRadius: '16px', overflow: 'hidden',
@@ -833,6 +1055,7 @@ export default function Exercise() {
                   Treino {day.label} — {day.name}
                 </p>
                 <p style={{ fontSize: '11px', color: 'var(--text-muted)', marginTop: '2px' }}>
+                  {dayName && <span style={{ color: day.color, fontWeight: 700 }}>{dayName} · </span>}
                   {exercises.length} exercícios · {vol!.sets} séries
                 </p>
               </div>
@@ -883,11 +1106,13 @@ export default function Exercise() {
                     </span>
                   </div>
                 ))}
+
               </div>
             )}
           </div>
         )
-      })}
+      })
+      })()}
 
       {/* Tips */}
       <div className="card" style={{ padding: '14px 16px', display: 'flex', flexDirection: 'column', gap: '10px' }}>

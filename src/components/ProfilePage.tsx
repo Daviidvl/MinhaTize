@@ -8,6 +8,7 @@ interface Props {
   profile: UserProfile
   onUpdateProfile: (p: UserProfile) => void
   onBack: () => void
+  initialSection?: string
 }
 
 type ProfileTab = 'achievements' | 'history' | 'stock' | 'edit'
@@ -82,8 +83,10 @@ function buildAchievements(profile: UserProfile): Achievement[] {
   ]
 }
 
-export default function ProfilePage({ profile, onUpdateProfile, onBack }: Props) {
-  const [activeTab, setActiveTab] = useState<ProfileTab>('achievements')
+export default function ProfilePage({ profile, onUpdateProfile, onBack, initialSection }: Props) {
+  const [activeTab, setActiveTab] = useState<ProfileTab>(
+    (initialSection as ProfileTab) ?? 'achievements'
+  )
 
   const [form, setForm] = useState({
     name:           profile.name,

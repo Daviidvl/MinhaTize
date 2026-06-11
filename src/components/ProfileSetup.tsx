@@ -142,11 +142,12 @@ export default function ProfileSetup({ onComplete }: Props) {
   // Derived validation state
   const hBlock = heightBlock(form.height)
   const hWarn  = !hBlock ? heightWarn(form.height) : null
-  const wBlock = weightBlock(form.startWeight)
-  const wWarn  = !wBlock ? weightWarn(form.startWeight) : null
-  const cohErr = coherenceBlock(form.height, form.startWeight)
-  const aWarn  = ageWarn(form.age)
-  const gWarn  = goalWarn(form.startWeight, form.goalWeight)
+  const wBlock     = weightBlock(form.startWeight)
+  const wWarn      = !wBlock ? weightWarn(form.startWeight) : null
+  const cohErr     = coherenceBlock(form.height, form.startWeight)
+  const aWarn      = ageWarn(form.age)
+  const refWeight  = form.currentWeight || form.startWeight
+  const gWarn      = goalWarn(refWeight, form.goalWeight)
 
   function canAdvance() {
     if (step === 1) return form.name.trim().length >= 2
@@ -156,7 +157,7 @@ export default function ProfileSetup({ onComplete }: Props) {
       return heightOk && weightOk && !cohErr
     }
     if (step === 3) {
-      const g = parseFloat(form.goalWeight), s = parseFloat(form.startWeight)
+      const g = parseFloat(form.goalWeight), s = parseFloat(refWeight)
       return g > 0 && g < s && g >= 20
     }
     return true
@@ -344,7 +345,7 @@ export default function ProfileSetup({ onComplete }: Props) {
                 )}
               </div>
 
-              {form.startWeight && form.goalWeight && parseFloat(form.goalWeight) >= parseFloat(form.startWeight) && parseFloat(form.goalWeight) > 0 && (
+              {refWeight && form.goalWeight && parseFloat(form.goalWeight) >= parseFloat(refWeight) && parseFloat(form.goalWeight) > 0 && (
                 <WarnMsg msg="A meta deve ser menor que o peso atual." />
               )}
 
@@ -359,13 +360,13 @@ export default function ProfileSetup({ onComplete }: Props) {
                 </div>
               )}
 
-              {form.startWeight && form.goalWeight
+              {refWeight && form.goalWeight
                 && parseFloat(form.goalWeight) > 0
-                && parseFloat(form.goalWeight) < parseFloat(form.startWeight)
+                && parseFloat(form.goalWeight) < parseFloat(refWeight)
                 && !gWarn && (
                 <div style={{ padding: '14px', background: 'var(--primary-light)', borderRadius: '12px', border: '1px solid rgba(37,99,235,0.2)' }}>
                   <p style={{ fontSize: '15px', fontWeight: 800, color: 'var(--primary)' }}>
-                    Meta: perder {(parseFloat(form.startWeight) - parseFloat(form.goalWeight)).toFixed(1)}kg
+                    Meta: perder {(parseFloat(refWeight) - parseFloat(form.goalWeight)).toFixed(1)}kg
                   </p>
                   <p style={{ fontSize: '12px', color: 'var(--text-muted)', marginTop: '4px' }}>
                     Você está no caminho certo. Vamos juntos!

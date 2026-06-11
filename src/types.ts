@@ -84,6 +84,7 @@ export interface UserProfile {
   diary: DiaryEntry[]
   sideEffects: SideEffectEntry[]
   lastApplication?: string
+  applicationLog?: string[]
   stock?: StockInfo
   labResults?: LabResult[]
 }

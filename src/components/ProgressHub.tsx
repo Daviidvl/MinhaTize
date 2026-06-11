@@ -45,7 +45,7 @@ export default function ProgressHub({ profile, onUpdateProfile }: Props) {
   const [weightSaved, setWeightSaved] = useState(false)
 
   const firstWeight = profile.startWeight
-  const lastWeight  = profile.weightHistory.at(-1)?.weight ?? firstWeight
+  const lastWeight  = profile.weightHistory.at(-1)?.weight ?? profile.currentWeight ?? firstWeight
   const totalLost   = firstWeight - lastWeight
   const toGoal      = lastWeight - profile.goalWeight
   const hasGoal     = profile.startWeight !== profile.goalWeight

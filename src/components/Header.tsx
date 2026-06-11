@@ -19,7 +19,7 @@ export default function Header({ isDark, onToggle, profile, onProfileClick }: Pr
       <img
         src="/LogoPng.png"
         alt="Minha Tize"
-        style={{ width: '58px', height: '58px', borderRadius: '12px', flexShrink: 0, objectFit: 'contain', transform: 'scale(2)', transformOrigin: 'center' }}
+        style={{ width: '36px', height: '36px', borderRadius: '10px', flexShrink: 0, objectFit: 'contain' }}
       />
 
       {/* Title */}
@@ -32,13 +32,6 @@ export default function Header({ isDark, onToggle, profile, onProfileClick }: Pr
         }}>
           Minha Tize
         </h1>
-        <p style={{
-          fontSize: '10px', color: 'var(--text-muted)',
-          marginTop: '2px', fontWeight: 500,
-          fontFamily: 'Inter, -apple-system, sans-serif',
-        }}>
-          Acompanhamento de protocolo
-        </p>
       </div>
 
       {/* Dark mode toggle */}

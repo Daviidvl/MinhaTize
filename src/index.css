@@ -488,6 +488,11 @@
   50%       { transform: translateY(-4px); }
 }
 
+@keyframes pulse-ring {
+  0%, 100% { box-shadow: 0 0 0 0px rgba(var(--primary-rgb, 16,185,129), 0.5); }
+  50%       { box-shadow: 0 0 0 5px rgba(var(--primary-rgb, 16,185,129), 0); }
+}
+
 .fade-in  { animation: slideUp  0.35s cubic-bezier(0.22, 1, 0.36, 1) both; }
 .scale-in { animation: scaleIn  0.25s cubic-bezier(0.22, 1, 0.36, 1) both; }
 

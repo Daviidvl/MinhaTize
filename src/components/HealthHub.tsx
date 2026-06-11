@@ -16,6 +16,7 @@ import { UserProfile } from '../types'
 interface Props {
   profile: UserProfile
   onUpdateProfile: (p: UserProfile) => void
+  initialSection?: string
 }
 
 type HealthTab = 'symptoms' | 'food' | 'exercise' | 'weaning' | 'supplementation' | 'antiplato' | 'storage'
@@ -299,8 +300,10 @@ const SECTION_CARDS: {
 ]
 
 // ── Component ─────────────────────────────────────────────────────────────────
-export default function HealthHub({ profile, onUpdateProfile }: Props) {
-  const [activeSection, setActiveSection] = useState<HealthTab | null>(null)
+export default function HealthHub({ profile, onUpdateProfile, initialSection }: Props) {
+  const [activeSection, setActiveSection] = useState<HealthTab | null>(
+    (initialSection as HealthTab) ?? null
+  )
 
   const thisWeek       = getMondayOf(new Date())
   const currentEntry   = profile.sideEffects?.find(e => e.date === thisWeek)
@@ -321,25 +324,37 @@ export default function HealthHub({ profile, onUpdateProfile }: Props) {
     return (
       <div className="fade-in" style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
 
-        {/* Back header */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-          <button
-            onClick={() => setActiveSection(null)}
-            style={{
-              display: 'flex', alignItems: 'center', justifyContent: 'center',
-              width: '38px', height: '38px', borderRadius: '12px',
-              border: '1.5px solid var(--border-strong)',
-              background: 'var(--surface)', cursor: 'pointer',
-              color: 'var(--text-secondary)',
-              transition: 'all 0.15s',
-              flexShrink: 0,
-            }}
-          >
-            <ChevronLeft size={18} strokeWidth={2} />
-          </button>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flex: 1, minWidth: 0 }}>
+        {/* Sticky back header */}
+        <div style={{
+          position: 'sticky', top: 0, zIndex: 10,
+          paddingTop: '4px', paddingBottom: '12px',
+          background: 'var(--bg)',
+          borderBottom: '1px solid var(--border)',
+          marginBottom: '4px',
+        }}>
+          {/* Breadcrumb */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: '4px', marginBottom: '10px' }}>
+            <button
+              onClick={() => setActiveSection(null)}
+              style={{
+                display: 'flex', alignItems: 'center', gap: '4px',
+                background: 'none', border: 'none', cursor: 'pointer', padding: 0,
+                color: 'var(--primary)', fontFamily: 'Inter, -apple-system, sans-serif',
+              }}
+            >
+              <ChevronLeft size={14} strokeWidth={2.5} />
+              <span style={{ fontSize: '13px', fontWeight: 600 }}>Saúde</span>
+            </button>
+            <ChevronRight size={12} strokeWidth={2} color="var(--text-muted)" />
+            <span style={{ fontSize: '13px', fontWeight: 600, color: 'var(--text-muted)' }}>
+              {currentCard?.title}
+            </span>
+          </div>
+
+          {/* Section title row */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
             <div style={{
-              width: '36px', height: '36px', borderRadius: '10px', flexShrink: 0,
+              width: '38px', height: '38px', borderRadius: '10px', flexShrink: 0,
               background: currentCard?.gradient,
               display: 'flex', alignItems: 'center', justifyContent: 'center',
               boxShadow: currentCard?.shadow,
