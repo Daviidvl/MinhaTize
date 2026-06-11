@@ -8,13 +8,32 @@ interface Props {
 }
 
 function toDateStr(d: Date) { return d.toISOString().split('T')[0] }
-function isSameDay(a: string, b: string) { return a === b }
+
+// Migra perfis antigos (lastApplication) para o novo modelo (applicationLog)
+function getLog(profile: UserProfile): string[] {
+  if (profile.applicationLog) return profile.applicationLog
+  if (!profile.lastApplication || profile.applicationDay === undefined) return []
+  const last = new Date(profile.lastApplication + 'T12:00:00')
+  const log: string[] = []
+  for (let w = 0; w < 52; w++) {
+    const d = new Date(last)
+    d.setDate(last.getDate() - w * 7)
+    if (d.getDay() !== profile.applicationDay) break
+    log.push(toDateStr(d))
+    if (w > 0 && d < new Date(profile.startDate + 'T12:00:00')) break
+  }
+  return log
+}
 
 export default function ApplicationCalendar({ profile, onUpdateProfile, compact = false }: Props) {
-  const today = new Date()
-  const [view, setView] = useState({ year: today.getFullYear(), month: today.getMonth() })
+  const today   = new Date()
+  const [view, setView]           = useState({ year: today.getFullYear(), month: today.getMonth() })
+  const [confirmEarly, setConfirmEarly] = useState<string | null>(null)   // data a registrar antecipado
+  const [confirmDelete, setConfirmDelete] = useState<string | null>(null) // data a apagar
 
-  const appDay = profile.applicationDay
+  const appDay   = profile.applicationDay
+  const todayStr = toDateStr(today)
+  const log      = getLog(profile)
 
   function prevMonth() {
     setView(v => { const d = new Date(v.year, v.month - 1, 1); return { year: d.getFullYear(), month: d.getMonth() } })
@@ -25,7 +44,6 @@ export default function ApplicationCalendar({ profile, onUpdateProfile, compact 
 
   const firstDay    = new Date(view.year, view.month, 1).getDay()
   const daysInMonth = new Date(view.year, view.month + 1, 0).getDate()
-  const todayStr    = toDateStr(today)
 
   const appDatesInMonth: string[] = []
   if (appDay !== undefined) {
@@ -36,20 +54,31 @@ export default function ApplicationCalendar({ profile, onUpdateProfile, compact 
   }
 
   const nextApp = appDatesInMonth.find(d => d >= todayStr)
+  const confirmedDates = new Set(log)
 
-  const confirmedDates = new Set<string>()
-  if (profile.lastApplication) {
-    const last = new Date(profile.lastApplication + 'T12:00:00')
-    for (let w = 0; w < 52; w++) {
-      const d = new Date(last)
-      d.setDate(last.getDate() - w * 7)
-      if (d.getFullYear() === view.year && d.getMonth() === view.month) confirmedDates.add(toDateStr(d))
-      if (d.getFullYear() < view.year || (d.getFullYear() === view.year && d.getMonth() < view.month)) break
-    }
+  function doRegister(dateStr: string) {
+    const newLog = [...log.filter(d => d !== dateStr), dateStr].sort()
+    const lastApp = newLog.at(-1) ?? dateStr
+    onUpdateProfile({ ...profile, applicationLog: newLog, lastApplication: lastApp })
+    setConfirmEarly(null)
   }
 
-  function registerApplication(dateStr: string) {
-    onUpdateProfile({ ...profile, lastApplication: dateStr })
+  function doDelete(dateStr: string) {
+    const newLog = log.filter(d => d !== dateStr)
+    const lastApp = newLog.at(-1) ?? profile.lastApplication
+    onUpdateProfile({ ...profile, applicationLog: newLog, lastApplication: lastApp })
+    setConfirmDelete(null)
+  }
+
+  function handleDayClick(dateStr: string, isConfirmed: boolean, isFuture: boolean) {
+    if (isFuture) return
+    if (isConfirmed) { setConfirmDelete(dateStr); return }
+    // Registrar: avisa se for antes da data programada
+    if (nextApp && dateStr < nextApp && dateStr === todayStr) {
+      setConfirmEarly(dateStr)
+      return
+    }
+    doRegister(dateStr)
   }
 
   const monthName = new Date(view.year, view.month, 1).toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' })
@@ -59,16 +88,128 @@ export default function ApplicationCalendar({ profile, onUpdateProfile, compact 
     ...Array.from({ length: daysInMonth }, (_, i) => i + 1),
   ]
 
-  const cellSize  = compact ? '30px' : undefined
-  const fontSize  = compact ? '11px' : '12px'
-  const headerFs  = compact ? '13px' : '14px'
-  const btnSize   = compact ? '28px' : '36px'
-  const btnRadius = compact ? '8px' : '10px'
-  const gap       = compact ? '2px' : '3px'
+  const cellSize    = compact ? '30px' : undefined
+  const fontSize    = compact ? '11px' : '12px'
+  const headerFs    = compact ? '13px' : '14px'
+  const btnSize     = compact ? '28px' : '36px'
+  const btnRadius   = compact ? '8px' : '10px'
+  const gap         = compact ? '2px' : '3px'
   const dayHeaderPb = compact ? '4px' : '6px'
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: compact ? '10px' : '16px' }}>
+
+      {/* Modal: confirmação de aplicação antecipada */}
+      {confirmEarly && (
+        <div style={{
+          position: 'fixed', inset: 0, zIndex: 100,
+          background: 'rgba(0,0,0,0.45)', backdropFilter: 'blur(2px)',
+          display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '24px',
+        }}
+          onClick={() => setConfirmEarly(null)}
+        >
+          <div
+            onClick={e => e.stopPropagation()}
+            style={{
+              background: 'var(--surface)', borderRadius: '20px', padding: '24px',
+              maxWidth: '320px', width: '100%', boxShadow: '0 20px 60px rgba(0,0,0,0.3)',
+              border: '1px solid var(--border)',
+            }}
+          >
+            <p style={{ fontSize: '16px', fontWeight: 800, color: 'var(--text-primary)', marginBottom: '10px' }}>
+              Aplicação antecipada
+            </p>
+            <p style={{ fontSize: '13px', color: 'var(--text-secondary)', lineHeight: 1.6, marginBottom: '20px' }}>
+              Sua próxima aplicação está programada para{' '}
+              <strong style={{ color: 'var(--primary)' }}>
+                {nextApp
+                  ? new Date(nextApp + 'T12:00:00').toLocaleDateString('pt-BR', { weekday: 'long', day: '2-digit', month: 'long' })
+                  : '—'}
+              </strong>.
+              {' '}Tem certeza que deseja registrar hoje?
+            </p>
+            <div style={{ display: 'flex', gap: '10px' }}>
+              <button
+                onClick={() => setConfirmEarly(null)}
+                style={{
+                  flex: 1, padding: '11px', borderRadius: '12px',
+                  border: '1.5px solid var(--border)', background: 'var(--surface-2)',
+                  cursor: 'pointer', fontWeight: 700, fontSize: '13px',
+                  color: 'var(--text-secondary)', fontFamily: 'Inter, -apple-system, sans-serif',
+                }}
+              >
+                Cancelar
+              </button>
+              <button
+                onClick={() => doRegister(confirmEarly)}
+                style={{
+                  flex: 1, padding: '11px', borderRadius: '12px',
+                  border: 'none', background: 'var(--primary)',
+                  cursor: 'pointer', fontWeight: 700, fontSize: '13px',
+                  color: '#fff', fontFamily: 'Inter, -apple-system, sans-serif',
+                }}
+              >
+                Registrar mesmo assim
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal: confirmação de exclusão */}
+      {confirmDelete && (
+        <div style={{
+          position: 'fixed', inset: 0, zIndex: 100,
+          background: 'rgba(0,0,0,0.45)', backdropFilter: 'blur(2px)',
+          display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '24px',
+        }}
+          onClick={() => setConfirmDelete(null)}
+        >
+          <div
+            onClick={e => e.stopPropagation()}
+            style={{
+              background: 'var(--surface)', borderRadius: '20px', padding: '24px',
+              maxWidth: '320px', width: '100%', boxShadow: '0 20px 60px rgba(0,0,0,0.3)',
+              border: '1px solid var(--border)',
+            }}
+          >
+            <p style={{ fontSize: '16px', fontWeight: 800, color: 'var(--text-primary)', marginBottom: '10px' }}>
+              Remover aplicação
+            </p>
+            <p style={{ fontSize: '13px', color: 'var(--text-secondary)', lineHeight: 1.6, marginBottom: '20px' }}>
+              Deseja remover o registro de{' '}
+              <strong style={{ color: 'var(--text-primary)' }}>
+                {new Date(confirmDelete + 'T12:00:00').toLocaleDateString('pt-BR', { weekday: 'long', day: '2-digit', month: 'long' })}
+              </strong>
+              ?
+            </p>
+            <div style={{ display: 'flex', gap: '10px' }}>
+              <button
+                onClick={() => setConfirmDelete(null)}
+                style={{
+                  flex: 1, padding: '11px', borderRadius: '12px',
+                  border: '1.5px solid var(--border)', background: 'var(--surface-2)',
+                  cursor: 'pointer', fontWeight: 700, fontSize: '13px',
+                  color: 'var(--text-secondary)', fontFamily: 'Inter, -apple-system, sans-serif',
+                }}
+              >
+                Cancelar
+              </button>
+              <button
+                onClick={() => doDelete(confirmDelete)}
+                style={{
+                  flex: 1, padding: '11px', borderRadius: '12px',
+                  border: 'none', background: '#ef4444',
+                  cursor: 'pointer', fontWeight: 700, fontSize: '13px',
+                  color: '#fff', fontFamily: 'Inter, -apple-system, sans-serif',
+                }}
+              >
+                Remover
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Header do calendário */}
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
@@ -97,21 +238,24 @@ export default function ApplicationCalendar({ profile, onUpdateProfile, compact 
           padding: '12px 14px', borderRadius: '12px',
           background: 'linear-gradient(135deg, var(--primary-light), var(--accent-light))',
           border: '1px solid rgba(16,185,129,0.2)',
-          display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+          display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '10px',
         }}>
           <div>
             <p style={{ fontSize: '11px', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
-              Próxima aplicação
+              {nextApp === todayStr ? 'Aplicar hoje' : 'Próxima aplicação'}
             </p>
             <p style={{ fontSize: '15px', fontWeight: 800, color: 'var(--primary)', marginTop: '2px' }}>
               {new Date(nextApp + 'T12:00:00').toLocaleDateString('pt-BR', { weekday: 'long', day: '2-digit', month: 'long' })}
             </p>
           </div>
-          {nextApp === todayStr && (
+          {!confirmedDates.has(todayStr) && (
             <button
-              onClick={() => registerApplication(todayStr)}
+              onClick={() => {
+                if (nextApp !== todayStr) { setConfirmEarly(todayStr); return }
+                doRegister(todayStr)
+              }}
               style={{
-                padding: '8px 14px', borderRadius: '9px', border: 'none',
+                padding: '8px 14px', borderRadius: '9px', border: 'none', flexShrink: 0,
                 background: 'var(--primary)', color: '#fff', fontWeight: 700, fontSize: '12px',
                 cursor: 'pointer', fontFamily: 'Inter, -apple-system, sans-serif',
                 boxShadow: 'var(--shadow-green)',
@@ -119,6 +263,14 @@ export default function ApplicationCalendar({ profile, onUpdateProfile, compact 
             >
               Registrar
             </button>
+          )}
+          {confirmedDates.has(todayStr) && (
+            <span style={{
+              fontSize: '11px', fontWeight: 700, color: 'var(--primary)',
+              background: 'rgba(16,185,129,0.12)', padding: '5px 10px', borderRadius: '8px',
+            }}>
+              Registrado
+            </span>
           )}
         </div>
       )}
@@ -137,13 +289,13 @@ export default function ApplicationCalendar({ profile, onUpdateProfile, compact 
         {cells.map((day, idx) => {
           if (day === null) return <div key={`e-${idx}`} style={cellSize ? { height: cellSize } : undefined} />
 
-          const dateStr    = toDateStr(new Date(view.year, view.month, day))
-          const isToday    = isSameDay(dateStr, todayStr)
-          const isAppDay   = appDay !== undefined && new Date(view.year, view.month, day).getDay() === appDay
+          const dateStr     = toDateStr(new Date(view.year, view.month, day))
+          const isToday     = dateStr === todayStr
+          const isAppDay    = appDay !== undefined && new Date(view.year, view.month, day).getDay() === appDay
           const isConfirmed = confirmedDates.has(dateStr)
-          const isNext     = dateStr === nextApp
-          const isPast     = dateStr < todayStr
-          const isFuture   = dateStr > todayStr
+          const isNext      = dateStr === nextApp
+          const isPast      = dateStr < todayStr
+          const isFuture    = dateStr > todayStr
 
           let bg = 'transparent', color = 'var(--text-primary)', border = 'none'
           let fontWeight = 400
@@ -164,19 +316,18 @@ export default function ApplicationCalendar({ profile, onUpdateProfile, compact 
             color = 'var(--text-muted)'
           }
 
-          const canRegister = isAppDay && !isFuture
+          const clickable = !isFuture || isConfirmed
 
           return (
             <button
               key={dateStr}
-              onClick={() => canRegister ? registerApplication(dateStr) : undefined}
-              title={isFuture && isAppDay ? 'Aplicação ainda não realizada' : undefined}
+              onClick={() => handleDayClick(dateStr, isConfirmed, isFuture)}
               style={{
                 height: cellSize ?? undefined,
                 aspectRatio: cellSize ? undefined : '1',
                 borderRadius: compact ? '7px' : '9px',
                 background: bg, border, color, fontWeight, fontSize,
-                cursor: canRegister ? 'pointer' : 'default',
+                cursor: clickable ? 'pointer' : 'default',
                 display: 'flex', alignItems: 'center', justifyContent: 'center',
                 transition: 'all 0.15s', fontFamily: 'Inter, -apple-system, sans-serif',
                 position: 'relative',
@@ -186,7 +337,9 @@ export default function ApplicationCalendar({ profile, onUpdateProfile, compact 
               {day}
               {isConfirmed && (
                 <span style={{ position: 'absolute', top: '1px', right: '2px', lineHeight: 1 }}>
-                  <svg width={compact ? 6 : 7} height={compact ? 6 : 7} viewBox="0 0 10 10" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="1.5 5 4 7.5 8.5 2.5"/></svg>
+                  <svg width={compact ? 6 : 7} height={compact ? 6 : 7} viewBox="0 0 10 10" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                    <polyline points="1.5 5 4 7.5 8.5 2.5"/>
+                  </svg>
                 </span>
               )}
             </button>
@@ -207,7 +360,19 @@ export default function ApplicationCalendar({ profile, onUpdateProfile, compact 
               <span style={{ fontSize: '10px', color: 'var(--text-muted)', fontWeight: 600 }}>{l.label}</span>
             </div>
           ))}
+          <div style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
+            <div style={{ width: '10px', height: '10px', borderRadius: '3px', background: 'transparent', border: '1px solid var(--border)', position: 'relative' }}>
+              <span style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '7px', color: 'var(--text-muted)' }}>×</span>
+            </div>
+            <span style={{ fontSize: '10px', color: 'var(--text-muted)', fontWeight: 600 }}>Toque para remover</span>
+          </div>
         </div>
+      )}
+
+      {!compact && log.length === 0 && (
+        <p style={{ fontSize: '12px', color: 'var(--text-muted)', textAlign: 'center', padding: '8px 0' }}>
+          Nenhuma aplicação registrada ainda.
+        </p>
       )}
     </div>
   )
