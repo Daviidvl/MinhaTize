@@ -1,4 +1,4 @@
-import { Package, AlertTriangle } from 'lucide-react'
+import { Package, AlertTriangle, Dumbbell, Utensils, ChevronRight, Moon } from 'lucide-react'
 import { UserProfile, Tab, MEDICATION_LABELS, WEEK_DAYS_FULL } from '../types'
 import ApplicationCalendar from './ApplicationCalendar'
 
@@ -52,6 +52,173 @@ function getMotivation(lost: number, toGoal: number, weeks: number, days: number
   if (weeks >= 2)                     return { text: `${weeks}ª semana em protocolo`,   sub: 'A dedicação já está gerando resultados.' }
   if (days <= 3)                      return { text: 'Bem-vindo ao protocolo!',          sub: 'Registre seu peso toda semana.' }
   return { text: 'Registre seu peso', sub: 'Acompanhe sua evolução no gráfico.' }
+}
+
+// ── Workout widget data ──────────────────────────────────────────────────────
+const SPLIT_INFO: Record<string, { label: string; name: string; color: string }[]> = {
+  '2_M': [{ label: 'A', name: 'Empurrar + Core',         color: '#059669' }, { label: 'B', name: 'Puxar + Posterior',        color: '#7C3AED' }],
+  '2_F': [{ label: 'A', name: 'Glúteos + Pernas',        color: '#EC4899' }, { label: 'B', name: 'Superior + Core',          color: '#7C3AED' }],
+  '3_M': [{ label: 'A', name: 'Peito + Tríceps',         color: '#059669' }, { label: 'B', name: 'Costas + Bíceps',          color: '#7C3AED' }, { label: 'C', name: 'Pernas + Core',             color: '#0EA5E9' }],
+  '3_F': [{ label: 'A', name: 'Glúteos + Isquios',       color: '#EC4899' }, { label: 'B', name: 'Peito + Costas + Ombros', color: '#7C3AED' }, { label: 'C', name: 'Pernas + Core',             color: '#059669' }],
+  '4_M': [{ label: 'A', name: 'Peito + Tríceps',         color: '#059669' }, { label: 'B', name: 'Costas + Bíceps',         color: '#7C3AED' }, { label: 'C', name: 'Pernas',                   color: '#0EA5E9' }, { label: 'D', name: 'Ombros + Core',           color: '#F59E0B' }],
+  '4_F': [{ label: 'A', name: 'Glúteos',                 color: '#EC4899' }, { label: 'B', name: 'Peito + Tríceps',        color: '#059669' }, { label: 'C', name: 'Pernas + Panturrilha',     color: '#0EA5E9' }, { label: 'D', name: 'Costas + Bíceps',         color: '#7C3AED' }],
+  '5_M': [{ label: 'A', name: 'Peito',                   color: '#059669' }, { label: 'B', name: 'Costas',                 color: '#7C3AED' }, { label: 'C', name: 'Pernas',                   color: '#0EA5E9' }, { label: 'D', name: 'Ombros',                 color: '#F59E0B' }, { label: 'E', name: 'Bíceps + Tríceps', color: '#DC2626' }],
+  '5_F': [{ label: 'A', name: 'Glúteos',                 color: '#EC4899' }, { label: 'B', name: 'Pernas',                 color: '#0EA5E9' }, { label: 'C', name: 'Peito + Costas',           color: '#7C3AED' }, { label: 'D', name: 'Glúteos 2 + Isquios',    color: '#F97316' }, { label: 'E', name: 'Ombros + Braços + Core', color: '#059669' }],
+}
+const WORKOUT_SCHEDULE: Record<number, number[]> = { 2: [1,4], 3: [1,3,5], 4: [1,2,4,5], 5: [1,2,3,4,5] }
+const LEVEL_LABEL: Record<string, string> = { beginner: 'Iniciante', intermediate: 'Intermediário', advanced: 'Avançado' }
+
+// ── Meal widget data ──────────────────────────────────────────────────────────
+interface MealSlot { label: string; color: string; startH: number; endH: number; sub_M: string; sub_F: string }
+const MEAL_SLOTS: MealSlot[] = [
+  { label: 'Café da manhã',   color: '#D97706', startH: 6,    endH: 9.5,  sub_M: 'Ovos · pão · fruta',                     sub_F: 'Ovos · queijo · fruta' },
+  { label: 'Lanche da manhã', color: '#F59E0B', startH: 9.5,  endH: 12,   sub_M: 'Whey ou iogurte proteico',               sub_F: 'Whey ou iogurte proteico' },
+  { label: 'Almoço',          color: '#059669', startH: 12,   endH: 14.5, sub_M: 'Arroz · feijão · frango · legumes',      sub_F: 'Arroz · feijão · frango · legumes' },
+  { label: 'Lanche da tarde', color: '#0891B2', startH: 14.5, endH: 18,   sub_M: 'Whey + fruta ou sanduíche proteico',     sub_F: 'Whey + fruta ou 2 ovos' },
+  { label: 'Jantar',          color: '#7C3AED', startH: 18,   endH: 21,   sub_M: 'Arroz · proteína magra · legumes',       sub_F: 'Arroz · proteína magra · legumes' },
+  { label: 'Ceia',            color: '#1E40AF', startH: 21,   endH: 24,   sub_M: 'Whey com água ou leite desnatado',       sub_F: 'Whey ou iogurte grego natural' },
+]
+function fmtH(h: number) { return `${String(Math.floor(h)).padStart(2,'0')}:${String(Math.round((h%1)*60)).padStart(2,'0')}` }
+function getMealNow(): { slot: MealSlot; isCurrent: boolean } {
+  const h = new Date().getHours() + new Date().getMinutes() / 60
+  const cur = MEAL_SLOTS.find(s => h >= s.startH && h < s.endH)
+  if (cur) return { slot: cur, isCurrent: true }
+  return { slot: MEAL_SLOTS.find(s => s.startH > h) ?? MEAL_SLOTS[0], isCurrent: false }
+}
+
+// ── Workout widget ────────────────────────────────────────────────────────────
+function WorkoutWidget({ onNavigate }: { onNavigate: (t: Tab) => void }) {
+  let wp: { sex: string; days: number; level: string } | null = null
+  try { wp = JSON.parse(localStorage.getItem('tizetrack_workout') || 'null') } catch {}
+
+  const notConfigured = (
+    <button onClick={() => onNavigate('health')} className="card"
+      style={{ display: 'flex', alignItems: 'center', gap: '14px', cursor: 'pointer', border: '1.5px dashed var(--border-strong)', width: '100%', textAlign: 'left' }}>
+      <div style={{ width: '42px', height: '42px', borderRadius: '12px', background: 'var(--surface-2)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+        <Dumbbell size={20} strokeWidth={1.8} color="var(--text-muted)" />
+      </div>
+      <div style={{ flex: 1, minWidth: 0 }}>
+        <p style={{ fontSize: '13px', fontWeight: 700, color: 'var(--text-primary)', margin: 0 }}>Configure seu treino</p>
+        <p style={{ fontSize: '11px', color: 'var(--text-muted)', marginTop: '2px' }}>Acesse Saúde → Exercícios para personalizar</p>
+      </div>
+      <ChevronRight size={16} strokeWidth={2} color="var(--text-muted)" />
+    </button>
+  )
+
+  if (!wp) return notConfigured
+
+  const key   = `${wp.days}_${wp.sex}`
+  const splits = SPLIT_INFO[key]
+  if (!splits) return notConfigured
+
+  const todayDay = new Date().getDay()
+  const schedule = WORKOUT_SCHEDULE[wp.days] ?? []
+  const idx      = schedule.indexOf(todayDay)
+  const isRest   = idx === -1
+  const workout  = isRest ? null : splits[idx]
+
+  if (isRest || !workout) {
+    return (
+      <div className="card" style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
+        <div style={{ width: '42px', height: '42px', borderRadius: '12px', background: 'rgba(16,185,129,0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+          <Moon size={20} strokeWidth={1.8} color="#059669" />
+        </div>
+        <div>
+          <p style={{ fontSize: '10px', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.08em', margin: '0 0 3px' }}>Treino de Hoje</p>
+          <p style={{ fontSize: '15px', fontWeight: 800, color: 'var(--text-primary)', margin: 0 }}>Dia de descanso</p>
+          <p style={{ fontSize: '11px', color: 'var(--text-muted)', marginTop: '2px' }}>Recuperação ativa · {LEVEL_LABEL[wp.level] ?? wp.level}</p>
+        </div>
+      </div>
+    )
+  }
+
+  return (
+    <button onClick={() => onNavigate('health')} className="card"
+      style={{ cursor: 'pointer', width: '100%', textAlign: 'left', padding: '14px 16px' }}>
+      <p style={{ fontSize: '10px', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.08em', margin: '0 0 10px' }}>
+        Treino de Hoje
+      </p>
+      <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+        <div style={{
+          width: '46px', height: '46px', borderRadius: '14px', flexShrink: 0,
+          background: workout.color + '18',
+          display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
+          border: `1.5px solid ${workout.color}30`,
+        }}>
+          <span style={{ fontSize: '16px', fontWeight: 900, color: workout.color, lineHeight: 1, fontFamily: 'Inter, sans-serif' }}>{workout.label}</span>
+          <span style={{ fontSize: '8px', fontWeight: 700, color: workout.color + 'aa', textTransform: 'uppercase', letterSpacing: '0.05em' }}>treino</span>
+        </div>
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <p style={{ fontSize: '16px', fontWeight: 800, color: 'var(--text-primary)', margin: '0 0 3px', letterSpacing: '-0.3px' }}>{workout.name}</p>
+          <p style={{ fontSize: '11px', color: 'var(--text-muted)', margin: 0 }}>
+            {LEVEL_LABEL[wp.level] ?? wp.level} · {wp.days}× por semana
+          </p>
+        </div>
+        <ChevronRight size={16} strokeWidth={2} color="var(--text-muted)" style={{ flexShrink: 0 }} />
+      </div>
+      <div style={{ marginTop: '10px', paddingTop: '10px', borderTop: '1px solid var(--border)' }}>
+        <p style={{ fontSize: '11px', color: 'var(--text-muted)', margin: 0 }}>
+          Ver exercícios completos →
+        </p>
+      </div>
+    </button>
+  )
+}
+
+// ── Meal widget ───────────────────────────────────────────────────────────────
+function MealWidget({ profile, onNavigate }: { profile: UserProfile; onNavigate: (t: Tab) => void }) {
+  let dietSex: 'M' | 'F' | null = null
+  try { const d = JSON.parse(localStorage.getItem('tizetrack_diet') || 'null'); dietSex = d?.sex ?? null } catch {}
+  if (!dietSex) dietSex = profile.sex === 'female' ? 'F' : 'M'
+
+  const notConfigured = (
+    <button onClick={() => onNavigate('health')} className="card"
+      style={{ display: 'flex', alignItems: 'center', gap: '14px', cursor: 'pointer', border: '1.5px dashed var(--border-strong)', width: '100%', textAlign: 'left' }}>
+      <div style={{ width: '42px', height: '42px', borderRadius: '12px', background: 'var(--surface-2)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+        <Utensils size={20} strokeWidth={1.8} color="var(--text-muted)" />
+      </div>
+      <div style={{ flex: 1, minWidth: 0 }}>
+        <p style={{ fontSize: '13px', fontWeight: 700, color: 'var(--text-primary)', margin: 0 }}>Configure sua dieta</p>
+        <p style={{ fontSize: '11px', color: 'var(--text-muted)', marginTop: '2px' }}>Acesse Saúde → Alimentação para personalizar</p>
+      </div>
+      <ChevronRight size={16} strokeWidth={2} color="var(--text-muted)" />
+    </button>
+  )
+
+  const dietSet = !!localStorage.getItem('tizetrack_diet')
+  if (!dietSet) return notConfigured
+
+  const { slot, isCurrent } = getMealNow()
+  const sub = dietSex === 'F' ? slot.sub_F : slot.sub_M
+
+  return (
+    <button onClick={() => onNavigate('health')} className="card"
+      style={{ cursor: 'pointer', width: '100%', textAlign: 'left', padding: '14px 16px' }}>
+      <p style={{ fontSize: '10px', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.08em', margin: '0 0 10px' }}>
+        {isCurrent ? 'Refeição Agora' : 'Próxima Refeição'}
+      </p>
+      <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+        <div style={{
+          width: '46px', height: '46px', borderRadius: '14px', flexShrink: 0,
+          background: slot.color + '18',
+          display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
+          border: `1.5px solid ${slot.color}30`,
+        }}>
+          <Utensils size={18} strokeWidth={1.8} color={slot.color} />
+        </div>
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <p style={{ fontSize: '16px', fontWeight: 800, color: 'var(--text-primary)', margin: '0 0 3px', letterSpacing: '-0.3px' }}>{slot.label}</p>
+          <p style={{ fontSize: '11px', color: 'var(--text-muted)', margin: 0 }}>
+            {fmtH(slot.startH)} – {fmtH(slot.endH === 24 ? 24 : slot.endH)}
+          </p>
+        </div>
+        <ChevronRight size={16} strokeWidth={2} color="var(--text-muted)" style={{ flexShrink: 0 }} />
+      </div>
+      <div style={{ marginTop: '10px', paddingTop: '10px', borderTop: '1px solid var(--border)' }}>
+        <p style={{ fontSize: '12px', color: 'var(--text-secondary)', margin: 0 }}>{sub}</p>
+      </div>
+    </button>
+  )
 }
 
 // ── Quick action card ────────────────────────────────────────────────────────
@@ -260,6 +427,10 @@ export default function Dashboard({ profile, onNavigate, onUpdateProfile }: Prop
           sub={DOSE_PHASE[profile.currentDose] ?? ''}
         />
       </div>
+
+      {/* ── Daily widgets ── */}
+      <WorkoutWidget onNavigate={onNavigate} />
+      <MealWidget profile={profile} onNavigate={onNavigate} />
 
       {/* ── Next application ── */}
       <div className="card" style={{ padding: '1.25rem' }}>
