@@ -361,31 +361,25 @@
 /* ─── Bottom Navigation — Floating Pill ─────────────────────────── */
 .bottom-nav {
   position: fixed;
-  bottom: max(16px, calc(env(safe-area-inset-bottom) + 12px));
-  left: 50%;
-  transform: translateX(-50%) translateY(0);
+  bottom: 0;
+  left: 0;
+  right: 0;
   z-index: 100;
   background: var(--nav-bg);
-  border: 1px solid var(--nav-border);
+  border-top: 1px solid var(--nav-border);
   backdrop-filter: blur(32px);
   -webkit-backdrop-filter: blur(32px);
-  border-radius: 99px;
-  box-shadow: 0 8px 32px rgba(15,23,42,0.14), 0 2px 8px rgba(15,23,42,0.08);
-  width: calc(100% - 24px);
-  max-width: 380px;
-  transition: transform 0.35s cubic-bezier(0.22, 1, 0.36, 1), opacity 0.3s ease;
-}
-
-.bottom-nav.nav-hidden {
-  transform: translateX(-50%) translateY(calc(100% + 28px));
-  opacity: 0;
-  pointer-events: none;
+  border-radius: 0;
+  box-shadow: 0 -4px 24px rgba(15,23,42,0.12);
+  padding-bottom: env(safe-area-inset-bottom);
 }
 
 .bottom-nav-inner {
   display: flex;
-  padding: 6px 8px;
+  padding: 6px 8px 8px;
   gap: 2px;
+  max-width: 520px;
+  margin: 0 auto;
 }
 
 .nav-tab {
@@ -394,41 +388,43 @@
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 3px;
-  padding: 8px 4px 6px;
+  gap: 2px;
+  padding: 6px 4px 7px;
   border: none;
   background: transparent;
   cursor: pointer;
   border-radius: 99px;
-  transition: background 0.2s ease, transform 0.1s ease;
+  transition: transform 0.1s ease;
   font-family: 'Inter', -apple-system, sans-serif;
-  min-height: 48px;
+  min-height: 52px;
+  position: relative;
 }
 
-.nav-tab:active { background: var(--primary-light); transform: scale(0.93); }
-.nav-tab.active { background: var(--primary-light); }
+.nav-tab:active { transform: scale(0.90); }
 
 .nav-tab-icon {
-  width: 20px;
-  height: 20px;
+  width: 36px;
+  height: 32px;
   display: flex;
   align-items: center;
   justify-content: center;
   color: var(--text-muted);
-  transition: transform 0.25s cubic-bezier(0.34, 1.56, 0.64, 1), color 0.2s;
+  border-radius: 99px;
+  transition: background 0.22s ease, color 0.2s, transform 0.25s cubic-bezier(0.34, 1.56, 0.64, 1);
 }
 
 .nav-tab.active .nav-tab-icon {
+  background: var(--primary-light);
   color: var(--primary);
-  transform: scale(1.1) translateY(-1px);
+  transform: translateY(-1px);
 }
 
 .nav-tab-label {
-  font-size: 9px;
+  font-size: 10px;
   font-weight: 600;
   letter-spacing: 0.01em;
   color: var(--text-muted);
-  transition: color 0.2s;
+  transition: color 0.2s, font-weight 0.1s;
   white-space: nowrap;
 }
 
@@ -493,11 +489,44 @@
   50%       { box-shadow: 0 0 0 5px rgba(var(--primary-rgb, 16,185,129), 0); }
 }
 
+@keyframes check-pop {
+  0%   { transform: scale(1); }
+  35%  { transform: scale(0.78); }
+  65%  { transform: scale(1.22); }
+  100% { transform: scale(1); }
+}
+
+@keyframes bar-grow {
+  from { width: 0%; }
+  to   { width: var(--target-width, 100%); }
+}
+
+@keyframes fade-up {
+  from { opacity: 0; transform: translateY(6px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+@keyframes slide-up {
+  from { opacity: 0; transform: translateY(32px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
 .fade-in  { animation: slideUp  0.35s cubic-bezier(0.22, 1, 0.36, 1) both; }
 .scale-in { animation: scaleIn  0.25s cubic-bezier(0.22, 1, 0.36, 1) both; }
 
 .animate-pulse-soft { animation: pulse-soft 2.5s ease-in-out infinite; }
 .animate-float      { animation: float      3s   ease-in-out infinite; }
+
+/* ─── Food Guide — meal row interactions ─────────────────────────── */
+.meal-row {
+  transition: transform 0.15s ease, box-shadow 0.15s ease, background 0.22s ease, border-color 0.22s ease;
+}
+.meal-row:active { transform: scale(0.985); }
+
+.check-btn {
+  transition: all 0.22s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+.check-btn.is-done { animation: check-pop 0.3s cubic-bezier(0.34, 1.56, 0.64, 1) both; }
+.check-btn:active  { transform: scale(0.85) !important; }
 
 /* ─── Gradient text ──────────────────────────────────────────────── */
 .gradient-text {
@@ -526,7 +555,7 @@
 
 /* ─── Main content ───────────────────────────────────────────────── */
 .main-content {
-  padding-bottom: calc(100px + env(safe-area-inset-bottom));
+  padding-bottom: calc(var(--nav-height, 80px) + 20px);
 }
 
 /* ─── Reduced motion ─────────────────────────────────────────────── */

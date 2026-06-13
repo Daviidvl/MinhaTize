@@ -1,7 +1,6 @@
 import { useState } from 'react'
 import { Award, Calendar, Package, Settings, Zap, BarChart2, Scale, Flame, Dumbbell, Target, Lightbulb, AlertTriangle, Check, ChevronLeft } from 'lucide-react'
 import { UserProfile, Medication, Sex, MEDICATION_LABELS, WEEK_DAYS_FULL } from '../types'
-import ApplicationCalendar from './ApplicationCalendar'
 import StockControl from './StockControl'
 
 interface Props {
@@ -15,7 +14,6 @@ type ProfileTab = 'achievements' | 'history' | 'stock' | 'edit'
 
 const PROFILE_TABS: { id: ProfileTab; icon: React.ReactNode; label: string }[] = [
   { id: 'achievements', icon: <Award size={14} strokeWidth={2} />,    label: 'Conquistas' },
-  { id: 'history',      icon: <Calendar size={14} strokeWidth={2} />, label: 'Histórico'  },
   { id: 'stock',        icon: <Package size={14} strokeWidth={2} />,  label: 'Estoque'    },
   { id: 'edit',         icon: <Settings size={14} strokeWidth={2} />, label: 'Editar'     },
 ]
@@ -294,17 +292,6 @@ export default function ProfilePage({ profile, onUpdateProfile, onBack, initialS
           </div>
         )}
 
-        {/* ── HISTÓRICO ── */}
-        {activeTab === 'history' && (
-          <div className="card">
-            <p style={{ fontWeight: 700, fontSize: '14px', color: 'var(--text-primary)', marginBottom: '14px', display: 'flex', alignItems: 'center', gap: '7px' }}>
-              <Calendar size={15} strokeWidth={2} color="var(--primary)" />
-              Histórico de aplicações
-            </p>
-            <ApplicationCalendar profile={profile} onUpdateProfile={onUpdateProfile} />
-          </div>
-        )}
-
         {/* ── ESTOQUE ── */}
         {activeTab === 'stock' && (
           <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
@@ -425,7 +412,8 @@ export default function ProfilePage({ profile, onUpdateProfile, onBack, initialS
                   <label className="label-base">Início do protocolo</label>
                   <input type="date" className="input-field" value={form.startDate}
                     onChange={e => setF('startDate', e.target.value)}
-                    max={new Date().toISOString().split('T')[0]} />
+                    max={new Date().toISOString().split('T')[0]}
+                    style={{ fontSize: '12px' }} />
                 </div>
                 <div>
                   <label className="label-base">Peso inicial (kg)</label>

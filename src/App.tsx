@@ -1,4 +1,6 @@
 import { useState, useEffect, useRef } from 'react'
+import LandingPage from './components/LandingPage'
+import { getTokenFromURL, getStoredToken, saveToken, cleanTokenFromURL, clearToken, validateToken } from './utils/token'
 import Header from './components/Header'
 import Dashboard from './components/Dashboard'
 import ProgressHub from './components/ProgressHub'
@@ -98,12 +100,47 @@ export default function App() {
   const [activeTab, setActiveTab]     = useState<Tab>('dashboard')
   const [deepSection, setDeepSection] = useState<string | null>(null)
   const [profile, setProfile]         = useState<UserProfile>(loadProfile)
-  const [navVisible, setNavVisible]   = useState(true)
   const [showTour, setShowTour]       = useState(() =>
     !!loadProfile().name && !localStorage.getItem(TOUR_KEY)
   )
-  const lastScrollY  = useRef(0)
+  const [tokenStatus, setTokenStatus] = useState<'checking' | 'valid' | 'invalid'>('checking')
   const prevTabRef   = useRef<Tab>('dashboard')
+  const navRef       = useRef<HTMLElement>(null)
+
+  // ── Verificação de token ────────────────────────────────────────────────────
+  useEffect(() => {
+    async function checkAccess() {
+      const urlToken = getTokenFromURL()
+      if (urlToken) {
+        const valid = await validateToken(urlToken)
+        if (valid) {
+          saveToken(urlToken)
+          cleanTokenFromURL()
+          setTokenStatus('valid')
+          return
+        }
+      }
+      const stored = getStoredToken()
+      if (stored) {
+        const valid = await validateToken(stored)
+        if (valid) { setTokenStatus('valid'); return }
+        clearToken()
+      }
+      setTokenStatus('invalid')
+    }
+    checkAccess()
+  }, [])
+
+  // ── Altura da navbar ────────────────────────────────────────────────────────
+  useEffect(() => {
+    const el = navRef.current
+    if (!el) return
+    const ro = new ResizeObserver(() => {
+      document.documentElement.style.setProperty('--nav-height', `${el.getBoundingClientRect().height}px`)
+    })
+    ro.observe(el)
+    return () => ro.disconnect()
+  }, [])
 
   function handleNavigate(tab: Tab, section?: string) {
     setActiveTab(tab)
@@ -122,17 +159,24 @@ export default function App() {
     localStorage.setItem('tizetrack_profile', JSON.stringify(profile))
   }, [profile])
 
-  useEffect(() => {
-    function onScroll() {
-      const current = window.scrollY
-      const delta   = current - lastScrollY.current
-      lastScrollY.current = current
-      if (delta >  8) setNavVisible(false)  // deslizou para baixo → esconde
-      else if (delta < -8) setNavVisible(true)   // deslizou para cima  → mostra
-    }
-    window.addEventListener('scroll', onScroll, { passive: true })
-    return () => window.removeEventListener('scroll', onScroll)
-  }, [])
+  // ── Gate de acesso ──────────────────────────────────────────────────────────
+  if (tokenStatus === 'checking') {
+    return (
+      <div style={{
+        minHeight: '100dvh', background: 'var(--bg)',
+        display: 'flex', alignItems: 'center', justifyContent: 'center',
+      }}>
+        <div style={{ textAlign: 'center' }}>
+          <img src="/LogoPng.png" alt="MinhaTize" style={{ width: '64px', height: '64px', borderRadius: '18px', objectFit: 'contain', marginBottom: '16px', opacity: 0.9 }} />
+          <p style={{ fontSize: '13px', color: 'var(--text-muted)', fontFamily: 'Inter, sans-serif' }}>Verificando acesso...</p>
+        </div>
+      </div>
+    )
+  }
+
+  if (tokenStatus === 'invalid') {
+    return <LandingPage onAccessGranted={() => setTokenStatus('valid')} />
+  }
 
   if (isFirstAccess) {
     return <ProfileSetup onComplete={handleProfileComplete} />
@@ -182,7 +226,7 @@ export default function App() {
 
       <main
         className="main-content"
-        style={{ maxWidth: '520px', margin: '0 auto', padding: '20px 16px' }}
+        style={{ maxWidth: '520px', margin: '0 auto', paddingTop: '20px', paddingLeft: '16px', paddingRight: '16px' }}
         key={activeTab}
       >
         {renderTab()}
@@ -190,7 +234,7 @@ export default function App() {
 
       {showTour && <OnboardingTour onDone={() => setShowTour(false)} />}
 
-      <nav className={`bottom-nav${navVisible ? '' : ' nav-hidden'}`}>
+      <nav ref={navRef} className="bottom-nav">
         <div className="bottom-nav-inner">
           {NAV_TABS.map(tab => (
             <button

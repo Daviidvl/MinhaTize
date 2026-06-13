@@ -1,14 +1,16 @@
 {
   "name": "Minha Tize",
   "short_name": "Minha Tize",
-  "description": "Calculadora de dose de Tirzepatida com seringa de insulina",
+  "description": "Plataforma inteligente para acompanhamento de tratamento com Tirzepatida e análogos de GLP-1",
   "start_url": "/",
   "scope": "/",
   "display": "standalone",
-  "background_color": "#1B3A7A",
+  "display_override": ["standalone", "minimal-ui"],
+  "background_color": "#060C18",
   "theme_color": "#1B3A7A",
-  "orientation": "portrait",
-  "categories": ["health", "utilities"],
+  "orientation": "portrait-primary",
+  "lang": "pt-BR",
+  "categories": ["health", "medical", "utilities"],
   "icons": [
     {
       "src": "/icon-192.png",
@@ -37,10 +39,17 @@
   ],
   "shortcuts": [
     {
+      "name": "Dashboard",
+      "short_name": "Início",
+      "description": "Ver resumo do tratamento",
+      "url": "/",
+      "icons": [{ "src": "/icon-192.png", "sizes": "192x192" }]
+    },
+    {
       "name": "Calculadora",
-      "short_name": "Calc",
-      "description": "Acessar calculadora de dose",
-      "url": "/?calc=1",
+      "short_name": "Calcular",
+      "description": "Calculadora de dose",
+      "url": "/?tab=calculator",
       "icons": [{ "src": "/icon-192.png", "sizes": "192x192" }]
     }
   ]

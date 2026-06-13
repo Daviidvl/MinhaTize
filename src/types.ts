@@ -85,6 +85,7 @@ export interface UserProfile {
   sideEffects: SideEffectEntry[]
   lastApplication?: string
   applicationLog?: string[]
+  applicationNotes?: Record<string, string>
   stock?: StockInfo
   labResults?: LabResult[]
 }
