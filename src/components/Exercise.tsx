@@ -629,9 +629,9 @@ function Pill({
       style={{
         flex: 1, padding: '10px 8px', borderRadius: '12px', cursor: 'pointer',
         fontFamily: "Inter, -apple-system, sans-serif", fontWeight: 700, fontSize: '13px',
-        border: active ? '2px solid var(--primary)' : '1.5px solid var(--border)',
-        background: active ? 'var(--primary-light)' : 'var(--surface-2)',
-        color: active ? 'var(--primary)' : 'var(--text-secondary)',
+        border: active ? '2px solid #22C55E' : '1.5px solid var(--border)',
+        background: active ? 'rgba(34,197,94,0.12)' : 'var(--surface-2)',
+        color: active ? '#22C55E' : 'var(--text-secondary)',
         transition: 'all 0.15s',
       }}
     >
@@ -715,9 +715,9 @@ export default function Exercise() {
 
         {/* Banner */}
         <div style={{
-          background: 'linear-gradient(135deg, var(--primary) 0%, #0D9488 100%)',
+          background: 'linear-gradient(155deg, #0C1F18 0%, #132D22 60%, #0F2219 100%)',
           borderRadius: '20px', padding: '18px 20px', color: '#fff',
-          boxShadow: 'var(--shadow-green)',
+          boxShadow: '0 8px 24px rgba(0,0,0,0.24), 0 2px 6px rgba(0,0,0,0.15), inset 0 1px 0 rgba(255,255,255,0.06)',
         }}>
           <p style={{ fontSize: '11px', fontWeight: 700, opacity: 0.7, textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: '6px' }}>
             Avaliação de treino
@@ -811,9 +811,9 @@ export default function Exercise() {
                         borderRadius: '10px', cursor: full ? 'not-allowed' : 'pointer',
                         fontFamily: "Inter, -apple-system, sans-serif",
                         fontWeight: 700, fontSize: '11px',
-                        border: sel ? '2px solid var(--primary)' : '1.5px solid var(--border)',
-                        background: sel ? 'var(--primary-light)' : 'var(--surface-2)',
-                        color: sel ? 'var(--primary)' : full ? 'var(--text-muted)' : 'var(--text-secondary)',
+                        border: sel ? '2px solid #22C55E' : '1.5px solid var(--border)',
+                        background: sel ? 'rgba(34,197,94,0.12)' : 'var(--surface-2)',
+                        color: sel ? '#22C55E' : full ? 'var(--text-muted)' : 'var(--text-secondary)',
                         opacity: full ? 0.45 : 1,
                         transition: 'all 0.15s',
                       }}
@@ -824,7 +824,7 @@ export default function Exercise() {
                 })}
               </div>
               {(form.preferredDays?.length ?? 0) > 0 && (form.preferredDays?.length ?? 0) < form.days && (
-                <p style={{ fontSize: '11px', color: 'var(--primary)', marginTop: '7px' }}>
+                <p style={{ fontSize: '11px', color: '#22C55E', marginTop: '7px' }}>
                   {form.days - (form.preferredDays?.length ?? 0)} dia{form.days - (form.preferredDays?.length ?? 0) > 1 ? 's' : ''} restante{form.days - (form.preferredDays?.length ?? 0) > 1 ? 's' : ''}
                 </p>
               )}
@@ -839,7 +839,7 @@ export default function Exercise() {
               width: '100%', padding: '14px', borderRadius: '14px', border: 'none',
               fontFamily: "Inter, -apple-system, sans-serif", fontWeight: 800, fontSize: '15px',
               cursor: formComplete ? 'pointer' : 'not-allowed',
-              background: formComplete ? 'linear-gradient(135deg, #2563EB 0%, #7C3AED 100%)' : 'var(--surface-3)',
+              background: formComplete ? 'linear-gradient(135deg, #16A34A 0%, #22C55E 100%)' : 'var(--surface-3)',
               color: formComplete ? '#fff' : 'var(--text-muted)',
               opacity: formComplete ? 1 : 0.6,
               transition: 'all 0.2s',
@@ -870,9 +870,9 @@ export default function Exercise() {
 
       {/* Plan header */}
       <div style={{
-        background: 'linear-gradient(135deg, var(--primary) 0%, #0D9488 100%)',
+        background: 'linear-gradient(155deg, #0C1F18 0%, #132D22 60%, #0F2219 100%)',
         borderRadius: '20px', padding: '18px 20px', color: '#fff',
-        boxShadow: 'var(--shadow-green)', position: 'relative', overflow: 'hidden',
+        boxShadow: '0 8px 24px rgba(0,0,0,0.24), 0 2px 6px rgba(0,0,0,0.15), inset 0 1px 0 rgba(255,255,255,0.06)', position: 'relative', overflow: 'hidden',
       }}>
         <div style={{
           position: 'absolute', top: '-20px', right: '-20px',
@@ -912,7 +912,7 @@ export default function Exercise() {
         return (
           <div className="card" style={{ padding: '14px 16px' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '7px', marginBottom: '12px' }}>
-              <Flame size={14} strokeWidth={2} style={{ color: 'var(--primary)', flexShrink: 0 }} />
+              <Flame size={14} strokeWidth={2} style={{ color: '#22C55E', flexShrink: 0 }} />
               <p style={{ fontSize: '12px', fontWeight: 700, color: 'var(--text-primary)', margin: 0 }}>
                 Semana de treino
               </p>
@@ -932,10 +932,10 @@ export default function Exercise() {
                 let pulsing   = false
 
                 if (isDone) {
-                  bg = 'var(--primary)'; border = '1.5px solid var(--primary)'
+                  bg = '#22C55E'; border = '1.5px solid #22C55E'
                   color = '#fff'; showCheck = true
                 } else if (isToday) {
-                  border = '2px solid var(--primary)'; color = 'var(--primary)'
+                  border = '2px solid #22C55E'; color = '#22C55E'
                   bg = 'transparent'; pulsing = true
                 }
 
@@ -960,7 +960,7 @@ export default function Exercise() {
                     </button>
                     <span style={{
                       width: '4px', height: '4px', borderRadius: '50%', display: 'block',
-                      background: isPref ? 'var(--primary)' : 'transparent',
+                      background: isPref ? '#22C55E' : 'transparent',
                       opacity: isDone ? 0 : 0.6,
                     }} />
                   </div>
@@ -975,7 +975,7 @@ export default function Exercise() {
               {streak > 0 && (
                 <>
                   {' · '}
-                  <span style={{ fontWeight: 700, color: 'var(--primary)' }}>{streak}</span>
+                  <span style={{ fontWeight: 700, color: '#22C55E' }}>{streak}</span>
                   {streak === 1 ? ' semana consecutiva' : ' semanas consecutivas'}
                 </>
               )}
@@ -997,7 +997,7 @@ export default function Exercise() {
       {/* Volume info */}
       <div className="card" style={{ padding: '12px 16px' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '7px', marginBottom: '8px' }}>
-          <BarChart2 size={14} strokeWidth={2} style={{ color: 'var(--primary)', flexShrink: 0 }} />
+          <BarChart2 size={14} strokeWidth={2} style={{ color: '#22C55E', flexShrink: 0 }} />
           <p style={{ fontSize: '12px', fontWeight: 700, color: 'var(--text-primary)', margin: 0 }}>Volume recomendado</p>
         </div>
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '8px' }}>
@@ -1010,7 +1010,7 @@ export default function Exercise() {
               background: 'var(--surface-2)', borderRadius: '10px', padding: '8px',
               textAlign: 'center', border: '1px solid var(--border)',
             }}>
-              <p style={{ fontSize: '15px', fontWeight: 800, color: 'var(--primary)', margin: 0 }}>{item.value}</p>
+              <p style={{ fontSize: '15px', fontWeight: 800, color: '#22C55E', margin: 0 }}>{item.value}</p>
               <p style={{ fontSize: '10px', color: 'var(--text-muted)', marginTop: '2px' }}>{item.label}</p>
             </div>
           ))}
@@ -1117,7 +1117,7 @@ export default function Exercise() {
       {/* Tips */}
       <div className="card" style={{ padding: '14px 16px', display: 'flex', flexDirection: 'column', gap: '10px' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '7px' }}>
-          <Lightbulb size={14} strokeWidth={2} style={{ color: 'var(--primary)', flexShrink: 0 }} />
+          <Lightbulb size={14} strokeWidth={2} style={{ color: '#22C55E', flexShrink: 0 }} />
           <p style={{ fontWeight: 700, fontSize: '13px', color: 'var(--text-primary)', margin: 0 }}>Dicas práticas</p>
         </div>
         {[

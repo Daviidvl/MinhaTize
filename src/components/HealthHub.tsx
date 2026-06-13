@@ -261,9 +261,9 @@ const SECTION_CARDS: {
     id: 'exercise',
     title: 'Exercício',
     subtitle: 'Guia de treino com GLP-1',
-    gradient: 'linear-gradient(150deg, #1D4ED8 0%, #1338A6 100%)',
-    shadow: '0 8px 28px rgba(29,78,216,0.35)',
-    accentColor: '#1D4ED8',
+    gradient: 'linear-gradient(150deg, #132D22 0%, #0C1F18 100%)',
+    shadow: '0 8px 28px rgba(12,31,24,0.50)',
+    accentColor: '#22C55E',
   },
   {
     id: 'weaning',

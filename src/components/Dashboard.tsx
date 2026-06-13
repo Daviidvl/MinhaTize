@@ -1,5 +1,5 @@
-import { Package, AlertTriangle, Utensils, ChevronRight, Moon } from 'lucide-react'
-import { UserProfile, Tab, MEDICATION_LABELS, WEEK_DAYS_FULL } from '../types'
+import { Package, AlertTriangle, ChevronRight, Moon } from 'lucide-react'
+import { UserProfile, Tab, MEDICATION_LABELS } from '../types'
 import ApplicationCalendar from './ApplicationCalendar'
 
 interface Props {
@@ -54,6 +54,29 @@ function getMotivation(lost: number, toGoal: number, weeks: number, days: number
   return { text: 'Registre seu peso', sub: 'Acompanhe sua evolução no gráfico.' }
 }
 
+// ── Shared helpers ───────────────────────────────────────────────────────────
+
+const MEAL_KCAL_SHARE: Record<string, number> = {
+  'f-cafe': 0.22, 'f-lanche-m': 0.09, 'f-almoco': 0.32, 'f-lanche-t': 0.09, 'f-jantar': 0.23, 'f-ceia': 0.05,
+  'm-cafe': 0.22, 'm-lanche-m': 0.09, 'm-almoco': 0.32, 'm-lanche-t': 0.09, 'm-jantar': 0.23, 'm-ceia': 0.05,
+}
+
+function getTodayStr() { return new Date().toISOString().split('T')[0] }
+
+function getCalorieStatus(): { consumed: number; target: number; pct: number } | null {
+  try {
+    const diet = JSON.parse(localStorage.getItem('tizetrack_diet') || 'null')
+    if (!diet?.dailyKcal) return null
+    const log  = JSON.parse(localStorage.getItem('tizetrack_food_log') || '{}')
+    const day  = log[getTodayStr()] ?? { meals: [], manual: [] }
+    const mealKcal   = (day.meals as string[]).reduce((s: number, id: string) => s + Math.round(diet.dailyKcal * (MEAL_KCAL_SHARE[id] ?? 0)), 0)
+    const manualKcal = (day.manual as { kcal: number }[]).reduce((s, m) => s + m.kcal, 0)
+    const consumed   = mealKcal + manualKcal
+    return { consumed, target: diet.dailyKcal, pct: Math.min(100, Math.round((consumed / diet.dailyKcal) * 100)) }
+  } catch { return null }
+}
+
+
 // ── Workout widget data ──────────────────────────────────────────────────────
 const SPLIT_INFO: Record<string, { label: string; name: string; color: string }[]> = {
   '2_M': [{ label: 'A', name: 'Empurrar + Core',         color: '#059669' }, { label: 'B', name: 'Puxar + Posterior',        color: '#7C3AED' }],
@@ -90,52 +113,117 @@ function WorkoutWidget({ onNavigate }: { onNavigate: (t: Tab, s?: string) => voi
   let wp: { sex: string; days: number; level: string } | null = null
   try { wp = JSON.parse(localStorage.getItem('tizetrack_workout') || 'null') } catch {}
 
-  const key      = wp ? `${wp.days}_${wp.sex}` : ''
-  const splits   = SPLIT_INFO[key]
-  const todayDay = new Date().getDay()
-  const schedule = wp ? (WORKOUT_SCHEDULE[wp.days] ?? []) : []
-  const idx      = schedule.indexOf(todayDay)
-  const workout  = splits && idx !== -1 ? splits[idx] : null
-  const isRest   = !!wp && !!splits && idx === -1
-  const noData   = !wp || !splits
-  const color    = isRest ? '#059669' : workout?.color ?? '#64748B'
+  let wLog: string[] = []
+  try { wLog = JSON.parse(localStorage.getItem('tizetrack_workout_log') || '[]') } catch {}
+
+  const key       = wp ? `${wp.days}_${wp.sex}` : ''
+  const splits    = SPLIT_INFO[key]
+  const today     = new Date()
+  const todayDay  = today.getDay()
+  const todayStr  = today.toISOString().split('T')[0]
+  const schedule  = wp ? (WORKOUT_SCHEDULE[wp.days] ?? []) : []
+  const idx       = schedule.indexOf(todayDay)
+  const workout   = splits && idx !== -1 ? splits[idx] : null
+  const isRest    = !!wp && !!splits && idx === -1
+  const noData    = !wp || !splits
+  const accent    = workout?.color ?? '#10B981'
+
+  // Mon–Sun dots for current week
+  const monday = new Date(today)
+  monday.setDate(today.getDate() - ((todayDay + 6) % 7))
+  const weekDots = Array.from({ length: 7 }, (_, i) => {
+    const d = new Date(monday); d.setDate(monday.getDate() + i)
+    const ds = d.toISOString().split('T')[0]
+    return { ds, isToday: ds === todayStr, done: wLog.includes(ds) }
+  })
+  const weekDone = weekDots.filter(d => d.done).length
+
+  if (noData) {
+    return (
+      <button onClick={() => onNavigate('health', 'exercise')} style={{
+        display: 'flex', flexDirection: 'column', justifyContent: 'space-between',
+        padding: '14px', borderRadius: '18px', textAlign: 'left', cursor: 'pointer',
+        background: 'var(--surface)', border: '1.5px dashed var(--border-strong)',
+        boxShadow: 'var(--shadow-card)', fontFamily: 'Inter, -apple-system, sans-serif', minHeight: '130px',
+      }}>
+        <p style={{ fontSize: '9px', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.10em', margin: 0 }}>Treino Hoje</p>
+        <div>
+          <p style={{ fontSize: '14px', fontWeight: 800, color: 'var(--text-primary)', margin: '0 0 3px', letterSpacing: '-0.3px' }}>Configurar treino</p>
+          <p style={{ fontSize: '10px', color: 'var(--text-muted)', margin: 0 }}>Saúde → Exercícios</p>
+        </div>
+        <ChevronRight size={14} strokeWidth={2.5} color="var(--text-muted)" />
+      </button>
+    )
+  }
 
   return (
     <button
       onClick={() => onNavigate('health', 'exercise')}
       style={{
-        display: 'flex', flexDirection: 'column', gap: '10px',
-        padding: '12px', borderRadius: '16px', textAlign: 'left', cursor: 'pointer',
-        background: 'var(--surface)',
-        border: '1px solid var(--border)',
-        borderLeft: `3px solid ${color}`,
-        boxShadow: 'var(--shadow-card)',
+        display: 'flex', flexDirection: 'column', gap: '11px',
+        padding: '14px', borderRadius: '18px', textAlign: 'left', cursor: 'pointer',
+        background: isRest
+          ? 'linear-gradient(155deg, #1A2420 0%, #101A16 100%)'
+          : 'linear-gradient(155deg, #0C1F18 0%, #132D22 60%, #0F2219 100%)',
+        border: 'none',
+        boxShadow: '0 8px 24px rgba(0,0,0,0.24), 0 2px 6px rgba(0,0,0,0.16), inset 0 1px 0 rgba(255,255,255,0.06)',
         fontFamily: 'Inter, -apple-system, sans-serif',
+        color: '#fff', transition: 'transform 0.15s ease',
       }}
     >
-      {/* Header */}
+      {/* Label row */}
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-          <div style={{ width: '22px', height: '22px', borderRadius: '6px', background: color + '18', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-            {isRest
-              ? <Moon size={12} strokeWidth={2} color={color} />
-              : <span style={{ fontSize: '11px', fontWeight: 900, color, lineHeight: 1, fontFamily: 'Inter, sans-serif' }}>{workout?.label ?? '—'}</span>
-            }
-          </div>
-          <p style={{ fontSize: '9px', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.08em', margin: 0 }}>
-            Treino hoje
-          </p>
-        </div>
-        <ChevronRight size={12} strokeWidth={2.5} color="var(--text-muted)" />
+        <p style={{ fontSize: '9px', fontWeight: 700, opacity: 0.50, textTransform: 'uppercase', letterSpacing: '0.12em', margin: 0 }}>
+          Treino Hoje
+        </p>
+        <ChevronRight size={11} strokeWidth={2.5} color="rgba(255,255,255,0.35)" />
       </div>
 
-      {/* Main */}
+      {/* Badge + name */}
+      <div style={{ display: 'flex', alignItems: 'flex-start', gap: '10px' }}>
+        <div style={{
+          width: '38px', height: '38px', borderRadius: '11px', flexShrink: 0,
+          background: isRest ? 'rgba(255,255,255,0.07)' : `${accent}28`,
+          border: `1.5px solid ${isRest ? 'rgba(255,255,255,0.10)' : accent + '45'}`,
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+        }}>
+          {isRest
+            ? <Moon size={16} strokeWidth={1.5} color="rgba(255,255,255,0.55)" />
+            : <span style={{ fontSize: '17px', fontWeight: 900, color: accent, lineHeight: 1 }}>{workout!.label}</span>
+          }
+        </div>
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <p style={{ fontSize: '14px', fontWeight: 800, color: '#fff', margin: '0 0 1px', letterSpacing: '-0.3px', lineHeight: 1.25 }}>
+            {isRest ? 'Descanso' : workout!.name.includes(' + ') ? workout!.name.split(' + ')[0] : workout!.name}
+          </p>
+          {!isRest && workout!.name.includes(' + ') && (
+            <p style={{ fontSize: '10px', fontWeight: 600, color: `${accent}bb`, margin: '0 0 1px', lineHeight: 1.2 }}>
+              + {workout!.name.split(' + ').slice(1).join(' + ')}
+            </p>
+          )}
+          <p style={{ fontSize: '9px', opacity: 0.40, margin: 0 }}>
+            {isRest ? 'Recuperação ativa' : `${wp!.days}×/sem · ${LEVEL_LABEL[wp!.level] ?? wp!.level}`}
+          </p>
+        </div>
+      </div>
+
+      {/* Week bar segments */}
       <div>
-        <p style={{ fontSize: '14px', fontWeight: 800, color: 'var(--text-primary)', margin: '0 0 2px', letterSpacing: '-0.3px', lineHeight: 1.2 }}>
-          {noData ? 'Configurar' : isRest ? 'Descanso' : workout!.name}
-        </p>
-        <p style={{ fontSize: '10px', color: 'var(--text-muted)', margin: 0 }}>
-          {noData ? 'Saúde → Exercícios' : isRest ? 'Recuperação ativa' : `${wp!.days}×/sem · ${LEVEL_LABEL[wp!.level] ?? wp!.level}`}
+        <div style={{ display: 'flex', gap: '3px', marginBottom: '5px' }}>
+          {weekDots.map((d, i) => (
+            <div key={i} style={{
+              flex: 1, height: '4px', borderRadius: '99px',
+              background: d.done
+                ? (isRest ? 'rgba(255,255,255,0.55)' : accent)
+                : d.isToday ? 'rgba(255,255,255,0.22)' : 'rgba(255,255,255,0.08)',
+              outline: d.isToday ? '1.5px solid rgba(255,255,255,0.30)' : 'none',
+              outlineOffset: '1.5px',
+              transition: 'background 0.3s',
+            }} />
+          ))}
+        </div>
+        <p style={{ fontSize: '9px', opacity: 0.40, margin: 0, fontWeight: 600 }}>
+          {weekDone}/{wp!.days} treinos esta semana
         </p>
       </div>
     </button>
@@ -144,48 +232,99 @@ function WorkoutWidget({ onNavigate }: { onNavigate: (t: Tab, s?: string) => voi
 
 // ── Meal widget ───────────────────────────────────────────────────────────────
 function MealWidget({ profile, onNavigate }: { profile: UserProfile; onNavigate: (t: Tab, s?: string) => void }) {
-  let dietSex: 'M' | 'F' | null = null
-  try { const d = JSON.parse(localStorage.getItem('tizetrack_diet') || 'null'); dietSex = d?.sex ?? null } catch {}
-  if (!dietSex) dietSex = profile.sex === 'female' ? 'F' : 'M'
+  let dietProfile: { sex: string; dailyKcal: number } | null = null
+  try { dietProfile = JSON.parse(localStorage.getItem('tizetrack_diet') || 'null') } catch {}
 
-  const dietSet          = !!localStorage.getItem('tizetrack_diet')
+  const dietSex             = (dietProfile?.sex ?? (profile.sex === 'female' ? 'F' : 'M')) as 'M' | 'F'
+  const dietSet             = !!dietProfile
   const { slot, isCurrent } = getMealNow()
-  const sub   = (dietSex === 'F' ? slot.sub_F : slot.sub_M).split('·')[0].trim()
-  const color = dietSet ? slot.color : '#64748B'
+  const kcal                = getCalorieStatus()
+
+  const pct      = kcal?.pct ?? 0
+  const consumed = kcal?.consumed ?? 0
+  const target   = kcal?.target ?? dietProfile?.dailyKcal ?? 0
+  const arcR     = 20
+  const arcCirc  = 2 * Math.PI * arcR
+  const arcOff   = arcCirc * (1 - pct / 100)
+  const arcClr   = pct >= 100 ? '#FBBF24' : 'rgba(255,255,255,0.85)'
+  const sub      = (dietSex === 'F' ? slot.sub_F : slot.sub_M).split(' · ')[0].trim()
+
+  if (!dietSet) {
+    return (
+      <button onClick={() => onNavigate('health', 'food')} style={{
+        display: 'flex', flexDirection: 'column', justifyContent: 'space-between',
+        padding: '14px', borderRadius: '18px', textAlign: 'left', cursor: 'pointer',
+        background: 'var(--surface)', border: '1.5px dashed var(--border-strong)',
+        boxShadow: 'var(--shadow-card)', fontFamily: 'Inter, -apple-system, sans-serif', minHeight: '130px',
+      }}>
+        <p style={{ fontSize: '9px', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.10em', margin: 0 }}>Alimentação</p>
+        <div>
+          <p style={{ fontSize: '14px', fontWeight: 800, color: 'var(--text-primary)', margin: '0 0 3px', letterSpacing: '-0.3px' }}>Configurar plano</p>
+          <p style={{ fontSize: '10px', color: 'var(--text-muted)', margin: 0 }}>Saúde → Alimentação</p>
+        </div>
+        <ChevronRight size={14} strokeWidth={2.5} color="var(--text-muted)" />
+      </button>
+    )
+  }
 
   return (
     <button
       onClick={() => onNavigate('health', 'food')}
       style={{
-        display: 'flex', flexDirection: 'column', gap: '10px',
-        padding: '12px', borderRadius: '16px', textAlign: 'left', cursor: 'pointer',
-        background: 'var(--surface)',
-        border: '1px solid var(--border)',
-        borderLeft: `3px solid ${color}`,
-        boxShadow: 'var(--shadow-card)',
+        display: 'flex', flexDirection: 'column', gap: '11px',
+        padding: '14px', borderRadius: '18px', textAlign: 'left', cursor: 'pointer',
+        background: 'linear-gradient(155deg, #1A6B3C 0%, #0F4E2C 60%, #0A3820 100%)',
+        border: 'none',
+        boxShadow: '0 8px 24px rgba(10,56,32,0.40), 0 2px 6px rgba(0,0,0,0.16), inset 0 1px 0 rgba(255,255,255,0.06)',
         fontFamily: 'Inter, -apple-system, sans-serif',
+        color: '#fff', transition: 'transform 0.15s ease',
       }}
     >
-      {/* Header */}
+      {/* Label row */}
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-          <div style={{ width: '22px', height: '22px', borderRadius: '6px', background: color + '18', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-            <Utensils size={12} strokeWidth={2} color={color} />
-          </div>
-          <p style={{ fontSize: '9px', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.08em', margin: 0 }}>
-            {!dietSet ? 'Alimentação' : isCurrent ? 'Agora' : 'Próxima refeição'}
-          </p>
-        </div>
-        <ChevronRight size={12} strokeWidth={2.5} color="var(--text-muted)" />
+        <p style={{ fontSize: '9px', fontWeight: 700, opacity: 0.50, textTransform: 'uppercase', letterSpacing: '0.12em', margin: 0 }}>
+          {isCurrent ? 'Agora' : 'Próxima refeição'}
+        </p>
+        <ChevronRight size={11} strokeWidth={2.5} color="rgba(255,255,255,0.35)" />
       </div>
 
-      {/* Main */}
+      {/* Meal name + mini arc */}
+      <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <p style={{ fontSize: '15px', fontWeight: 800, color: '#fff', margin: '0 0 2px', letterSpacing: '-0.4px', lineHeight: 1.2 }}>
+            {slot.label}
+          </p>
+          <p style={{ fontSize: '10px', opacity: 0.55, margin: 0, fontWeight: 500 }}>{sub}</p>
+        </div>
+        {/* Mini SVG arc */}
+        <div style={{ position: 'relative', flexShrink: 0, width: '46px', height: '46px' }}>
+          <svg width="46" height="46" viewBox="0 0 46 46">
+            <circle cx="23" cy="23" r={arcR} fill="none" stroke="rgba(255,255,255,0.11)" strokeWidth="4" />
+            <circle cx="23" cy="23" r={arcR} fill="none" stroke={arcClr} strokeWidth="4"
+              strokeLinecap="round"
+              strokeDasharray={arcCirc}
+              strokeDashoffset={arcOff}
+              transform="rotate(-90 23 23)"
+              style={{ transition: 'stroke-dashoffset 0.9s cubic-bezier(0.22,1,0.36,1)' }}
+            />
+          </svg>
+          <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            <p style={{ fontSize: '10px', fontWeight: 800, margin: 0, lineHeight: 1, opacity: 0.95 }}>{pct}%</p>
+          </div>
+        </div>
+      </div>
+
+      {/* Kcal progress */}
       <div>
-        <p style={{ fontSize: '14px', fontWeight: 800, color: 'var(--text-primary)', margin: '0 0 2px', letterSpacing: '-0.3px', lineHeight: 1.2 }}>
-          {!dietSet ? 'Configurar' : slot.label}
-        </p>
-        <p style={{ fontSize: '10px', color: 'var(--text-muted)', margin: 0 }}>
-          {!dietSet ? 'Saúde → Alimentação' : sub}
+        <div style={{ background: 'rgba(255,255,255,0.11)', borderRadius: '99px', height: '3px', overflow: 'hidden', marginBottom: '5px' }}>
+          <div style={{
+            width: `${pct}%`, height: '100%',
+            background: pct >= 100 ? 'linear-gradient(90deg, #F59E0B, #FBBF24)' : 'rgba(255,255,255,0.80)',
+            borderRadius: '99px', transition: 'width 0.9s cubic-bezier(0.22,1,0.36,1)',
+          }} />
+        </div>
+        <p style={{ fontSize: '9px', opacity: 0.42, margin: 0, fontWeight: 600 }}>
+          {consumed} / {target} kcal hoje
         </p>
       </div>
     </button>
@@ -229,10 +368,8 @@ export default function Dashboard({ profile, onNavigate, onUpdateProfile }: Prop
   const reachedGoal = hasGoal && lastWeight <= profile.goalWeight
 
   const lastApp       = profile.lastApplication
-  const appDay        = profile.applicationDay
   const daysSinceApp  = lastApp ? daysSince(lastApp) : null
   const daysUntilNext = daysSinceApp != null ? Math.max(0, 7 - daysSinceApp) : null
-  const appPct        = daysSinceApp != null ? Math.min(100, (daysSinceApp / 7) * 100) : 0
   const appToday      = daysUntilNext === 0
 
   const motivation = getMotivation(totalLost, toGoal, weeks, days, reachedGoal)
@@ -344,70 +481,6 @@ export default function Dashboard({ profile, onNavigate, onUpdateProfile }: Prop
         </div>
       </button>
 
-      {/* ── Next application ── */}
-      <div className="card" style={{ padding: '1.25rem' }}>
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: lastApp ? '12px' : 0 }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-            <div style={{
-              width: '42px', height: '42px', borderRadius: '12px', flexShrink: 0,
-              background: appToday ? 'var(--primary)' : 'var(--primary-light)',
-              display: 'flex', alignItems: 'center', justifyContent: 'center',
-              boxShadow: appToday ? '0 4px 14px rgba(37,99,235,0.30)' : 'none',
-            }}>
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none"
-                stroke={appToday ? '#fff' : 'var(--primary)'} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <path d="M22 12h-4l-3 9L9 3l-3 9H2"/>
-              </svg>
-            </div>
-            <div>
-              <p style={{ fontWeight: 700, fontSize: '14px', color: 'var(--text-primary)', margin: 0, fontFamily: 'Inter, sans-serif' }}>
-                Próxima aplicação
-              </p>
-              <p style={{
-                fontSize: '12px', marginTop: '2px', fontWeight: appToday ? 700 : 500,
-                color: appToday ? 'var(--primary)' : 'var(--text-muted)',
-                fontFamily: 'Inter, sans-serif',
-              }}>
-                {lastApp
-                  ? appToday
-                    ? `Hoje! ${appDay !== undefined ? `(${WEEK_DAYS_FULL[appDay]})` : ''}`
-                    : `Em ${daysUntilNext} dia${daysUntilNext !== 1 ? 's' : ''}`
-                  : appDay !== undefined
-                    ? `Toda ${WEEK_DAYS_FULL[appDay]}`
-                    : 'Configure no perfil'}
-              </p>
-            </div>
-          </div>
-
-          <button
-            onClick={() => onUpdateProfile({ ...profile, lastApplication: new Date().toISOString().split('T')[0] })}
-            style={{
-              padding: '8px 16px', borderRadius: '12px', border: 'none',
-              background: appToday ? 'var(--primary)' : 'var(--primary-light)',
-              color: appToday ? '#fff' : 'var(--primary)',
-              fontWeight: 700, fontSize: '12px', cursor: 'pointer',
-              fontFamily: 'Inter, -apple-system, sans-serif',
-              boxShadow: appToday ? '0 4px 14px rgba(37,99,235,0.25)' : 'none',
-              transition: 'all 0.2s',
-              whiteSpace: 'nowrap',
-            }}
-          >
-            {lastApp ? 'Aplicado' : 'Registrar'}
-          </button>
-        </div>
-
-        {lastApp && (
-          <div className="progress-track" style={{ height: '5px' }}>
-            <div className="progress-fill" style={{
-              width: `${appPct}%`,
-              background: appPct > 85
-                ? 'linear-gradient(90deg, var(--primary), #F59E0B)'
-                : undefined,
-            }} />
-          </div>
-        )}
-      </div>
-
       {/* ── Daily widgets ── */}
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
         <WorkoutWidget onNavigate={onNavigate} />
@@ -422,12 +495,25 @@ export default function Dashboard({ profile, onNavigate, onUpdateProfile }: Prop
           sub={imcInfo?.text}
           subColor={imcInfo?.color}
         />
-        <StatTile
-          label="Dose atual"
-          value={profile.currentDose}
-          unit="mg"
-          sub={DOSE_PHASE[profile.currentDose] ?? ''}
-        />
+        <div className="stat-card">
+          <p className="label-base" style={{ marginBottom: '6px' }}>Dose atual</p>
+          <p style={{ fontSize: '26px', fontWeight: 800, lineHeight: 1, letterSpacing: '-1px', color: 'var(--text-primary)', margin: 0 }}>
+            {profile.currentDose}
+            <span style={{ fontSize: '13px', fontWeight: 600, color: 'var(--text-muted)', marginLeft: '3px' }}>mg</span>
+          </p>
+          <div style={{ marginTop: '7px', display: 'flex', flexDirection: 'column', gap: '3px' }}>
+            {daysUntilNext !== null && (
+              <p style={{ fontSize: '11px', fontWeight: 700, margin: 0, color: appToday ? '#10B981' : 'var(--primary)' }}>
+                {appToday ? 'Aplicar hoje!' : `Próxima: ${daysUntilNext}d`}
+              </p>
+            )}
+            {(DOSE_PHASE[profile.currentDose]) && (
+              <p style={{ fontSize: '11px', fontWeight: 600, color: 'var(--text-muted)', margin: 0 }}>
+                {DOSE_PHASE[profile.currentDose]}
+              </p>
+            )}
+          </div>
+        </div>
       </div>
 
       {/* ── Stock indicator ── */}
@@ -505,29 +591,27 @@ export default function Dashboard({ profile, onNavigate, onUpdateProfile }: Prop
       </button>
 
       {/* ── Calendar ── */}
-      {appDay !== undefined && (
-        <div className="card" style={{ padding: '1.25rem' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '14px' }}>
-            <div style={{
-              width: '34px', height: '34px', borderRadius: '10px',
-              background: 'var(--primary-light)', display: 'flex',
-              alignItems: 'center', justifyContent: 'center',
-            }}>
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none"
-                stroke="var(--primary)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <rect x="3" y="4" width="18" height="18" rx="2" ry="2"/>
-                <line x1="16" y1="2" x2="16" y2="6"/>
-                <line x1="8" y1="2" x2="8" y2="6"/>
-                <line x1="3" y1="10" x2="21" y2="10"/>
-              </svg>
-            </div>
-            <p style={{ fontWeight: 700, fontSize: '14px', color: 'var(--text-primary)', margin: 0, fontFamily: 'Inter, sans-serif' }}>
-              Calendário de aplicações
-            </p>
+      <div className="card" style={{ padding: '1.25rem' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '14px' }}>
+          <div style={{
+            width: '34px', height: '34px', borderRadius: '10px',
+            background: 'var(--primary-light)', display: 'flex',
+            alignItems: 'center', justifyContent: 'center',
+          }}>
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none"
+              stroke="var(--primary)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <rect x="3" y="4" width="18" height="18" rx="2" ry="2"/>
+              <line x1="16" y1="2" x2="16" y2="6"/>
+              <line x1="8" y1="2" x2="8" y2="6"/>
+              <line x1="3" y1="10" x2="21" y2="10"/>
+            </svg>
           </div>
-          <ApplicationCalendar profile={profile} onUpdateProfile={onUpdateProfile} compact />
+          <p style={{ fontWeight: 700, fontSize: '14px', color: 'var(--text-primary)', margin: 0, fontFamily: 'Inter, sans-serif' }}>
+            Calendário de aplicações
+          </p>
         </div>
-      )}
+        <ApplicationCalendar profile={profile} onUpdateProfile={onUpdateProfile} compact />
+      </div>
 
     </div>
   )
