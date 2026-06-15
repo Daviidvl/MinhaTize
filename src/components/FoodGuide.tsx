@@ -681,7 +681,10 @@ export default function FoodGuide() {
         headers: { 'content-type': 'application/json' },
         body: JSON.stringify(p),
       })
-      if (!res.ok) throw new Error(`HTTP ${res.status}`)
+      if (!res.ok) {
+        const body = await res.json().catch(() => ({})) as { error?: string }
+        throw new Error(body.error ?? `HTTP ${res.status}`)
+      }
       const data = await res.json() as { meals?: MealSection[]; lowHunger?: MealSection[]; lists?: ListSection[]; error?: string }
       if (data.error) throw new Error(data.error)
       const cache: AIDietCache = {
@@ -693,8 +696,9 @@ export default function FoodGuide() {
       localStorage.setItem(AI_DIET_KEY, JSON.stringify(cache))
       setAiDiet(cache)
     } catch (err) {
-      console.error('[generateDiet]', err)
-      setAiError('Não foi possível gerar o plano com IA. Usando plano padrão.')
+      const msg = err instanceof Error ? err.message : 'Erro desconhecido'
+      console.error('[generateDiet]', msg)
+      setAiError(`IA indisponível: ${msg}. Usando plano padrão.`)
     } finally {
       setAiLoading(false)
     }
