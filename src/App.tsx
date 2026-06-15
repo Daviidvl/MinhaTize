@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react'
-import LandingPage from './components/LandingPage'
+import LoginScreen from './components/LoginScreen'
 import { getTokenFromURL, getStoredToken, saveToken, cleanTokenFromURL, clearToken, validateToken } from './utils/token'
 import Header from './components/Header'
 import Dashboard from './components/Dashboard'
@@ -31,7 +31,9 @@ function loadProfile(): UserProfile {
   try {
     const raw = localStorage.getItem('tizetrack_profile')
     if (raw) return { ...DEFAULT_PROFILE, ...JSON.parse(raw) }
-  } catch { /* */ }
+  } catch (err) {
+    console.error('[loadProfile] Failed to parse profile from localStorage:', err)
+  }
   return DEFAULT_PROFILE
 }
 
@@ -109,10 +111,12 @@ export default function App() {
 
   // ── Verificação de token ────────────────────────────────────────────────────
   useEffect(() => {
+    let cancelled = false
     async function checkAccess() {
       const urlToken = getTokenFromURL()
       if (urlToken) {
         const valid = await validateToken(urlToken)
+        if (cancelled) return
         if (valid) {
           saveToken(urlToken)
           cleanTokenFromURL()
@@ -123,12 +127,14 @@ export default function App() {
       const stored = getStoredToken()
       if (stored) {
         const valid = await validateToken(stored)
+        if (cancelled) return
         if (valid) { setTokenStatus('valid'); return }
         clearToken()
       }
-      setTokenStatus('invalid')
+      if (!cancelled) setTokenStatus('invalid')
     }
     checkAccess()
+    return () => { cancelled = true }
   }, [])
 
   // ── Altura da navbar ────────────────────────────────────────────────────────
@@ -181,7 +187,7 @@ export default function App() {
   }
 
   if (tokenStatus === 'invalid') {
-    return <LandingPage onAccessGranted={() => setTokenStatus('valid')} />
+    return <LoginScreen onAccessGranted={() => setTokenStatus('valid')} />
   }
 
   if (isFirstAccess) {

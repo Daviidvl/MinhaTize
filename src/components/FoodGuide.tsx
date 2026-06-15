@@ -1,4 +1,4 @@
-import { useState, useRef, type CSSProperties } from 'react'
+import { useState, useRef, useEffect, type CSSProperties } from 'react'
 import { Utensils, Info, ChevronDown, RotateCcw, Droplets, Leaf, AlertCircle, Check, Plus, X } from 'lucide-react'
 
 // ── Types ─────────────────────────────────────────────────────────────────────
@@ -34,10 +34,22 @@ interface Option      { label?: string; items: string[]; protein?: string; note?
 interface MealSection { id: string; label: string; sublabel?: string; color: string; kcalShare: number; options: Option[] }
 interface ListSection { id: string; label: string; items: string[]; note?: string }
 
+interface AIDietCache {
+  meals:      MealSection[]
+  lowHunger:  MealSection[]
+  lists:      ListSection[]
+  profileHash: string
+}
+
 // ── Storage ───────────────────────────────────────────────────────────────────
 
-const STORAGE_KEY  = 'tizetrack_diet'
-const LOG_KEY      = 'tizetrack_food_log'
+const STORAGE_KEY   = 'tizetrack_diet'
+const LOG_KEY       = 'tizetrack_food_log'
+const AI_DIET_KEY   = 'tizetrack_ai_diet'
+
+function dietProfileHash(p: DietProfile): string {
+  return `${p.sex}-${p.mealFrequency}-${p.restrictions.sort().join(',')}-${p.goal}-${Math.round(p.dailyKcal / 50) * 50}`
+}
 
 function toDateStr(d = new Date()) { return d.toISOString().split('T')[0] }
 
@@ -652,6 +664,52 @@ export default function FoodGuide() {
   const [formComorbidities, setFormComorbidities] = useState<string[]>([])
   const [formRestrictions, setFormRestrictions]   = useState<string[]>([])
 
+  // ── AI Diet ──
+  const [aiDiet, setAiDiet]       = useState<AIDietCache | null>(() => {
+    try { return JSON.parse(localStorage.getItem(AI_DIET_KEY) || 'null') }
+    catch { return null }
+  })
+  const [aiLoading, setAiLoading] = useState(false)
+  const [aiError, setAiError]     = useState('')
+
+  async function generateDiet(p: DietProfile) {
+    setAiLoading(true)
+    setAiError('')
+    try {
+      const res = await fetch('/api/generate-diet', {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify(p),
+      })
+      if (!res.ok) throw new Error(`HTTP ${res.status}`)
+      const data = await res.json() as { meals?: MealSection[]; lowHunger?: MealSection[]; lists?: ListSection[]; error?: string }
+      if (data.error) throw new Error(data.error)
+      const cache: AIDietCache = {
+        meals:      data.meals ?? [],
+        lowHunger:  data.lowHunger ?? [],
+        lists:      data.lists ?? [],
+        profileHash: dietProfileHash(p),
+      }
+      localStorage.setItem(AI_DIET_KEY, JSON.stringify(cache))
+      setAiDiet(cache)
+    } catch (err) {
+      console.error('[generateDiet]', err)
+      setAiError('Não foi possível gerar o plano com IA. Usando plano padrão.')
+    } finally {
+      setAiLoading(false)
+    }
+  }
+
+  // Auto-generate when profile exists but AI diet is missing or stale
+  useEffect(() => {
+    if (!profile) return
+    const hash = dietProfileHash(profile)
+    if (!aiDiet || aiDiet.profileHash !== hash) {
+      generateDiet(profile)
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [profile?.sex, profile?.mealFrequency, profile?.restrictions?.join(','), profile?.goal, profile?.dailyKcal])
+
   // ── Plan view ──
   const [activeTab, setActiveTab]   = useState<DietTab>('hoje')
   const [expanded, setExpanded]     = useState<Set<string>>(new Set())
@@ -723,9 +781,12 @@ export default function FoodGuide() {
     }
     const p: DietProfile = { ...draft, dailyKcal: calcTDEE(draft) }
     localStorage.setItem(STORAGE_KEY, JSON.stringify(p))
+    localStorage.removeItem(AI_DIET_KEY)
+    setAiDiet(null)
     setProfile(p)
     setExpanded(new Set())
     setActiveTab('hoje')
+    generateDiet(p)
   }
 
   function resetProfile() {
@@ -1127,30 +1188,23 @@ export default function FoodGuide() {
 
   // ── PLAN VIEW ────────────────────────────────────────────────────────────────
 
+  const _aiMatch = !!(aiDiet && aiDiet.profileHash === dietProfileHash(profile))
   const isVegan = profile.restrictions.includes('vegan')
   const isVegetarian = profile.restrictions.includes('vegetarian')
-  const baseMeals = isVegan
+  const _staticBase = isVegan
     ? (profile.sex === 'F' ? VEGAN_FEMALE_MEALS : VEGAN_MALE_MEALS)
     : isVegetarian
       ? (profile.sex === 'F' ? VEGETARIAN_FEMALE_MEALS : VEGETARIAN_MALE_MEALS)
       : (profile.sex === 'F' ? FEMALE_MEALS : MALE_MEALS)
-  const lists = isVegan
-    ? VEGAN_LISTS
-    : isVegetarian
-      ? VEGETARIAN_LISTS
-      : (profile.sex === 'F' ? FEMALE_LISTS : MALE_LISTS)
-  const lowHungerMeals = isVegan
-    ? VEGAN_LOW_HUNGER_MEALS
-    : isVegetarian
-      ? VEGETARIAN_LOW_HUNGER_MEALS
-      : LOW_HUNGER_MEALS
+  const lists = _aiMatch ? aiDiet!.lists : (isVegan ? VEGAN_LISTS : isVegetarian ? VEGETARIAN_LISTS : (profile.sex === 'F' ? FEMALE_LISTS : MALE_LISTS))
+  const lowHungerMeals = _aiMatch ? aiDiet!.lowHunger : (isVegan ? VEGAN_LOW_HUNGER_MEALS : isVegetarian ? VEGETARIAN_LOW_HUNGER_MEALS : LOW_HUNGER_MEALS)
   const FREQ_SUFFIXES: Record<MealFrequency, string[]> = {
     '2':   ['-cafe', '-almoco'],
     '3':   ['-cafe', '-almoco', '-jantar'],
     '4':   ['-cafe', '-almoco', '-lanche-t', '-jantar'],
     '5-6': ['-cafe', '-lanche-m', '-almoco', '-lanche-t', '-jantar', '-ceia'],
   }
-  const meals = baseMeals.filter(m =>
+  const meals = _aiMatch ? aiDiet!.meals : _staticBase.filter(m =>
     (FREQ_SUFFIXES[profile.mealFrequency] ?? FREQ_SUFFIXES['5-6']).some(s => m.id.endsWith(s))
   )
 
@@ -1183,6 +1237,66 @@ export default function FoodGuide() {
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+
+      {/* ── AI status bar ── */}
+      {aiLoading && (
+        <div style={{
+          display: 'flex', alignItems: 'center', gap: '10px',
+          padding: '12px 16px', borderRadius: '14px',
+          background: 'rgba(37,99,235,0.07)', border: '1px solid rgba(37,99,235,0.18)',
+        }}>
+          <div style={{
+            width: '16px', height: '16px', borderRadius: '50%', flexShrink: 0,
+            border: '2px solid rgba(37,99,235,0.25)', borderTopColor: 'var(--primary)',
+            animation: 'spin 0.7s linear infinite',
+          }} />
+          <p style={{ fontSize: '13px', fontWeight: 600, color: 'var(--primary)', margin: 0 }}>
+            Gerando seu plano personalizado com IA...
+          </p>
+          <style>{`@keyframes spin { to { transform: rotate(360deg) } }`}</style>
+        </div>
+      )}
+      {!aiLoading && aiError && (
+        <div style={{
+          padding: '10px 14px', borderRadius: '12px',
+          background: 'rgba(245,158,11,0.07)', border: '1px solid rgba(245,158,11,0.22)',
+          display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '10px',
+        }}>
+          <p style={{ fontSize: '12px', color: '#92400E', margin: 0, flex: 1 }}>{aiError}</p>
+          <button
+            onClick={() => generateDiet(profile)}
+            style={{
+              padding: '5px 12px', borderRadius: '8px', border: 'none', cursor: 'pointer',
+              background: '#D97706', color: '#fff', fontSize: '11px', fontWeight: 700,
+              fontFamily: 'Inter, -apple-system, sans-serif', whiteSpace: 'nowrap',
+            }}
+          >
+            Tentar novamente
+          </button>
+        </div>
+      )}
+      {!aiLoading && _aiMatch && (
+        <div style={{
+          display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+          padding: '9px 14px', borderRadius: '12px',
+          background: 'rgba(16,185,129,0.07)', border: '1px solid rgba(16,185,129,0.20)',
+        }}>
+          <p style={{ fontSize: '12px', fontWeight: 600, color: '#059669', margin: 0, display: 'flex', alignItems: 'center', gap: '6px' }}>
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M12 2a10 10 0 1 0 0 20A10 10 0 0 0 12 2z"/><path d="m9 12 2 2 4-4"/></svg>
+            Plano gerado por IA para o seu perfil
+          </p>
+          <button
+            onClick={() => generateDiet(profile)}
+            style={{
+              padding: '4px 10px', borderRadius: '8px', border: '1px solid rgba(16,185,129,0.30)',
+              background: 'transparent', cursor: 'pointer', color: '#059669',
+              fontSize: '11px', fontWeight: 700, fontFamily: 'Inter, -apple-system, sans-serif',
+            }}
+          >
+            Regenerar
+          </button>
+        </div>
+      )}
 
       {/* ── Calorie hero ── */}
       <div style={{

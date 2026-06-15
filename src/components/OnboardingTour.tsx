@@ -109,7 +109,7 @@ export default function OnboardingTour({ onDone, onTabChange }: Props) {
 
   // Measure target element; retries until it appears (handles tab transitions)
   useEffect(() => {
-    let timer: ReturnType<typeof setTimeout>
+    const timers: ReturnType<typeof setTimeout>[] = []
     let attempts = 0
 
     function measure() {
@@ -120,13 +120,13 @@ export default function OnboardingTour({ onDone, onTabChange }: Props) {
         setSettling(false)
       } else if (attempts < 20) {
         attempts++
-        timer = setTimeout(measure, 60)
+        timers.push(setTimeout(measure, 60))
       }
     }
 
     setRect(null)
     setSettling(true)
-    timer = setTimeout(measure, 120)
+    timers.push(setTimeout(measure, 120))
 
     function onResize() {
       const el = document.querySelector<HTMLElement>(`[data-tour="${cur.target}"]`)
@@ -136,7 +136,7 @@ export default function OnboardingTour({ onDone, onTabChange }: Props) {
       }
     }
     window.addEventListener('resize', onResize)
-    return () => { clearTimeout(timer); window.removeEventListener('resize', onResize) }
+    return () => { timers.forEach(clearTimeout); window.removeEventListener('resize', onResize) }
   }, [step, cur.target])
 
   function finish() {
