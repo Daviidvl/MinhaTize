@@ -1,4 +1,24 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node'
+import https from 'https'
+
+function post(url: string, headers: Record<string, string>, body: string): Promise<{ status: number; text: string }> {
+  return new Promise((resolve, reject) => {
+    const u = new URL(url)
+    const req = https.request({
+      hostname: u.hostname,
+      path: u.pathname,
+      method: 'POST',
+      headers: { ...headers, 'Content-Length': Buffer.byteLength(body) },
+    }, res => {
+      let data = ''
+      res.on('data', c => { data += c })
+      res.on('end', () => resolve({ status: res.statusCode ?? 0, text: data }))
+    })
+    req.on('error', reject)
+    req.write(body)
+    req.end()
+  })
+}
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   res.setHeader('Access-Control-Allow-Origin', '*')
@@ -8,58 +28,53 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   if (req.method !== 'POST') return res.status(405).end()
 
   const key = process.env.ANTHROPIC_API_KEY
-  if (!key) {
-    console.error('[generate-report] ANTHROPIC_API_KEY not set')
-    return res.status(500).json({ error: 'Serviço não configurado.' })
-  }
+  if (!key) return res.status(500).json({ error: 'Serviço não configurado.' })
 
-  const payload = req.body
-  if (!payload || typeof payload !== 'object') {
+  let payload: Record<string, unknown>
+  try {
+    payload = typeof req.body === 'string' ? JSON.parse(req.body) : req.body
+    if (!payload || typeof payload !== 'object') throw new Error()
+  } catch {
     return res.status(400).json({ error: 'Payload inválido.' })
   }
 
-  try {
-    const upstream = await fetch('https://api.anthropic.com/v1/messages', {
-      method: 'POST',
-      headers: {
-        'x-api-key': key,
-        'anthropic-version': '2023-06-01',
-        'content-type': 'application/json',
-      },
-      body: JSON.stringify({
-        model: 'claude-3-5-haiku-20241022',
-        max_tokens: 1024,
-        messages: [{
-          role: 'user',
-          content: `Você é um assistente educativo de saúde em um app de acompanhamento de tirzepatida. Analise os dados do usuário após 14 dias de plano anti-platô e gere um relatório educativo em português, com linguagem acolhedora e simples.
+  const prompt = `Você é um assistente educativo de saúde em um app de acompanhamento de tirzepatida. Analise os dados do usuário após 14 dias de plano anti-platô e gere um relatório educativo em português, com linguagem acolhedora e simples.
 
 Dados:
 ${JSON.stringify(payload, null, 2)}
 
 O relatório deve conter exatamente estes 5 blocos em texto corrido (sem markdown):
-
 1. Resumo dos principais gargalos encontrados
 2. Ordem de prioridade de ação com metas práticas e específicas
 3. Orientações para os próximos 14 dias
 4. Reforço de que platô não é fracasso — é parte do processo
 5. Quando buscar acompanhamento médico
 
-Use parágrafos curtos. Não sugira alteração de dose do medicamento.`,
-        }],
-      }),
+Use parágrafos curtos. Não sugira alteração de dose do medicamento.`
+
+  try {
+    const body = JSON.stringify({
+      model: 'claude-3-5-haiku-20241022',
+      max_tokens: 1024,
+      messages: [{ role: 'user', content: prompt }],
     })
 
-    if (!upstream.ok) {
-      const err = await upstream.text()
-      console.error('[generate-report] Anthropic error:', upstream.status, err)
-      return res.status(502).json({ error: 'Erro ao gerar relatório.' })
+    const result = await post('https://api.anthropic.com/v1/messages', {
+      'x-api-key': key,
+      'anthropic-version': '2023-06-01',
+      'content-type': 'application/json',
+    }, body)
+
+    if (result.status !== 200) {
+      console.error('[generate-report] Anthropic error:', result.status, result.text.slice(0, 300))
+      return res.status(502).json({ error: `Anthropic retornou ${result.status}` })
     }
 
-    const data = await upstream.json() as { content?: { text: string }[] }
+    const data = JSON.parse(result.text) as { content?: { text: string }[] }
     const text = data.content?.[0]?.text ?? 'Relatório não disponível.'
     return res.status(200).json({ text })
   } catch (err) {
-    console.error('[generate-report] Unexpected error:', err)
+    console.error('[generate-report] Error:', err)
     return res.status(500).json({ error: 'Erro interno.' })
   }
 }

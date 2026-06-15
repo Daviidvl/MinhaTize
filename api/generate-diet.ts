@@ -1,23 +1,23 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node'
+import https from 'https'
 
-interface RawMeal      { id: string; options: { items: string[]; protein?: string }[] }
-interface RawLowHunger { id: string; label: string; options: { items: string[]; note?: string }[] }
-interface RawList      { id: string; label: string; items: string[] }
-
-const MEAL_META: Record<string, { label: string; sublabel: string; color: string; kcalShare: number }> = {
-  'cafe':     { label: 'Café da Manhã',   sublabel: '7h–9h',   color: '#D97706', kcalShare: 0.22 },
-  'lanche-m': { label: 'Lanche da Manhã', sublabel: '10h–11h', color: '#059669', kcalShare: 0.10 },
-  'almoco':   { label: 'Almoço',          sublabel: '12h–14h', color: '#2563EB', kcalShare: 0.35 },
-  'lanche-t': { label: 'Lanche da Tarde', sublabel: '15h–16h', color: '#7C3AED', kcalShare: 0.12 },
-  'jantar':   { label: 'Jantar',          sublabel: '19h–21h', color: '#DC2626', kcalShare: 0.18 },
-  'ceia':     { label: 'Ceia',            sublabel: '21h–22h', color: '#0891B2', kcalShare: 0.03 },
-}
-
-const FREQ_MEALS: Record<string, string[]> = {
-  '2':   ['cafe', 'almoco'],
-  '3':   ['cafe', 'almoco', 'jantar'],
-  '4':   ['cafe', 'almoco', 'lanche-t', 'jantar'],
-  '5-6': ['cafe', 'lanche-m', 'almoco', 'lanche-t', 'jantar', 'ceia'],
+function post(url: string, headers: Record<string, string>, body: string): Promise<{ status: number; text: string }> {
+  return new Promise((resolve, reject) => {
+    const u = new URL(url)
+    const req = https.request({
+      hostname: u.hostname,
+      path: u.pathname,
+      method: 'POST',
+      headers: { ...headers, 'Content-Length': Buffer.byteLength(body) },
+    }, res => {
+      let data = ''
+      res.on('data', c => { data += c })
+      res.on('end', () => resolve({ status: res.statusCode ?? 0, text: data }))
+    })
+    req.on('error', reject)
+    req.write(body)
+    req.end()
+  })
 }
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
@@ -28,102 +28,112 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   if (req.method !== 'POST') return res.status(405).end()
 
   const key = process.env.ANTHROPIC_API_KEY
-  if (!key) {
-    console.error('[generate-diet] ANTHROPIC_API_KEY not set')
-    return res.status(500).json({ error: 'Serviço não configurado.' })
-  }
+  if (!key) return res.status(500).json({ error: 'Serviço não configurado.' })
 
-  // Body parsing — Vercel parses JSON automatically, but guard against string body
   let p: Record<string, unknown>
   try {
     p = typeof req.body === 'string' ? JSON.parse(req.body) : req.body
+    if (!p || !p.sex || !p.mealFrequency) throw new Error()
   } catch {
-    return res.status(400).json({ error: 'Payload inválido.' })
-  }
-
-  if (!p?.sex || !p?.mealFrequency) {
     return res.status(400).json({ error: 'Perfil inválido.' })
   }
 
-  const selectedMeals = FREQ_MEALS[p.mealFrequency as string] ?? FREQ_MEALS['5-6']
-  const mealNames = selectedMeals.map(id => MEAL_META[id]?.label).join(', ')
+  const freqMeals: Record<string, string[]> = {
+    '2': ['cafe', 'almoco'],
+    '3': ['cafe', 'almoco', 'jantar'],
+    '4': ['cafe', 'almoco', 'lanche-t', 'jantar'],
+    '5-6': ['cafe', 'lanche-m', 'almoco', 'lanche-t', 'jantar', 'ceia'],
+  }
+  const mealLabels: Record<string, string> = {
+    'cafe': 'Café da Manhã', 'lanche-m': 'Lanche da Manhã',
+    'almoco': 'Almoço', 'lanche-t': 'Lanche da Tarde',
+    'jantar': 'Jantar', 'ceia': 'Ceia',
+  }
+  const mealColors: Record<string, string> = {
+    'cafe': '#D97706', 'lanche-m': '#059669', 'almoco': '#2563EB',
+    'lanche-t': '#7C3AED', 'jantar': '#DC2626', 'ceia': '#0891B2',
+  }
+  const kcalShares: Record<string, number> = {
+    'cafe': 0.22, 'lanche-m': 0.10, 'almoco': 0.35,
+    'lanche-t': 0.12, 'jantar': 0.18, 'ceia': 0.03,
+  }
 
+  const selected = freqMeals[p.mealFrequency as string] ?? freqMeals['5-6']
   const restrictions = Array.isArray(p.restrictions) && !(p.restrictions as string[]).includes('none')
-    ? (p.restrictions as string[]).join(', ')
-    : 'nenhuma'
+    ? (p.restrictions as string[]).join(', ') : 'nenhuma'
 
-  const prompt = `Nutricionista de GLP-1. Crie plano alimentar em JSON para:
-Sexo: ${p.sex === 'F' ? 'F' : 'M'} | Peso: ${p.weight}kg→${p.goalWeight}kg | Altura: ${p.height}cm | Idade: ${p.age}a
-Objetivo: ${p.goal} | Fase: ${p.protocolPhase} | Kcal/dia: ${p.dailyKcal} | Refeições: ${p.mealFrequency}x
-Restrições: ${restrictions}
+  const prompt = `Nutricionista GLP-1. JSON de plano alimentar para:
+Sexo:${p.sex} Peso:${p.weight}kg→${p.goalWeight}kg Altura:${p.height}cm Idade:${p.age}a
+Objetivo:${p.goal} Fase:${p.protocolPhase} Kcal:${p.dailyKcal} Refeições:${p.mealFrequency}x
+Restrições:${restrictions}
+Refeições necessárias: ${selected.map(id => mealLabels[id]).join(', ')}
 
-Refeições: ${mealNames}
+Retorne APENAS JSON válido:
+{"meals":[{"id":"cafe","options":[{"items":["150g frango","1 xic arroz integral"],"protein":"35g"},{"items":["2 ovos","pão integral"],"protein":"22g"},{"items":["atum","tapioca"],"protein":"28g"}]},{"id":"almoco",...},...],"lowHunger":[{"id":"lh-1","label":"Proteína Rápida","options":[{"items":["iogurte grego 170g","castanhas 30g"]}]},{"id":"lh-2","label":"Carboidrato Fácil","options":[{"items":["banana","aveia"]}]},{"id":"lh-3","label":"Bebida Nutritiva","options":[{"items":["whey 200ml leite"]}]}],"lists":[{"id":"proteinas","label":"Proteínas Magras","items":["frango","atum","ovo","queijo","iogurte grego","whey"]},{"id":"carbs","label":"Carboidratos","items":["arroz integral","batata doce","aveia","tapioca","pão integral","macarrão integral"]},{"id":"vegetais","label":"Vegetais","items":["brócolis","espinafre","abobrinha","cenoura","tomate","pepino"]}]}
 
-Retorne SOMENTE JSON (sem markdown):
-{"meals":[{"id":"cafe","options":[{"items":["qtd alimento","qtd alimento"],"protein":"Xg"},{"items":[...],"protein":"Xg"},{"items":[...],"protein":"Xg"}]}],"lowHunger":[{"id":"lh-1","label":"Proteína Rápida","options":[{"items":["opção 1","opção 2","opção 3"]}]},{"id":"lh-2","label":"Carboidrato Fácil","options":[{"items":["opção 1","opção 2"]}]},{"id":"lh-3","label":"Líquidos Nutritivos","options":[{"items":["opção 1","opção 2"]}]}],"lists":[{"id":"proteinas","label":"Proteínas Magras","items":["item1","item2","item3","item4","item5","item6"]},{"id":"carbs","label":"Carboidratos Complexos","items":["item1","item2","item3","item4","item5","item6"]},{"id":"vegetais","label":"Legumes e Verduras","items":["item1","item2","item3","item4","item5","item6"]}]}
-
-Regras: alimentos brasileiros, quantidades específicas, respeitar restrições, ${p.protocolPhase === 'beginning' ? 'porções menores e digestão fácil' : 'alta proteína e baixo carboidrato refinado'}.
-IDs permitidos para meals: ${selectedMeals.join(',')}. Gere exatamente ${selectedMeals.length} refeição(ões).`
+IDs permitidos em meals: ${selected.join(',')}. Gere ${selected.length} meals. Alimentos brasileiros, quantidades específicas.`
 
   try {
-    const upstream = await fetch('https://api.anthropic.com/v1/messages', {
-      method: 'POST',
-      headers: {
-        'x-api-key': key,
-        'anthropic-version': '2023-06-01',
-        'content-type': 'application/json',
-      },
-      body: JSON.stringify({
-        model: 'claude-3-5-haiku-20241022',
-        max_tokens: 1500,
-        messages: [{ role: 'user', content: prompt }],
-      }),
+    const body = JSON.stringify({
+      model: 'claude-3-5-haiku-20241022',
+      max_tokens: 1500,
+      messages: [{ role: 'user', content: prompt }],
     })
 
-    if (!upstream.ok) {
-      const errText = await upstream.text()
-      console.error('[generate-diet] Anthropic error:', upstream.status, errText)
-      return res.status(502).json({ error: 'Erro ao gerar plano alimentar.' })
+    const result = await post('https://api.anthropic.com/v1/messages', {
+      'x-api-key': key,
+      'anthropic-version': '2023-06-01',
+      'content-type': 'application/json',
+    }, body)
+
+    if (result.status !== 200) {
+      console.error('[generate-diet] Anthropic error:', result.status, result.text.slice(0, 300))
+      return res.status(502).json({ error: `Anthropic retornou ${result.status}` })
     }
 
-    const data = await upstream.json() as { content?: { text: string }[] }
-    const rawText = data.content?.[0]?.text ?? ''
-
-    let parsed: { meals: RawMeal[]; lowHunger: RawLowHunger[]; lists: RawList[] }
+    let rawText = ''
     try {
-      const jsonMatch = rawText.match(/\{[\s\S]*\}/)
-      parsed = JSON.parse(jsonMatch?.[0] ?? rawText)
+      const data = JSON.parse(result.text) as { content?: { text: string }[] }
+      rawText = data.content?.[0]?.text ?? ''
     } catch {
-      console.error('[generate-diet] Parse failed. Raw:', rawText.slice(0, 800))
       return res.status(502).json({ error: 'Resposta inválida da IA.' })
     }
 
-    const meals = (parsed.meals ?? []).map((m: RawMeal) => ({
+    let parsed: { meals: { id: string; options: { items: string[]; protein?: string }[] }[]; lowHunger: { id: string; label: string; options: { items: string[]; note?: string }[] }[]; lists: { id: string; label: string; items: string[] }[] }
+    try {
+      const m = rawText.match(/\{[\s\S]*\}/)
+      parsed = JSON.parse(m?.[0] ?? rawText)
+    } catch {
+      console.error('[generate-diet] Parse failed:', rawText.slice(0, 500))
+      return res.status(502).json({ error: 'JSON inválido da IA.' })
+    }
+
+    const meals = (parsed.meals ?? []).map(m => ({
       id: `ai-${m.id}`,
-      label:     MEAL_META[m.id]?.label    ?? m.id,
-      sublabel:  MEAL_META[m.id]?.sublabel,
-      color:     MEAL_META[m.id]?.color    ?? '#64748B',
-      kcalShare: MEAL_META[m.id]?.kcalShare ?? (1 / selectedMeals.length),
-      options:   m.options ?? [],
+      label: mealLabels[m.id] ?? m.id,
+      sublabel: { cafe: '7h–9h', 'lanche-m': '10h–11h', almoco: '12h–14h', 'lanche-t': '15h–16h', jantar: '19h–21h', ceia: '21h–22h' }[m.id],
+      color: mealColors[m.id] ?? '#64748B',
+      kcalShare: kcalShares[m.id] ?? (1 / selected.length),
+      options: m.options ?? [],
     }))
 
-    const lowHunger = (parsed.lowHunger ?? []).map((m: RawLowHunger) => ({
-      id:        `ai-lh-${m.id}`,
-      label:     m.label,
-      color:     '#F59E0B',
+    const lowHunger = (parsed.lowHunger ?? []).map(m => ({
+      id: `ai-lh-${m.id}`,
+      label: m.label,
+      color: '#F59E0B',
       kcalShare: 0,
-      options:   m.options ?? [],
+      options: m.options ?? [],
     }))
 
-    const lists = (parsed.lists ?? []).map((l: RawList) => ({
-      id:    `ai-list-${l.id}`,
+    const lists = (parsed.lists ?? []).map(l => ({
+      id: `ai-list-${l.id}`,
       label: l.label,
       items: l.items ?? [],
     }))
 
     return res.status(200).json({ meals, lowHunger, lists })
   } catch (err) {
-    console.error('[generate-diet] Unexpected error:', err)
+    console.error('[generate-diet] Error:', err)
     return res.status(500).json({ error: 'Erro interno.' })
   }
 }
