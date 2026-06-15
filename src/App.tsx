@@ -155,6 +155,12 @@ export default function App() {
     if (!localStorage.getItem(TOUR_KEY)) setShowTour(true)
   }
 
+  function handleLogout() {
+    clearToken()
+    setTokenStatus('invalid')
+    setShowTour(false)
+  }
+
   useEffect(() => {
     localStorage.setItem('tizetrack_profile', JSON.stringify(profile))
   }, [profile])
@@ -217,6 +223,7 @@ export default function App() {
         isDark={isDark}
         onToggle={toggle}
         profile={profile}
+        onLogout={handleLogout}
         onProfileClick={() => {
           prevTabRef.current = activeTab
           setActiveTab('profile')
