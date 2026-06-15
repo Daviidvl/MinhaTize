@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useRef, useEffect } from 'react'
 import { TrendingUp, TrendingDown, Minus, BarChart2, ClipboardList } from 'lucide-react'
 import { UserProfile, WeightEntry } from '../types'
 
@@ -43,6 +43,9 @@ export default function ProgressHub({ profile, onUpdateProfile }: Props) {
   const [tab, setTab]             = useState<InnerTab>('evolution')
   const [newWeight, setNewWeight] = useState('')
   const [weightSaved, setWeightSaved] = useState(false)
+  const savedTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+
+  useEffect(() => () => { if (savedTimerRef.current) clearTimeout(savedTimerRef.current) }, [])
 
   const firstWeight = profile.startWeight
   const lastWeight  = profile.weightHistory.at(-1)?.weight ?? profile.currentWeight ?? firstWeight
@@ -76,7 +79,8 @@ export default function ProgressHub({ profile, onUpdateProfile }: Props) {
     onUpdateProfile({ ...profile, weightHistory: [...profile.weightHistory, entry] })
     setNewWeight('')
     setWeightSaved(true)
-    setTimeout(() => setWeightSaved(false), 2000)
+    if (savedTimerRef.current) clearTimeout(savedTimerRef.current)
+    savedTimerRef.current = setTimeout(() => setWeightSaved(false), 2000)
   }
 
   const imc = calcIMC(lastWeight, profile.height)

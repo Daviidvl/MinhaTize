@@ -309,11 +309,6 @@ export default function AntiPlato() {
 
   async function generateReport() {
     if (!plan) return
-    const key = import.meta.env.VITE_ANTHROPIC_API_KEY
-    if (!key) {
-      setAiError('Chave da API não configurada. Adicione VITE_ANTHROPIC_API_KEY no .env.local e reinicie o servidor.')
-      return
-    }
     setAiLoading(true)
     setAiError('')
     const payload = {
@@ -324,43 +319,18 @@ export default function AntiPlato() {
       resultado_14_dias: plan.reevalResult ?? 'sem dado',
     }
     try {
-      const res = await fetch('https://api.anthropic.com/v1/messages', {
+      const res = await fetch('/api/generate-report', {
         method: 'POST',
-        headers: {
-          'x-api-key': key,
-          'anthropic-version': '2023-06-01',
-          'content-type': 'application/json',
-          'anthropic-dangerous-direct-browser-access': 'true',
-        },
-        body: JSON.stringify({
-          model: 'claude-haiku-4-5-20251001',
-          max_tokens: 1024,
-          messages: [{
-            role: 'user',
-            content: `Você é um assistente educativo de saúde em um app de acompanhamento de tirzepatida. Analise os dados do usuário após 14 dias de plano anti-platô e gere um relatório educativo em português, com linguagem acolhedora e simples.
-
-Dados:
-${JSON.stringify(payload, null, 2)}
-
-O relatório deve conter exatamente estes 5 blocos em texto corrido (sem markdown):
-
-1. Resumo dos principais gargalos encontrados
-2. Ordem de prioridade de ação com metas práticas e específicas
-3. Orientações para os próximos 14 dias
-4. Reforço de que platô não é fracasso — é parte do processo
-5. Quando buscar acompanhamento médico
-
-Use parágrafos curtos. Não sugira alteração de dose do medicamento.`,
-          }],
-        }),
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify(payload),
       })
       if (!res.ok) throw new Error(`HTTP ${res.status}`)
-      const data = await res.json()
-      const text = data.content?.[0]?.text ?? 'Relatório não disponível.'
-      updatePlan({ aiReport: text })
+      const data = await res.json() as { text?: string; error?: string }
+      if (data.error) throw new Error(data.error)
+      updatePlan({ aiReport: data.text ?? 'Relatório não disponível.' })
       setStep('report')
     } catch {
-      setAiError('Erro ao gerar o relatório. Verifique sua conexão e a chave da API.')
+      setAiError('Erro ao gerar o relatório. Tente novamente em instantes.')
     } finally {
       setAiLoading(false)
     }
