@@ -125,10 +125,13 @@ interface Props {
 
 export default function LandingPage({ onAccessGranted }: Props) {
   const [faqOpen, setFaqOpen] = useState<number | null>(null)
-  const [accessOpen, setAccessOpen] = useState(false)
+  const [loginOpen, setLoginOpen] = useState(false)
   const [accessInput, setAccessInput] = useState('')
   const [accessError, setAccessError] = useState('')
   const [checking, setChecking] = useState(false)
+
+  function openLogin() { setLoginOpen(true); setAccessError(''); setAccessInput('') }
+  function closeLogin() { setLoginOpen(false); setAccessError('') }
 
   useEffect(() => {
     const link = document.createElement('link')
@@ -181,10 +184,87 @@ export default function LandingPage({ onAccessGranted }: Props) {
             <a href="#preco">Preço</a>
             <a href="#faq">FAQ</a>
           </div>
-          <a href="#preco" className="lp-btn lp-btn-primary">
-            Garantir acesso
-          </a>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexShrink: 0 }}>
+            <button className="lp-btn-entrar" onClick={openLogin}>
+              Entrar
+            </button>
+            <a href={KIWIFY_URL} className="lp-btn lp-btn-primary">
+              Garantir acesso
+            </a>
+          </div>
         </nav>
+
+        {/* ── LOGIN DRAWER ─────────────────────────────────── */}
+        {loginOpen && (
+          <>
+            {/* Overlay */}
+            <div className="lp-login-overlay" onClick={closeLogin} />
+
+            {/* Drawer */}
+            <div className="lp-login-drawer">
+              <div className="lp-login-card">
+                {/* Close */}
+                <button className="lp-login-close" onClick={closeLogin} aria-label="Fechar">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
+                    <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+                  </svg>
+                </button>
+
+                {/* Logo */}
+                <div className="lp-login-logo">
+                  <div className="lp-logo-icon">🌿</div>
+                  <span>Minha Tize</span>
+                </div>
+
+                <h3 className="lp-login-title">Acesse sua conta</h3>
+                <p className="lp-login-sub">Cole o link de acesso recebido por e-mail após a compra</p>
+
+                <form className="lp-login-form" onSubmit={handleAccess}>
+                  <div className="lp-login-field">
+                    <svg className="lp-login-field-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/>
+                      <path d="M7 11V7a5 5 0 0110 0v4"/>
+                    </svg>
+                    <input
+                      className="lp-login-input"
+                      type="text"
+                      placeholder="https://minhatize.vercel.app/?token=..."
+                      value={accessInput}
+                      onChange={(e) => setAccessInput(e.target.value)}
+                      autoFocus
+                      autoComplete="off"
+                    />
+                  </div>
+                  {accessError && (
+                    <div className="lp-login-error">
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
+                        <circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/>
+                      </svg>
+                      {accessError}
+                    </div>
+                  )}
+                  <button
+                    type="submit"
+                    className="lp-btn lp-btn-primary lp-login-submit"
+                    disabled={checking || !accessInput.trim()}
+                  >
+                    {checking
+                      ? <><span className="lp-login-spinner" /> Verificando...</>
+                      : 'Acessar plataforma →'
+                    }
+                  </button>
+                </form>
+
+                <p className="lp-login-footer">
+                  Não tem acesso ainda?{' '}
+                  <a href={KIWIFY_URL} className="lp-login-footer-link" onClick={closeLogin}>
+                    Garantir acesso →
+                  </a>
+                </p>
+              </div>
+            </div>
+          </>
+        )}
       </header>
 
       {/* ── HERO ──────────────────────────────────────────────── */}
@@ -658,41 +738,6 @@ export default function LandingPage({ onAccessGranted }: Props) {
           </div>
         </div>
       </section>
-
-      {/* ── JÁ TENHO ACESSO ───────────────────────────────────── */}
-      <div className="lp-access">
-        <div className="lp-access-inner">
-          <button
-            className="lp-access-toggle"
-            onClick={() => {
-              setAccessOpen(!accessOpen)
-              setAccessError('')
-            }}
-          >
-            Já tenho acesso
-          </button>
-          {accessOpen && (
-            <form className="lp-access-form" onSubmit={handleAccess}>
-              <input
-                className="lp-access-input"
-                type="text"
-                placeholder="Cole seu token ou link de acesso aqui"
-                value={accessInput}
-                onChange={(e) => setAccessInput(e.target.value)}
-                autoFocus
-              />
-              {accessError && <p className="lp-access-error">{accessError}</p>}
-              <button
-                type="submit"
-                className="lp-btn lp-btn-primary"
-                disabled={checking || !accessInput.trim()}
-              >
-                {checking ? 'Verificando...' : 'Acessar plataforma'}
-              </button>
-            </form>
-          )}
-        </div>
-      </div>
 
       {/* ── FOOTER ────────────────────────────────────────────── */}
       <footer className="lp-footer">
