@@ -45,7 +45,7 @@ export default function Calculator() {
   }, [selectedAmpola, selectedDose, selectedSyringe])
 
   return (
-    <div className="space-y-8">
+    <div data-tour="calc-main" className="space-y-8">
       <div className="card space-y-6">
         <h2
           className="text-xl font-jakarta font-700"
