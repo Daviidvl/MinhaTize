@@ -384,7 +384,7 @@ export default function Dashboard({ profile, onNavigate, onUpdateProfile }: Prop
     <div className="fade-in" style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
 
       {/* ── Greeting ── */}
-      <div style={{ paddingTop: '4px', paddingBottom: '2px' }}>
+      <div data-tour="dash-greeting" style={{ paddingTop: '4px', paddingBottom: '2px' }}>
         <p style={{
           fontSize: '12px', fontWeight: 500, color: 'var(--text-muted)',
           marginBottom: '4px', fontFamily: 'Inter, sans-serif',
@@ -409,6 +409,7 @@ export default function Dashboard({ profile, onNavigate, onUpdateProfile }: Prop
 
       {/* ── Weight hero ── */}
       <button
+        data-tour="dash-weight-hero"
         onClick={() => onNavigate('progress')}
         style={{ background: 'none', border: 'none', padding: 0, cursor: 'pointer', textAlign: 'left', width: '100%' }}
         aria-label="Ver evolução de peso"
@@ -482,7 +483,7 @@ export default function Dashboard({ profile, onNavigate, onUpdateProfile }: Prop
       </button>
 
       {/* ── Daily widgets ── */}
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+      <div data-tour="dash-widgets" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
         <WorkoutWidget onNavigate={onNavigate} />
         <MealWidget profile={profile} onNavigate={onNavigate} />
       </div>
@@ -591,7 +592,7 @@ export default function Dashboard({ profile, onNavigate, onUpdateProfile }: Prop
       </button>
 
       {/* ── Calendar ── */}
-      <div className="card" style={{ padding: '1.25rem' }}>
+      <div data-tour="dash-calendar" className="card" style={{ padding: '1.25rem' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '14px' }}>
           <div style={{
             width: '34px', height: '34px', borderRadius: '10px',

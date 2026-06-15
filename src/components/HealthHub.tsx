@@ -635,7 +635,7 @@ export default function HealthHub({ profile, onUpdateProfile, initialSection }: 
       </button>
 
       {/* 2×3 card grid */}
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+      <div data-tour="health-sections" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
         {SECTION_CARDS.map(card => (
           <button
             key={card.id}

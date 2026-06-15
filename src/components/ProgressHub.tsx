@@ -82,7 +82,7 @@ export default function ProgressHub({ profile, onUpdateProfile }: Props) {
   const imc = calcIMC(lastWeight, profile.height)
 
   return (
-    <div className="fade-in" style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+    <div data-tour="progress-main" className="fade-in" style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
 
       <div>
         <h2 style={{ fontSize: '20px', fontWeight: 800, color: 'var(--text-primary)', margin: 0 }}>Progresso</h2>

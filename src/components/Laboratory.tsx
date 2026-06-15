@@ -678,7 +678,7 @@ export default function Laboratory({ profile, onUpdateProfile }: Props) {
 
   // ── Render ───────────────────────────────────────────────────────────────
   return (
-    <div className="fade-in" style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+    <div data-tour="lab-main" className="fade-in" style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
 
       {/* Header */}
       <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: '12px' }}>

@@ -232,7 +232,12 @@ export default function App() {
         {renderTab()}
       </main>
 
-      {showTour && <OnboardingTour onDone={() => setShowTour(false)} />}
+      {showTour && (
+        <OnboardingTour
+          onDone={() => setShowTour(false)}
+          onTabChange={(tab) => handleNavigate(tab)}
+        />
+      )}
 
       <nav ref={navRef} className="bottom-nav">
         <div className="bottom-nav-inner">
