@@ -1,6 +1,7 @@
 import { useState, useRef, useEffect } from 'react'
 import { TrendingUp, TrendingDown, Minus, BarChart2, ClipboardList } from 'lucide-react'
 import { UserProfile, WeightEntry } from '../types'
+import { calcIMC, imcLabel } from '../utils/bmiUtils'
 
 interface Props {
   profile: UserProfile
@@ -13,20 +14,6 @@ const TABS: { id: InnerTab; label: string; icon: React.ReactNode }[] = [
   { id: 'evolution', label: 'Evolução', icon: <BarChart2 size={13} strokeWidth={2} /> },
   { id: 'summary',   label: 'Resumo',   icon: <ClipboardList size={13} strokeWidth={2} /> },
 ]
-
-function calcIMC(w: number, h: number) {
-  if (!h || !w) return null
-  return w / ((h / 100) ** 2)
-}
-
-function imcLabel(v: number) {
-  if (v < 18.5) return { label: 'Abaixo do peso', color: '#F59E0B' }
-  if (v < 25)   return { label: 'Peso normal',    color: 'var(--primary)' }
-  if (v < 30)   return { label: 'Sobrepeso',      color: '#F97316' }
-  if (v < 35)   return { label: 'Obesidade I',    color: '#EF4444' }
-  if (v < 40)   return { label: 'Obesidade II',   color: '#DC2626' }
-  return         { label: 'Obesidade III',         color: '#B91C1C' }
-}
 
 function weightInputError(val: string): string | null {
   const w = parseFloat(val)

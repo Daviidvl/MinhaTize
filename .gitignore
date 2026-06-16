@@ -39,3 +39,10 @@ tsconfig.tsbuildinfo
 # Claude Code internal files
 .agents/
 skills-lock.json
+
+# Temporary utility scripts
+fix-utf8.mjs
+
+# tsc -b compiled output from tsconfig.node.json (regenerated on every build)
+vite.config.js
+vite.config.d.ts

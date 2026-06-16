@@ -29,31 +29,52 @@ interface WivenPayload {
   }[]
 }
 
-// ─── Verificação de autenticidade ─────────────────────────────────────────────
+// ─── Verificação de autenticidade (timing-safe) ───────────────────────────────
+function safeEqual(a: string, b: string): boolean {
+  if (a.length !== b.length) return false
+  let diff = 0
+  for (let i = 0; i < a.length; i++) diff |= a.charCodeAt(i) ^ b.charCodeAt(i)
+  return diff === 0
+}
+
 function isValidRequest(body: WivenPayload): boolean {
   const secret = process.env.WIVEN_WEBHOOK_SECRET
   if (!secret) {
     console.warn('[webhook] WIVEN_WEBHOOK_SECRET não configurado')
     return false
   }
-  return body.token === secret
+  if (!body.token || typeof body.token !== 'string') return false
+  return safeEqual(body.token, secret)
 }
 
 // ─── Handler ──────────────────────────────────────────────────────────────────
 export default async function handler(req: VercelRequest, res: VercelResponse) {
+  // Aceitar apenas POST
   if (req.method !== 'POST') return res.status(405).end()
 
-  const body = req.body as WivenPayload
-
-  // 1. Verificar evento
-  if (body.event !== 'TRANSACTION_PAID') {
-    return res.status(200).json({ received: true, action: 'ignored — not TRANSACTION_PAID' })
+  // Validar Content-Type
+  const ct = (req.headers['content-type'] ?? '').toLowerCase()
+  if (!ct.includes('application/json')) {
+    return res.status(415).json({ error: 'Unsupported Media Type' })
   }
 
-  // 2. Verificar autenticidade
+  let body: WivenPayload
+  try {
+    body = (typeof req.body === 'string' ? JSON.parse(req.body) : req.body) as WivenPayload
+    if (!body || typeof body !== 'object') throw new Error()
+  } catch {
+    return res.status(400).json({ error: 'Invalid payload' })
+  }
+
+  // 1. Verificar autenticidade ANTES de qualquer outra coisa
   if (!isValidRequest(body)) {
-    console.warn('[webhook] Token inválido:', body.token)
+    console.warn('[webhook] Token inválido recebido')
     return res.status(401).json({ error: 'Unauthorized' })
+  }
+
+  // 2. Verificar evento
+  if (body.event !== 'TRANSACTION_PAID') {
+    return res.status(200).json({ received: true, action: 'ignored — not TRANSACTION_PAID' })
   }
 
   // 3. Extrair dados do comprador
@@ -126,7 +147,7 @@ async function sendEmail(token: string, email: string, name: string): Promise<bo
       from:    `MinhaTize <${fromEmail}>`,
       to:      email,
       subject: 'Seu acesso ao MinhaTize está pronto',
-      html:    buildEmailHtml({ name, accessLink, pdfUrl }),
+      html:    buildEmailHtml({ name, accessLink, pdfUrl, appUrl }),
     })
     return true
   } catch (err) {
@@ -136,12 +157,14 @@ async function sendEmail(token: string, email: string, name: string): Promise<bo
 }
 
 // ─── Template de e-mail ───────────────────────────────────────────────────────
-function buildEmailHtml({ name, accessLink, pdfUrl }: {
+function buildEmailHtml({ name, accessLink, pdfUrl, appUrl }: {
   name: string
   accessLink: string
   pdfUrl: string
+  appUrl: string
 }): string {
   const firstName = name.split(' ')[0] || 'Olá'
+  const logoUrl   = `${appUrl}/LogoPng.png`
 
   return `<!DOCTYPE html>
 <html lang="pt-BR">
@@ -159,10 +182,11 @@ function buildEmailHtml({ name, accessLink, pdfUrl }: {
     <tr><td style="padding-bottom:28px;">
       <table cellpadding="0" cellspacing="0">
         <tr>
-          <td style="width:40px;height:40px;background:linear-gradient(135deg,#16A34A,#22C55E);border-radius:11px;text-align:center;vertical-align:middle;">
-            <span style="color:#fff;font-size:18px;">&#127807;</span>
+          <td style="vertical-align:middle;">
+            <img src="${logoUrl}" alt="MinhaTize" width="72" height="48"
+              style="display:block;width:72px;height:48px;border-radius:8px;" />
           </td>
-          <td style="padding-left:10px;">
+          <td style="padding-left:10px;vertical-align:middle;">
             <span style="font-size:17px;font-weight:900;color:#fff;letter-spacing:-0.5px;">MinhaTize</span>
           </td>
         </tr>

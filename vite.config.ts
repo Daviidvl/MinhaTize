@@ -10,5 +10,17 @@ export default defineConfig({
   build: {
     outDir: 'dist',
     sourcemap: false,
+    target: 'es2020',
+    chunkSizeWarningLimit: 600,
+    rollupOptions: {
+      output: {
+        manualChunks(id) {
+          if (!id.includes('node_modules')) return
+          if (/[/\\]react(-dom)?[/\\]/.test(id)) return 'vendor-react'
+          if (/[/\\]lucide-react[/\\]/.test(id)) return 'vendor-icons'
+          return 'vendor-libs'
+        },
+      },
+    },
   },
 })

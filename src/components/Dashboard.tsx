@@ -2,7 +2,7 @@ import type { ReactNode } from 'react'
 import { Package, AlertTriangle, ChevronRight, Moon, Zap } from 'lucide-react'
 import { UserProfile, Tab, MEDICATION_LABELS } from '../types'
 import ApplicationCalendar from './ApplicationCalendar'
-import { generateDietPlan } from '../utils/nutritionEngine'
+import { calcIMC, imcLabel } from '../utils/bmiUtils'
 
 interface Props {
   profile: UserProfile
@@ -12,20 +12,6 @@ interface Props {
 
 function daysSince(d: string) {
   return Math.floor((Date.now() - new Date(d).getTime()) / 864e5)
-}
-
-function calcIMC(w: number, h: number) {
-  if (!h || !w) return null
-  return w / ((h / 100) ** 2)
-}
-
-function imcLabel(v: number) {
-  if (v < 18.5) return { text: 'Abaixo do ideal', color: '#F59E0B' }
-  if (v < 25)   return { text: 'Normal',          color: '#10B981' }
-  if (v < 30)   return { text: 'Sobrepeso',        color: '#F97316' }
-  if (v < 35)   return { text: 'Obeso I',          color: '#EF4444' }
-  if (v < 40)   return { text: 'Obeso II',         color: '#DC2626' }
-  return         { text: 'Obeso III',              color: '#B91C1C' }
 }
 
 function getGreeting() {
@@ -60,19 +46,18 @@ function getMotivation(lost: number, toGoal: number, weeks: number, days: number
 
 function getTodayStr() { return new Date().toISOString().split('T')[0] }
 
+const FIXED_MEAL_SHARES: Record<string, number> = {
+  'cafe': 0.25, 'lanche-m': 0.10, 'almoco': 0.30,
+  'lanche-t': 0.10, 'jantar': 0.20, 'ceia': 0.05,
+}
+
 function getCalorieStatus(): { consumed: number; target: number; pct: number } | null {
   try {
     const diet = JSON.parse(localStorage.getItem('tizetrack_diet') || 'null')
     if (!diet?.dailyKcal) return null
     const log = JSON.parse(localStorage.getItem('tizetrack_food_log') || '{}')
     const day = log[getTodayStr()] ?? { meals: [], manual: [] }
-
-    // Usa o mesmo motor do FoodGuide para mapear IDs → kcal
-    const plan = generateDietPlan(diet)
-    const mealKcalMap: Record<string, number> = {}
-    plan.meals.forEach(m => { mealKcalMap[m.id] = Math.round(plan.targets.kcal * m.kcalShare) })
-
-    const mealKcal   = (day.meals as string[]).reduce((s: number, id: string) => s + (mealKcalMap[id] ?? 0), 0)
+    const mealKcal   = (day.meals as string[]).reduce((s: number, id: string) => s + Math.round(diet.dailyKcal * (FIXED_MEAL_SHARES[id] ?? 0)), 0)
     const manualKcal = (day.manual as { kcal: number }[]).reduce((s: number, m: { kcal: number }) => s + m.kcal, 0)
     const consumed   = mealKcal + manualKcal
     return { consumed, target: diet.dailyKcal, pct: Math.min(100, Math.round((consumed / diet.dailyKcal) * 100)) }
@@ -558,7 +543,7 @@ export default function Dashboard({ profile, onNavigate, onUpdateProfile }: Prop
         <StatTile
           label="IMC"
           value={imc ? imc.toFixed(1) : '—'}
-          sub={imcInfo?.text}
+          sub={imcInfo?.label}
           subColor={imcInfo?.color}
           icon={<svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M20.84 4.61a5.5 5.5 0 00-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 00-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 000-7.78z"/></svg>}
         />

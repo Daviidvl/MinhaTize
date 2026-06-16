@@ -1,7 +1,8 @@
 import { useState } from 'react'
-import { Award, Calendar, Package, Settings, Zap, BarChart2, Scale, Flame, Dumbbell, Target, Lightbulb, AlertTriangle, Check, ChevronLeft } from 'lucide-react'
+import { Award, Calendar, Package, Settings, Zap, BarChart2, Scale, Flame, Dumbbell, Target, Lightbulb, AlertTriangle, Check, ChevronLeft, Shield } from 'lucide-react'
 import { UserProfile, Medication, Sex, MEDICATION_LABELS, WEEK_DAYS_FULL } from '../types'
 import StockControl from './StockControl'
+import { CONSENT_KEY } from './ConsentGate'
 
 interface Props {
   profile: UserProfile
@@ -10,12 +11,13 @@ interface Props {
   initialSection?: string
 }
 
-type ProfileTab = 'achievements' | 'history' | 'stock' | 'edit'
+type ProfileTab = 'achievements' | 'history' | 'stock' | 'edit' | 'legal'
 
 const PROFILE_TABS: { id: ProfileTab; icon: React.ReactNode; label: string }[] = [
   { id: 'achievements', icon: <Award size={14} strokeWidth={2} />,    label: 'Conquistas' },
   { id: 'stock',        icon: <Package size={14} strokeWidth={2} />,  label: 'Estoque'    },
   { id: 'edit',         icon: <Settings size={14} strokeWidth={2} />, label: 'Editar'     },
+  { id: 'legal',        icon: <Shield size={14} strokeWidth={2} />,   label: 'Legal'      },
 ]
 
 const DOSES = [2.5, 5, 7.5, 10, 12.5, 15]
@@ -494,12 +496,23 @@ export default function ProfilePage({ profile, onUpdateProfile, onBack, initialS
               </button>
             ) : (
               <div className="card" style={{ border: '1.5px solid rgba(239,68,68,0.4)' }}>
-                <p style={{ fontSize: '13px', color: '#EF4444', fontWeight: 700, marginBottom: '12px' }}>
+                <p style={{ fontSize: '13px', color: '#EF4444', fontWeight: 700, marginBottom: '4px' }}>
                   Tem certeza? Todo o histórico será apagado permanentemente.
+                </p>
+                <p style={{ fontSize: '11px', color: 'var(--text-muted)', marginBottom: '12px', lineHeight: 1.5 }}>
+                  Serão removidos: perfil, peso, exames, diário, efeitos colaterais e planos salvos. Seu token de acesso ao app é mantido.
                 </p>
                 <div style={{ display: 'flex', gap: '8px' }}>
                   <button onClick={() => setShowReset(false)} className="btn-ghost" style={{ flex: 1 }}>Cancelar</button>
-                  <button onClick={() => { localStorage.removeItem('tizetrack_profile'); window.location.reload() }} style={{
+                  <button onClick={() => {
+                    const keys = [
+                      'tizetrack_profile', 'tizetrack_food_log', 'tizetrack_diet',
+                      'tizetrack_antiplato', 'tizetrack_workout', 'tizetrack_workout_log',
+                      'tizetrack_side_effects', 'tizetrack_diary',
+                    ]
+                    keys.forEach(k => localStorage.removeItem(k))
+                    window.location.reload()
+                  }} style={{
                     flex: 1, padding: '10px', borderRadius: '8px', border: 'none',
                     background: '#EF4444', color: '#fff', fontWeight: 700, cursor: 'pointer',
                     fontFamily: 'Inter, -apple-system, sans-serif',
@@ -509,6 +522,196 @@ export default function ProfilePage({ profile, onUpdateProfile, onBack, initialS
             )}
           </div>
         )}
+
+        {/* ── ABA LEGAL ─────────────────────────────────────────────────── */}
+        {activeTab === 'legal' && (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+
+            {/* Consentimento armazenado */}
+            <ConsentInfo />
+
+            {/* Aviso médico */}
+            <div style={{
+              padding: '14px 16px',
+              background: 'rgba(239,68,68,0.07)',
+              border: '1px solid rgba(239,68,68,0.2)',
+              borderRadius: '12px',
+            }}>
+              <p style={{ fontSize: '11px', fontWeight: 700, color: '#FCA5A5', margin: '0 0 6px', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
+                Aviso Médico
+              </p>
+              <p style={{ fontSize: '12px', color: 'rgba(255,255,255,0.55)', margin: 0, lineHeight: 1.65 }}>
+                O MinhaTize é um aplicativo <strong style={{ color: 'rgba(255,255,255,0.75)' }}>exclusivamente educativo</strong>. Não realiza diagnósticos, não prescreve medicamentos e não substitui o acompanhamento de médico, farmacêutico ou nutricionista. Os medicamentos referenciados são controlados e exigem prescrição médica válida.
+              </p>
+            </div>
+
+            {/* Links legais */}
+            {([
+              { label: 'Termos de Uso', href: null as string | null },
+              { label: 'Política de Privacidade (LGPD)', href: null },
+            ] as const).map(() => null)}
+
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+              <InfoRow label="Versão dos Termos" value="1.0 — Junho/2026" />
+              <InfoRow label="Controlador dos dados" value="MinhaTize" />
+              <InfoRow label="Contato de privacidade" value="privacidade@minhatize.com.br" />
+            </div>
+
+            {/* Exportação de dados */}
+            <div className="card">
+              <p style={{ fontSize: '13px', fontWeight: 700, color: 'var(--text-primary)', marginBottom: '6px' }}>
+                Exportar meus dados
+              </p>
+              <p style={{ fontSize: '12px', color: 'var(--text-muted)', lineHeight: 1.65, marginBottom: '14px' }}>
+                Baixe todos os seus dados em formato JSON (portabilidade de dados — Art. 18, V da LGPD).
+              </p>
+              <button
+                onClick={() => exportAllData(profile)}
+                style={{
+                  width: '100%', padding: '11px', borderRadius: '10px', border: 'none',
+                  background: 'var(--primary)', color: '#fff', fontWeight: 700,
+                  fontSize: '13px', cursor: 'pointer',
+                  fontFamily: 'Inter, -apple-system, sans-serif',
+                }}
+              >
+                Baixar dados (JSON)
+              </button>
+            </div>
+
+            {/* Exercício de direitos LGPD */}
+            <div className="card">
+              <p style={{ fontSize: '13px', fontWeight: 700, color: 'var(--text-primary)', marginBottom: '8px' }}>
+                Seus direitos (Art. 18 LGPD)
+              </p>
+              <p style={{ fontSize: '12px', color: 'var(--text-muted)', lineHeight: 1.65, marginBottom: '14px' }}>
+                Você pode solicitar: acesso, correção, exclusão, portabilidade ou revogação do consentimento dos seus dados a qualquer momento.
+              </p>
+              <a
+                href="mailto:privacidade@minhatize.com.br?subject=Exercício%20de%20direitos%20LGPD"
+                style={{
+                  display: 'block', textAlign: 'center', padding: '11px',
+                  background: 'var(--primary-light)', borderRadius: '10px',
+                  color: 'var(--primary)', fontWeight: 700, fontSize: '13px',
+                  textDecoration: 'none', border: '1px solid rgba(37,99,235,0.2)',
+                }}
+              >
+                Enviar solicitação por e-mail
+              </a>
+            </div>
+
+            {/* Revogar consentimento */}
+            <div className="card" style={{ border: '1px solid rgba(239,68,68,0.2)' }}>
+              <p style={{ fontSize: '13px', fontWeight: 700, color: '#EF4444', marginBottom: '6px' }}>
+                Revogar consentimento
+              </p>
+              <p style={{ fontSize: '12px', color: 'var(--text-muted)', lineHeight: 1.6, marginBottom: '14px' }}>
+                Ao revogar, seus dados locais serão apagados e você precisará aceitar novamente os termos para continuar usando o app.
+              </p>
+              <button
+                onClick={() => {
+                  const keys = [
+                    'tizetrack_profile', 'tizetrack_food_log', 'tizetrack_diet',
+                    'tizetrack_antiplato', 'tizetrack_workout', 'tizetrack_workout_log',
+                    'tizetrack_side_effects', 'tizetrack_diary', CONSENT_KEY,
+                  ]
+                  keys.forEach(k => localStorage.removeItem(k))
+                  window.location.reload()
+                }}
+                style={{
+                  width: '100%', padding: '11px', borderRadius: '10px',
+                  border: '1.5px solid rgba(239,68,68,0.3)', background: 'transparent',
+                  color: '#EF4444', fontWeight: 600, fontSize: '13px', cursor: 'pointer',
+                  fontFamily: 'Inter, -apple-system, sans-serif',
+                }}
+              >
+                Revogar e apagar dados
+              </button>
+            </div>
+
+          </div>
+        )}
+      </div>
+    </div>
+  )
+}
+
+function exportAllData(profile: UserProfile) {
+  const safeGet = (key: string) => {
+    try { const v = localStorage.getItem(key); return v ? JSON.parse(v) : null } catch { return null }
+  }
+  const consent = safeGet('tizetrack_consent')
+  const data = {
+    exportMeta: {
+      platform:    'MinhaTize',
+      exportedAt:  new Date().toISOString(),
+      lgpd:        'Exportação de dados pessoais — Art. 18, V da Lei 13.709/2018 (LGPD)',
+      consentDate: consent?.date ?? null,
+    },
+    profile,
+    foodLog:     safeGet('tizetrack_food_log'),
+    diet:        safeGet('tizetrack_diet'),
+    antiplato:   safeGet('tizetrack_antiplato'),
+    workout:     safeGet('tizetrack_workout'),
+    workoutLog:  safeGet('tizetrack_workout_log'),
+    consent,
+  }
+  const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' })
+  const url  = URL.createObjectURL(blob)
+  const a    = document.createElement('a')
+  a.href     = url
+  a.download = `minhatize-dados-${new Date().toISOString().split('T')[0]}.json`
+  document.body.appendChild(a)
+  a.click()
+  document.body.removeChild(a)
+  URL.revokeObjectURL(url)
+}
+
+function InfoRow({ label, value }: { label: string; value: string }) {
+  return (
+    <div style={{
+      display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+      padding: '10px 14px', background: 'var(--surface-2)', borderRadius: '10px',
+    }}>
+      <span style={{ fontSize: '12px', color: 'var(--text-muted)' }}>{label}</span>
+      <span style={{ fontSize: '12px', fontWeight: 600, color: 'var(--text-primary)' }}>{value}</span>
+    </div>
+  )
+}
+
+function ConsentInfo() {
+  let date = 'Não registrado'
+  let version = '—'
+  try {
+    const raw = localStorage.getItem(CONSENT_KEY)
+    if (raw) {
+      const parsed = JSON.parse(raw) as { date?: string; version?: string }
+      version = parsed.version ?? '—'
+      if (parsed.date) {
+        date = new Date(parsed.date).toLocaleDateString('pt-BR', {
+          day: '2-digit', month: '2-digit', year: 'numeric',
+          hour: '2-digit', minute: '2-digit',
+        })
+      }
+    }
+  } catch { /* empty */ }
+
+  return (
+    <div style={{
+      padding: '14px 16px',
+      background: 'rgba(34,197,94,0.07)',
+      border: '1px solid rgba(34,197,94,0.18)',
+      borderRadius: '12px',
+    }}>
+      <p style={{ fontSize: '11px', fontWeight: 700, color: '#4ADE80', margin: '0 0 8px', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
+        Consentimento registrado
+      </p>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+        <p style={{ fontSize: '12px', color: 'rgba(255,255,255,0.55)', margin: 0 }}>
+          <strong style={{ color: 'rgba(255,255,255,0.75)' }}>Data:</strong> {date}
+        </p>
+        <p style={{ fontSize: '12px', color: 'rgba(255,255,255,0.55)', margin: 0 }}>
+          <strong style={{ color: 'rgba(255,255,255,0.75)' }}>Versão:</strong> {version}
+        </p>
       </div>
     </div>
   )

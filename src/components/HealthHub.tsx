@@ -473,7 +473,7 @@ export default function HealthHub({ profile, onUpdateProfile, initialSection }: 
                   </p>
                 </div>
               )}
-              <FoodGuide />
+              <FoodGuide profile={profile} onUpdateProfile={onUpdateProfile} />
             </div>
           )}
 

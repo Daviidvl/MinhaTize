@@ -1,213 +1,230 @@
-﻿import { useState, useRef, type CSSProperties } from 'react'
-import { generateDietPlan } from '../utils/nutritionEngine'
-import { Utensils, Info, ChevronDown, RotateCcw, Droplets, Leaf, AlertCircle, Check, Plus, X } from 'lucide-react'
+import { useState, useRef } from 'react'
+import {
+  Sun, Droplets, Utensils, Moon, Fish, Zap, Target, Activity,
+  AlertCircle, AlertTriangle, Shield, Leaf, Package, ChevronDown,
+  ChevronUp, Info, X, Plus, User, type LucideIcon,
+} from 'lucide-react'
+import { UserProfile } from '../types'
+
+interface Props {
+  profile: UserProfile
+  onUpdateProfile: (p: UserProfile) => void
+}
 
 // ── Types ─────────────────────────────────────────────────────────────────────
-
-type DietSex         = 'M' | 'F'
-type DietTab         = 'hoje' | 'cardapio' | 'pouca-fome'
-type Goal            = 'lose' | 'maintain' | 'gain'
-type Activity        = 'sedentary' | 'light' | 'moderate' | 'active' | 'very_active'
-type ProtocolPhase   = 'beginning' | 'adaptation' | 'maintenance'
-type MealFrequency   = '2' | '3' | '4' | '5-6'
-
-interface DietProfile {
-  sex:            DietSex
-  age:            number
-  height:         number
-  weight:         number
-  goalWeight:     number
-  goal:           Goal
-  activity:       Activity
-  protocolPhase:  ProtocolPhase
-  mealFrequency:  MealFrequency
-  challenges:     string[]    // nausea, constipation, low_appetite, protein_difficulty, reflux
-  comorbidities:  string[]    // diabetes2, prediabetes, hypertension, hypothyroidism, none
-  restrictions:   string[]
-  dailyKcal:      number
+type IconComp = LucideIcon
+interface MealOption { label: string; items: string[]; protein?: string; note?: string }
+interface MealSection {
+  id: string; label: string; Icon: IconComp; color: string
+  required: boolean; kcalShare: number; options: MealOption[]; note?: string
 }
-
+interface InfoSection {
+  id: string; Icon: IconComp; color: string; label: string; items: string[]; note?: string
+}
 interface ManualItem { id: string; name: string; kcal: number }
 interface DayLog     { meals: string[]; manual: ManualItem[] }
-type FoodLog = Record<string, DayLog>
-
-interface Option      { label?: string; items: string[]; protein?: string; note?: string }
-interface MealSection { id: string; label: string; sublabel?: string; color: string; kcalShare: number; options: Option[] }
-interface ListSection { id: string; label: string; items: string[]; note?: string }
+type FoodLog   = Record<string, DayLog>
+type DietSex   = 'F' | 'M'
+type ActiveTab = 'hoje' | 'plano' | 'pouca-fome'
 
 // ── Storage ───────────────────────────────────────────────────────────────────
-
-const STORAGE_KEY   = 'tizetrack_diet'
-const LOG_KEY       = 'tizetrack_food_log'
-
+const LOG_KEY  = 'tizetrack_food_log'
+const DIET_KEY = 'tizetrack_diet'
 function toDateStr(d = new Date()) { return d.toISOString().split('T')[0] }
 
-// ── Calorie calculation ───────────────────────────────────────────────────────
-
-const ACTIVITY_FACTOR: Record<Activity, number> = {
-  sedentary:  1.2,
-  light:      1.375,
-  moderate:   1.55,
-  active:     1.725,
-  very_active:1.9,
+// ── Kcal + shares ─────────────────────────────────────────────────────────────
+const DIET_KCAL: Record<DietSex, number>    = { F: 1600, M: 2000 }
+const MEAL_SHARES: Record<string, number>   = {
+  'cafe': 0.25, 'lanche-m': 0.10, 'almoco': 0.30,
+  'lanche-t': 0.10, 'jantar': 0.20, 'ceia': 0.05,
+}
+const MEAL_PROTEIN: Record<DietSex, Record<string, number>> = {
+  F: { 'cafe': 28, 'lanche-m': 20, 'almoco': 40, 'lanche-t': 22, 'jantar': 35, 'ceia': 20 },
+  M: { 'cafe': 33, 'lanche-m': 20, 'almoco': 45, 'lanche-t': 22, 'jantar': 43, 'ceia': 20 },
 }
 
-// Phase adjustment: beginning phase = gentler deficit (body adapting to drug)
-const PHASE_ADJ: Record<ProtocolPhase, number> = {
-  beginning:   -200,
-  adaptation:  -400,
-  maintenance: -300,
+// Cores de cada refeição — mesmas do Dashboard (MEAL_SLOTS)
+const MEAL_COLOR: Record<string, string> = {
+  'cafe': '#D97706', 'lanche-m': '#F59E0B', 'almoco': '#059669',
+  'lanche-t': '#0891B2', 'jantar': '#7C3AED', 'ceia': '#1E40AF',
+}
+const MEAL_ICON: Record<string, IconComp> = {
+  'cafe': Sun, 'lanche-m': Droplets, 'almoco': Utensils,
+  'lanche-t': Droplets, 'jantar': Moon, 'ceia': Moon,
 }
 
-function calcTDEE(p: Omit<DietProfile, 'dailyKcal'>): number {
-  const bmr = p.sex === 'M'
-    ? 10 * p.weight + 6.25 * p.height - 5 * p.age + 5
-    : 10 * p.weight + 6.25 * p.height - 5 * p.age - 161
-  const tdee = Math.round(bmr * ACTIVITY_FACTOR[p.activity])
-  const goalAdj = p.goal === 'gain' ? 300 : PHASE_ADJ[p.protocolPhase ?? 'adaptation']
-  return Math.max(1200, tdee + goalAdj)
-}
-
-
-const PROTOCOL_PHASES: { id: ProtocolPhase; label: string; sub: string }[] = [
-  { id: 'beginning',   label: 'Início',        sub: 'Semanas 1–4 · adaptação à medicação' },
-  { id: 'adaptation',  label: 'Adaptação',     sub: 'Semanas 5–12 · dose em escalonamento' },
-  { id: 'maintenance', label: 'Manutenção',    sub: 'Acima de 3 meses · dose estável' },
+// ── Dieta Feminina ────────────────────────────────────────────────────────────
+const DIET_F: MealSection[] = [
+  {
+    id: 'cafe', label: 'Café da Manhã', Icon: Sun, color: '#D97706', required: true, kcalShare: 0.25,
+    options: [
+      { label: 'Opção 1', protein: '25–30 g', items: ['1 pão francês', '2 ovos inteiros', '30 g de queijo branco', '1 fruta — mamão (120 g), banana (50 g), kiwi (90 g) ou melão'] },
+      { label: 'Opção 2', protein: '28–30 g', items: ['1 pão francês', '1 ovo inteiro + 3 claras', '20 g de queijo branco ou requeijão light', '1 fruta'] },
+      { label: 'Opção 3', protein: '25 g',    items: ['2 fatias de pão integral', '2 ovos inteiros', '1 fruta'] },
+      { label: 'Opção 4 — Vitamina', protein: '30–35 g', items: ['200 ml de leite desnatado', '1 scoop de whey', '20 g de aveia', '1 fruta'] },
+      { label: 'Opção 5', protein: '35–40 g', items: ['170 g de iogurte grego natural', '1 scoop de whey', 'Morangos ou banana'] },
+    ],
+  },
+  {
+    id: 'lanche-m', label: 'Lanche da Manhã', Icon: Droplets, color: '#F59E0B', required: false, kcalShare: 0.10,
+    note: 'Opcional — complementa proteína do dia',
+    options: [
+      { label: 'Opção 1', items: ['1 scoop de whey com água'] },
+      { label: 'Opção 2', items: ['1 iogurte proteico'] },
+      { label: 'Opção 3', items: ['2 ovos cozidos'] },
+      { label: 'Opção 4', protein: '15–25 g', items: ['1 fruta', '50 g de cottage ou ricota'] },
+    ],
+  },
+  {
+    id: 'almoco', label: 'Almoço', Icon: Utensils, color: '#059669', required: true, kcalShare: 0.30,
+    options: [
+      { label: 'Opção 1', protein: '35–45 g', items: ['Arroz branco cozido (90–120 g)', 'Feijão (70–100 g)', 'Frango grelhado (120–150 g)', 'Legumes cozidos', 'Pequena porção de salada'] },
+      { label: 'Opção 2', items: ['Arroz branco (100–120 g)', 'Frango (120–150 g)', 'Legumes'], note: 'Chocolate ao leite (15 g) eventualmente, apenas para aderência' },
+      { label: 'Opção 3', items: ['Baião de dois (100–130 g)', 'Frango ou carne magra (120–150 g)', 'Legumes'] },
+      { label: 'Opção 4', items: ['Macarrão cozido (100–120 g)', 'Sardinha ou peixe (130–150 g)', 'Legumes'] },
+      { label: 'Opção 5', items: ['Arroz branco (90–120 g)', 'Feijão (70–100 g)', 'Carne magra (100–120 g)', 'Legumes'] },
+    ],
+  },
+  {
+    id: 'lanche-t', label: 'Lanche da Tarde', Icon: Droplets, color: '#0891B2', required: false, kcalShare: 0.10,
+    note: 'Opcional — complementa proteína do dia',
+    options: [
+      { label: 'Opção 1', items: ['1 scoop de whey', '1 fruta'] },
+      { label: 'Opção 2 — Sanduíche', items: ['2 fatias de pão integral', '100 g de frango desfiado'] },
+      { label: 'Opção 3', items: ['Iogurte proteico', '15 g de aveia'] },
+      { label: 'Opção 4', items: ['2 ovos', '1 fruta'] },
+      { label: 'Opção 5', items: ['120 g de cuscuz', '50 g de carne magra', '10 g de requeijão light'] },
+    ],
+  },
+  {
+    id: 'jantar', label: 'Jantar', Icon: Moon, color: '#7C3AED', required: true, kcalShare: 0.20,
+    options: [
+      { label: 'Opção 1', protein: '30–40 g', items: ['Arroz branco (100–120 g)', 'Carne magra ou frango (100–140 g)', 'Legumes cozidos'] },
+      { label: 'Opção 2 — Sanduíche', items: ['1 pão francês', 'Frango desfiado (100–120 g)', '20 g de queijo branco', 'Pequena porção de salada'] },
+      { label: 'Opção 3', items: ['Baião de dois (100–120 g)', 'Carne magra (100–120 g)'] },
+      { label: 'Opção 4', items: ['Macarrão cozido', 'Frango ou atum (100–120 g)'] },
+      { label: 'Opção 5 — Omelete', items: ['2 ovos inteiros + 3 claras', 'Pequena porção de arroz ou batata'] },
+      { label: 'Opção 6 — Dias de pouca fome', protein: '35–40 g', items: ['170 g de iogurte grego natural', '1 scoop de whey', '20 g de aveia', 'Morangos ou banana'] },
+    ],
+  },
+  {
+    id: 'ceia', label: 'Ceia', Icon: Moon, color: '#1E40AF', required: false, kcalShare: 0.05,
+    note: 'Somente se necessário',
+    options: [
+      { label: 'Opção 1', items: ['1 scoop de whey com água'] },
+      { label: 'Opção 2', items: ['200 ml de leite desnatado', '20 g de whey'] },
+      { label: 'Opção 3', items: ['Iogurte proteico'] },
+      { label: 'Opção 4', items: ['Cottage ou ricota (80 g)'] },
+    ],
+  },
 ]
 
-const MEAL_FREQUENCY: { id: MealFrequency; label: string; sub: string }[] = [
-  { id: '2',   label: '2 refeições',   sub: 'Pouca fome, consigo comer poucas vezes' },
-  { id: '3',   label: '3 refeições',   sub: 'Café, almoço e jantar' },
-  { id: '4',   label: '4 refeições',   sub: 'Café, almoço, lanche e jantar' },
-  { id: '5-6', label: '5–6 refeições', sub: 'Incluo lanches da manhã e/ou ceia' },
+const INFO_F: InfoSection[] = [
+  { id: 'prot-subs',  Icon: Zap,     color: '#DC2626', label: 'Substituições das Proteínas',   items: ['Frango desfiado', 'Carne magra', 'Patinho moído', 'Peixe', 'Sardinha', 'Atum', 'Fígado (1× por semana)', '3 ovos', 'Iogurte grego', 'Whey protein'] },
+  { id: 'carb-subs',  Icon: Package,  color: '#D97706', label: 'Substituições dos Carboidratos', items: ['Arroz branco', 'Macarrão', 'Cuscuz', 'Tapioca', 'Batata inglesa', 'Batata doce', 'Mandioca', 'Baião de dois'] },
+  { id: 'frutas',     Icon: Leaf,     color: '#059669', label: 'Frutas Prioritárias',            items: ['Mamão', 'Kiwi', 'Banana', 'Morango', 'Melão', 'Maçã', 'Pera'] },
+  { id: 'fibras',     Icon: Leaf,     color: '#16A34A', label: 'Fibras e Constipação',           items: ['Feijão', 'Frutas', 'Legumes', 'Vegetais', 'Água'], note: 'Se necessário: Psyllium 5 g inicialmente, podendo chegar a 10 g por dia. Sempre com boa hidratação.' },
+  { id: 'peixes',     Icon: Fish,     color: '#0EA5E9', label: 'Peixes e Ômega-3',              items: ['Sardinha', 'Atum', 'Salmão', 'Cavalinha'],           note: 'Idealmente 2 vezes por semana.' },
 ]
 
-const CHALLENGES = [
-  { id: 'nausea',             label: 'Náusea ou enjoo' },
-  { id: 'constipation',       label: 'Constipação intestinal' },
-  { id: 'low_appetite',       label: 'Falta de apetite intensa' },
-  { id: 'protein_difficulty', label: 'Dificuldade em bater a proteína' },
-  { id: 'reflux',             label: 'Refluxo ou empachamento' },
-  { id: 'none',               label: 'Nenhum por enquanto' },
+// ── Dieta Masculina ───────────────────────────────────────────────────────────
+const DIET_M: MealSection[] = [
+  {
+    id: 'cafe', label: 'Café da Manhã', Icon: Sun, color: '#D97706', required: true, kcalShare: 0.25,
+    options: [
+      { label: 'Opção 1', protein: '30 g',    items: ['1 pão francês', '3 ovos', '30 g de queijo branco', '1 fruta — mamão (180 g), banana (70 g), kiwi (130 g) ou melão'] },
+      { label: 'Opção 2', protein: '30–35 g', items: ['2 fatias de pão integral', '120 g de frango desfiado (ou 2 ovos + 3 claras)', '1 fruta'] },
+      { label: 'Opção 3', protein: '35 g',    items: ['40 g de aveia', '1 scoop de whey', '200 ml de leite semidesnatado', '1 fruta'] },
+      { label: 'Opção 4', protein: '35–40 g', items: ['170–200 g de iogurte grego natural', '1 scoop de whey', 'Morangos ou banana'] },
+    ],
+  },
+  {
+    id: 'lanche-m', label: 'Lanche da Manhã', Icon: Droplets, color: '#F59E0B', required: false, kcalShare: 0.10,
+    note: 'Opcional — complementa proteína do dia',
+    options: [
+      { label: 'Opção 1', items: ['1 scoop de whey com água'] },
+      { label: 'Opção 2', items: ['1 iogurte proteico'] },
+      { label: 'Opção 3', items: ['2 ovos cozidos'] },
+      { label: 'Opção 4', protein: '15–25 g', items: ['1 fruta', '50 g de cottage ou ricota'] },
+    ],
+  },
+  {
+    id: 'almoco', label: 'Almoço', Icon: Utensils, color: '#059669', required: true, kcalShare: 0.30,
+    options: [
+      { label: 'Opção 1', protein: '40–50 g', items: ['Arroz branco cozido (130–180 g)', 'Feijão (100 g)', 'Frango grelhado (150–200 g)', 'Legumes cozidos', 'Pequena porção de salada'] },
+      { label: 'Opção 2', items: ['Macarrão cozido (150–180 g)', 'Patinho moído ou carne magra (150–180 g)', 'Legumes cozidos'] },
+      { label: 'Opção 3', items: ['Baião de dois (180–220 g)', 'Frango desfiado ou carne magra (150–180 g)', 'Legumes', 'Salada'] },
+      { label: 'Opção 4', items: ['Arroz (130 g)', 'Feijão (100 g)', 'Peixe (180 g)', 'Legumes cozidos'] },
+      { label: 'Opção 5', items: ['Batata doce ou mandioca', 'Frango ou carne magra (150–180 g)', 'Legumes'] },
+    ],
+  },
+  {
+    id: 'lanche-t', label: 'Lanche da Tarde', Icon: Droplets, color: '#0891B2', required: false, kcalShare: 0.10,
+    note: 'Opcional — complementa proteína do dia',
+    options: [
+      { label: 'Opção 1', items: ['1 scoop de whey', '1 fruta'] },
+      { label: 'Opção 2 — Sanduíche', items: ['2 fatias de pão integral', '100–120 g de frango desfiado (ou 1 lata de atum em água)'] },
+      { label: 'Opção 3', items: ['Iogurte proteico', '15 g de aveia'] },
+      { label: 'Opção 4', items: ['2 ovos', '1 fruta'] },
+    ],
+  },
+  {
+    id: 'jantar', label: 'Jantar', Icon: Moon, color: '#7C3AED', required: true, kcalShare: 0.20,
+    options: [
+      { label: 'Opção 1', protein: '40–45 g', items: ['Arroz (120–160 g)', 'Carne magra ou frango (150–180 g)', 'Legumes cozidos'] },
+      { label: 'Opção 2', items: ['1 pão francês', 'Frango desfiado (150 g)', '30 g de queijo branco', 'Legumes ou pequena salada'] },
+      { label: 'Opção 3 — Omelete', items: ['3 ovos inteiros + 3 claras', 'Pequena porção de arroz ou batata'] },
+      { label: 'Opção 4', items: ['Macarrão cozido', 'Atum ou frango (150–180 g)'] },
+      { label: 'Opção 5 — Dias de pouca fome', protein: '40 g', items: ['170 g de iogurte grego', '1 scoop de whey', '1 banana', '20 g de aveia'] },
+    ],
+  },
+  {
+    id: 'ceia', label: 'Ceia', Icon: Moon, color: '#1E40AF', required: false, kcalShare: 0.05,
+    note: 'Somente se necessário',
+    options: [
+      { label: 'Opção 1', items: ['1 scoop de whey com água'] },
+      { label: 'Opção 2', items: ['200 ml de leite desnatado', '20 g de whey'] },
+      { label: 'Opção 3', items: ['Iogurte proteico'] },
+      { label: 'Opção 4', items: ['Cottage ou ricota (80 g)'] },
+    ],
+  },
 ]
 
-const COMORBIDITIES = [
-  { id: 'diabetes2',     label: 'Diabetes tipo 2' },
-  { id: 'prediabetes',   label: 'Pré-diabetes' },
-  { id: 'hypertension',  label: 'Hipertensão arterial' },
-  { id: 'hypothyroid',   label: 'Hipotireoidismo' },
-  { id: 'dyslipidemia',  label: 'Dislipidemia (colesterol/triglicérides)' },
-  { id: 'none',          label: 'Nenhuma' },
+const INFO_M: InfoSection[] = [
+  { id: 'prot-fontes', Icon: Zap,     color: '#DC2626', label: 'Fontes de Proteína para Rodízio', items: ['Frango', 'Patinho', 'Coxão mole', 'Peixes', 'Atum em água', 'Sardinha', 'Ovos', 'Iogurte grego', 'Cottage', 'Ricota', 'Whey protein'] },
+  { id: 'carbs',       Icon: Package,  color: '#D97706', label: 'Carboidratos',                    items: ['Arroz', 'Feijão', 'Batata inglesa', 'Batata doce', 'Mandioca', 'Macarrão', 'Pão francês', 'Pão integral', 'Aveia', 'Cuscuz', 'Tapioca'] },
+  { id: 'frutas',      Icon: Leaf,     color: '#059669', label: 'Frutas Prioritárias',             items: ['Mamão', 'Kiwi', 'Pera', 'Maçã', 'Morango', 'Banana', 'Melão'], note: 'Para o intestino e melhor tolerância.' },
+  { id: 'fibras',      Icon: Leaf,     color: '#16A34A', label: 'Fibras e Constipação',            items: ['Feijão', 'Frutas', 'Legumes', 'Vegetais'], note: 'Se necessário: Psyllium 5 g inicialmente, podendo evoluir para 10 g por dia. Sempre associado ao aumento da ingestão de água.' },
+  { id: 'peixes',      Icon: Fish,     color: '#0EA5E9', label: 'Peixes e Ômega-3',               items: ['Sardinha', 'Atum', 'Salmão', 'Cavalinha'], note: 'Idealmente duas vezes por semana.' },
 ]
 
-const RESTRICTIONS = [
-  { id: 'none',       label: 'Nenhuma' },
-  { id: 'lactose',    label: 'Intolerância à lactose' },
-  { id: 'gluten',     label: 'Intolerância ao glúten' },
-  { id: 'vegetarian', label: 'Vegetariano' },
-  { id: 'vegan',      label: 'Vegano' },
-]
+// ── Componente principal ──────────────────────────────────────────────────────
+export default function FoodGuide({ profile }: Props) {
+  const rawSex     = profile.sex
+  const detectedSex: DietSex | null = rawSex === 'female' ? 'F' : rawSex === 'male' ? 'M' : null
 
-const ACTIVITY_OPTIONS: { id: Activity; label: string; sub: string }[] = [
-  { id: 'sedentary',   label: 'Sedentário',    sub: 'Pouco ou nenhum exercício' },
-  { id: 'light',       label: 'Leve',          sub: '1–3× por semana' },
-  { id: 'moderate',    label: 'Moderado',      sub: '3–5× por semana' },
-  { id: 'active',      label: 'Ativo',         sub: '6–7× por semana' },
-  { id: 'very_active', label: 'Muito ativo',   sub: 'Exercício intenso diário' },
-]
-
-// ── Sub-components ────────────────────────────────────────────────────────────
-
-function Pill({ active, onClick, children }: { active: boolean; onClick: () => void; children: React.ReactNode }) {
-  return (
-    <button
-      onClick={onClick}
-      style={{
-        flex: 1, padding: '10px 8px', borderRadius: '12px', cursor: 'pointer',
-        fontFamily: 'Inter, -apple-system, sans-serif', fontWeight: 700, fontSize: '13px',
-        border: active ? '2px solid #16A34A' : '1.5px solid var(--border)',
-        background: active ? 'rgba(22,163,74,0.12)' : 'var(--surface-2)',
-        color: active ? '#16A34A' : 'var(--text-secondary)',
-        transition: 'all 0.15s',
-      }}
-    >
-      {children}
-    </button>
-  )
-}
-
-function Divider({ label }: { label: string }) {
-  return (
-    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '4px 2px' }}>
-      <div style={{ flex: 1, height: '1px', background: 'var(--border)' }} />
-      <p style={{ fontSize: '10px', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.08em', whiteSpace: 'nowrap', margin: 0 }}>
-        {label}
-      </p>
-      <div style={{ flex: 1, height: '1px', background: 'var(--border)' }} />
-    </div>
-  )
-}
-
-// ── Main component ────────────────────────────────────────────────────────────
-
-export default function FoodGuide() {
-  // ── Profile ──
-  const [profile, setProfile] = useState<DietProfile | null>(() => {
-    try { return JSON.parse(localStorage.getItem(STORAGE_KEY) || 'null') }
-    catch { return null }
+  const [sex, setSex]             = useState<DietSex | null>(detectedSex)
+  const [activeTab, setActiveTab] = useState<ActiveTab>('hoje')
+  const [log, setLog]             = useState<FoodLog>(() => {
+    try { return JSON.parse(localStorage.getItem(LOG_KEY) || '{}') } catch { return {} }
   })
 
-  // ── Food log ──
-  const [log, setLog] = useState<FoodLog>(() => {
-    try { return JSON.parse(localStorage.getItem(LOG_KEY) || '{}') }
-    catch { return {} }
-  })
+  const today  = toDateStr()
+  const dayLog = log[today] ?? { meals: [], manual: [] }
 
-  // ── Quiz form ──
-  const [step, setStep]               = useState(1)
-  const [formSex, setFormSex]         = useState<DietSex | null>(() => {
-    try {
-      const p = JSON.parse(localStorage.getItem('tizetrack_profile') || 'null')
-      if (p?.sex === 'male' || p?.sex === 'M') return 'M'
-      if (p?.sex === 'female' || p?.sex === 'F') return 'F'
-    } catch { /* */ }
-    return null
-  })
-  const [formAge, setFormAge]         = useState(() => {
-    try { return JSON.parse(localStorage.getItem('tizetrack_profile') || 'null')?.age?.toString() || '' }
-    catch { return '' }
-  })
-  const [formHeight, setFormHeight]   = useState(() => {
-    try { return JSON.parse(localStorage.getItem('tizetrack_profile') || 'null')?.height?.toString() || '' }
-    catch { return '' }
-  })
-  const [formWeight, setFormWeight]   = useState(() => {
-    try {
-      const p = JSON.parse(localStorage.getItem('tizetrack_profile') || 'null')
-      return (p?.currentWeight ?? p?.startWeight)?.toString() || ''
-    } catch { return '' }
-  })
-  const [formGoalWeight, setFormGoalWeight] = useState(() => {
-    try { return JSON.parse(localStorage.getItem('tizetrack_profile') || 'null')?.goalWeight?.toString() || '' }
-    catch { return '' }
-  })
-  const [formActivity, setFormActivity]       = useState<Activity | null>(null)
-  const [formPhase, setFormPhase]             = useState<ProtocolPhase | null>(null)
-  const [formMealFreq, setFormMealFreq]       = useState<MealFrequency | null>(null)
-  const [formChallenges, setFormChallenges]   = useState<string[]>([])
-  const [formComorbidities, setFormComorbidities] = useState<string[]>([])
-  const [formRestrictions, setFormRestrictions]   = useState<string[]>([])
-
-  // ── Plan view ──
-  const [activeTab, setActiveTab]   = useState<DietTab>('hoje')
-  const [expanded, setExpanded]     = useState<Set<string>>(new Set())
   const [manualName, setManualName] = useState('')
   const [manualKcal, setManualKcal] = useState('')
   const nameRef = useRef<HTMLInputElement>(null)
+  const [expanded, setExpanded]     = useState<Set<string>>(new Set())
 
-  // ── Log helpers ──
-  const today    = toDateStr()
-  const dayLog   = log[today] ?? { meals: [], manual: [] }
+  // Persiste tizetrack_diet
+  if (sex) {
+    try {
+      const saved = JSON.parse(localStorage.getItem(DIET_KEY) || 'null')
+      if (!saved || saved.sex !== sex)
+        localStorage.setItem(DIET_KEY, JSON.stringify({ sex, dailyKcal: DIET_KCAL[sex] }))
+    } catch {}
+  }
 
   function saveLog(next: DayLog) {
     const updated = { ...log, [today]: next }
@@ -215,986 +232,671 @@ export default function FoodGuide() {
     localStorage.setItem(LOG_KEY, JSON.stringify(updated))
   }
 
-  function toggleMeal(mealId: string) {
-    const meals = dayLog.meals.includes(mealId)
-      ? dayLog.meals.filter(m => m !== mealId)
-      : [...dayLog.meals, mealId]
+  function toggleMeal(id: string) {
+    const meals = dayLog.meals.includes(id)
+      ? dayLog.meals.filter(m => m !== id)
+      : [...dayLog.meals, id]
     saveLog({ ...dayLog, meals })
   }
 
   function addManual() {
-    const name = manualName.trim()
-    const kcal = parseInt(manualKcal)
+    const name = manualName.trim(); const kcal = parseInt(manualKcal)
     if (!name || !kcal || kcal <= 0) return
-    const item: ManualItem = { id: Date.now().toString(), name, kcal }
-    saveLog({ ...dayLog, manual: [...dayLog.manual, item] })
-    setManualName(''); setManualKcal('')
-    nameRef.current?.focus()
+    saveLog({ ...dayLog, manual: [...dayLog.manual, { id: Date.now().toString(), name, kcal }] })
+    setManualName(''); setManualKcal(''); nameRef.current?.focus()
   }
 
   function removeManual(id: string) {
     saveLog({ ...dayLog, manual: dayLog.manual.filter(m => m.id !== id) })
   }
 
-  const step1Ok = !!(formSex && formAge && formHeight && formWeight && formGoalWeight &&
-    Number(formAge) > 0 && Number(formHeight) > 0 && Number(formWeight) > 0 && Number(formGoalWeight) > 0)
-  const step2Ok = !!formActivity
-  const step3Ok = !!(formPhase && formMealFreq)
-
-  function inferGoal(weight: number, goalWeight: number): Goal {
-    const diff = weight - goalWeight
-    if (diff > 2)  return 'lose'
-    if (diff < -2) return 'gain'
-    return 'maintain'
+  function toggleExpanded(id: string) {
+    const next = new Set(expanded); next.has(id) ? next.delete(id) : next.add(id); setExpanded(next)
   }
 
-  function toggleMulti(list: string[], setList: (v: string[]) => void, id: string, noneId = 'none') {
-    if (id === noneId) { setList([noneId]); return }
-    const without = list.filter(r => r !== noneId)
-    setList(without.includes(id) ? without.filter(r => r !== id) : [...without, id])
+  function selectSex(s: DietSex) {
+    setSex(s); localStorage.setItem(DIET_KEY, JSON.stringify({ sex: s, dailyKcal: DIET_KCAL[s] }))
   }
 
-  function saveProfile() {
-    if (!step1Ok || !step2Ok || !step3Ok || !formSex || !formActivity || !formPhase || !formMealFreq) return
-    const w = Number(formWeight), gw = Number(formGoalWeight)
-    const draft = {
-      sex: formSex, age: Number(formAge), height: Number(formHeight),
-      weight: w, goalWeight: gw,
-      goal: inferGoal(w, gw), activity: formActivity,
-      protocolPhase: formPhase, mealFrequency: formMealFreq,
-      challenges:    formChallenges.length    ? formChallenges    : ['none'],
-      comorbidities: formComorbidities.length ? formComorbidities : ['none'],
-      restrictions:  formRestrictions.length  ? formRestrictions  : ['none'],
-      dailyKcal: 0,
-    }
-    const p: DietProfile = { ...draft, dailyKcal: calcTDEE(draft) }
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(p))
-    setProfile(p)
-    setExpanded(new Set())
-    setActiveTab('hoje')
-  }
+  const diet      = sex === 'F' ? DIET_F : DIET_M
+  const infoList  = sex === 'F' ? INFO_F : INFO_M
+  const dailyKcal = sex ? DIET_KCAL[sex] : 1600
 
-  function resetProfile() {
-    localStorage.removeItem(STORAGE_KEY)
-    setProfile(null); setStep(1)
-    setFormActivity(null); setFormPhase(null); setFormMealFreq(null)
-    setFormChallenges([]); setFormComorbidities([]); setFormRestrictions([])
-  }
+  const mealKcal        = dayLog.meals.reduce((s, id) => s + Math.round(dailyKcal * (MEAL_SHARES[id] ?? 0)), 0)
+  const manualKcalTotal = dayLog.manual.reduce((s, m) => s + m.kcal, 0)
+  const consumed        = mealKcal + manualKcalTotal
+  const pct             = Math.min(100, Math.round((consumed / dailyKcal) * 100))
+  const remaining       = Math.max(0, dailyKcal - consumed)
+  const proteinEst      = sex ? dayLog.meals.reduce((s, id) => s + (MEAL_PROTEIN[sex][id] ?? 0), 0) : 0
+  const proteinGoal     = `${Math.round(1.6 * profile.goalWeight)}–${Math.round(2.0 * profile.goalWeight)} g`
+  const currentW        = profile.weightHistory.at(-1)?.weight ?? profile.startWeight
+  const waterGoal       = `${(currentW * 35 / 1000).toFixed(1)}–${(currentW * 40 / 1000).toFixed(1)} L`
 
-  function toggle(id: string) {
-    setExpanded(prev => {
-      const next = new Set(prev)
-      if (next.has(id)) { next.delete(id) } else { next.add(id) }
-      return next
-    })
-  }
-
-  // ── Sub-components (defined inside to access toggle/state) ──
-
-  function MealCard({ section }: { section: MealSection }) {
-    const isOpen = expanded.has(section.id)
+  // ── Seletor de sexo ───────────────────────────────────────────────────────
+  if (!sex) {
     return (
-      <div style={{
-        borderRadius: '16px',
-        border: `1.5px solid ${isOpen ? section.color + '35' : 'var(--border)'}`,
-        background: isOpen ? section.color + '07' : 'var(--surface)',
-        overflow: 'hidden', transition: 'all 0.2s ease', boxShadow: 'var(--card-shadow)',
-      }}>
-        <button
-          onClick={() => toggle(section.id)}
-          style={{ width: '100%', padding: '13px 16px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: 'transparent', border: 'none', cursor: 'pointer', fontFamily: 'Inter, -apple-system, sans-serif' }}
-        >
-          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-            <div style={{ width: '8px', height: '8px', borderRadius: '50%', flexShrink: 0, background: section.color }} />
-            <div style={{ textAlign: 'left' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '7px' }}>
-                <p style={{ fontWeight: 800, fontSize: '14px', color: 'var(--text-primary)', margin: 0 }}>{section.label}</p>
-                {section.sublabel && (
-                  <span style={{ fontSize: '10px', fontWeight: 700, padding: '2px 7px', borderRadius: '99px', background: section.color + '18', color: section.color }}>
-                    {section.sublabel}
-                  </span>
-                )}
-              </div>
-              <p style={{ fontSize: '11px', color: 'var(--text-muted)', margin: 0, marginTop: '1px' }}>
-                {section.options.length} {section.options.length === 1 ? 'opção' : 'opções'}
-              </p>
-            </div>
-          </div>
-          <span style={{ color: 'var(--text-muted)', transform: isOpen ? 'rotate(180deg)' : 'none', transition: 'transform 0.2s ease', display: 'inline-flex', flexShrink: 0 }}>
-            <ChevronDown size={16} strokeWidth={2} />
-          </span>
-        </button>
-        {isOpen && (
-          <div style={{ padding: '0 14px 14px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
-            {section.options.map((opt, idx) => (
-              <div key={idx} style={{ padding: '10px 12px', borderRadius: '11px', background: 'var(--surface)', border: `1px solid ${section.color}22` }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '7px', marginBottom: '6px' }}>
-                  <span style={{ width: '20px', height: '20px', borderRadius: '6px', flexShrink: 0, background: section.color + '18', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '10px', fontWeight: 800, color: section.color }}>
-                    {idx + 1}
-                  </span>
-                  {opt.label && <span style={{ fontSize: '11px', fontWeight: 700, color: section.color }}>{opt.label}</span>}
-                </div>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '3px', paddingLeft: '4px' }}>
-                  {opt.items.map((item, i) => (
-                    <div key={i} style={{ display: 'flex', alignItems: 'flex-start', gap: '7px' }}>
-                      <span style={{ width: '4px', height: '4px', borderRadius: '50%', flexShrink: 0, background: section.color + 'aa', marginTop: '7px' }} />
-                      <p style={{ fontSize: '12px', color: 'var(--text-secondary)', lineHeight: 1.45, margin: 0 }}>{item}</p>
-                    </div>
-                  ))}
-                </div>
-                {opt.protein && (
-                  <div style={{ marginTop: '8px', paddingTop: '7px', borderTop: `1px solid ${section.color}18` }}>
-                    <span style={{ fontSize: '10px', fontWeight: 700, color: section.color }}>Proteína aprox.: {opt.protein}</span>
-                  </div>
-                )}
-                {opt.note && <p style={{ fontSize: '11px', color: 'var(--text-muted)', marginTop: '6px', fontStyle: 'italic', lineHeight: 1.4, margin: '6px 0 0' }}>{opt.note}</p>}
-              </div>
-            ))}
-          </div>
-        )}
-      </div>
-    )
-  }
-
-  function ListCard({ section }: { section: ListSection }) {
-    const isOpen = expanded.has(section.id)
-    return (
-      <div style={{ borderRadius: '16px', border: `1.5px solid ${isOpen ? 'rgba(22,163,74,0.22)' : 'var(--border)'}`, background: isOpen ? 'rgba(22,163,74,0.04)' : 'var(--surface)', overflow: 'hidden', transition: 'all 0.2s ease', boxShadow: 'var(--card-shadow)' }}>
-        <button onClick={() => toggle(section.id)} style={{ width: '100%', padding: '13px 16px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: 'transparent', border: 'none', cursor: 'pointer', fontFamily: 'Inter, -apple-system, sans-serif' }}>
-          <p style={{ fontWeight: 700, fontSize: '13px', color: 'var(--text-primary)', margin: 0 }}>{section.label}</p>
-          <span style={{ color: 'var(--text-muted)', transform: isOpen ? 'rotate(180deg)' : 'none', transition: 'transform 0.2s ease', display: 'inline-flex', flexShrink: 0 }}>
-            <ChevronDown size={16} strokeWidth={2} />
-          </span>
-        </button>
-        {isOpen && (
-          <div style={{ padding: '0 14px 14px' }}>
-            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
-              {section.items.map(item => (
-                <span key={item} style={{ padding: '4px 10px', borderRadius: '99px', fontSize: '12px', fontWeight: 600, background: 'rgba(22,163,74,0.12)', color: '#16A34A', border: '1px solid rgba(22,163,74,0.20)' }}>
-                  {item}
-                </span>
-              ))}
-            </div>
-            {section.note && <p style={{ fontSize: '11px', color: 'var(--text-muted)', marginTop: '10px', lineHeight: 1.5 }}>{section.note}</p>}
-          </div>
-        )}
-      </div>
-    )
-  }
-
-  // ── QUIZ ─────────────────────────────────────────────────────────────────────
-
-  if (!profile) {
-    const inputStyle: CSSProperties = {
-      width: '100%', padding: '11px 14px', borderRadius: '12px',
-      border: '1.5px solid var(--border)', background: 'var(--surface-2)',
-      fontFamily: 'Inter, -apple-system, sans-serif', fontSize: '14px', fontWeight: 600,
-      color: 'var(--text-primary)', outline: 'none', boxSizing: 'border-box',
-    }
-    const labelStyle: CSSProperties = {
-      fontSize: '12px', fontWeight: 700, color: 'var(--text-muted)',
-      textTransform: 'uppercase', letterSpacing: '0.07em', marginBottom: '8px', display: 'block',
-    }
-
-    return (
-      <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-        {/* Banner */}
-        <div style={{ background: 'linear-gradient(135deg, #16653A 0%, #0E4A29 100%)', borderRadius: '20px', padding: '18px 20px', color: '#fff', boxShadow: '0 8px 28px rgba(22,101,58,0.35)' }}>
-          <p style={{ fontSize: '11px', fontWeight: 700, opacity: 0.7, textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: '6px' }}>
-            Avaliação nutricional · Passo {step} de 4
-          </p>
-          <p style={{ fontSize: '17px', fontWeight: 800, lineHeight: 1.3, letterSpacing: '-0.3px', marginBottom: '4px' }}>
-            {step === 1 ? 'Seus dados corporais' : step === 2 ? 'Nível de atividade' : step === 3 ? 'Sobre o protocolo' : 'Restrições alimentares'}
-          </p>
-          {/* Step indicator */}
-          <div style={{ display: 'flex', gap: '5px', marginTop: '10px' }}>
-            {[1,2,3,4].map(s => (
-              <div key={s} style={{ height: '4px', flex: 1, borderRadius: '99px', background: s <= step ? '#fff' : 'rgba(255,255,255,0.3)', transition: 'all 0.3s' }} />
-            ))}
-          </div>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
+        <div>
+          <h2 style={{ fontSize: '22px', fontWeight: 800, color: 'var(--text-primary)', margin: '0 0 6px', letterSpacing: '-0.3px' }}>
+            Alimentação
+          </h2>
+          <p style={{ fontSize: '13px', color: 'var(--text-muted)', margin: 0 }}>Selecione seu plano para continuar</p>
         </div>
-
-        <div className="card" style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
-
-          {/* Step 1 */}
-          {step === 1 && (
-            <>
-              <div>
-                <span style={labelStyle}>Sexo biológico</span>
-                <div style={{ display: 'flex', gap: '8px' }}>
-                  <Pill active={formSex === 'M'} onClick={() => setFormSex('M')}>Masculino</Pill>
-                  <Pill active={formSex === 'F'} onClick={() => setFormSex('F')}>Feminino</Pill>
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+          {(['F', 'M'] as DietSex[]).map(s => {
+            const bg = s === 'F'
+              ? 'linear-gradient(150deg, #2D1B69 0%, #1E1145 100%)'
+              : 'linear-gradient(150deg, #1E3A8A 0%, #172554 100%)'
+            const accent = s === 'F' ? '#A78BFA' : '#60A5FA'
+            return (
+              <button key={s} onClick={() => selectSex(s)} style={{
+                padding: '24px 16px', borderRadius: '20px', border: 'none', cursor: 'pointer',
+                background: bg, color: '#fff', textAlign: 'center',
+                boxShadow: s === 'F'
+                  ? '0 8px 28px rgba(45,27,105,0.45), inset 0 1px 0 rgba(255,255,255,0.08)'
+                  : '0 8px 28px rgba(30,58,138,0.45), inset 0 1px 0 rgba(255,255,255,0.08)',
+                transition: 'transform 0.15s', fontFamily: 'Inter, -apple-system, sans-serif',
+              }}>
+                <div style={{
+                  width: '44px', height: '44px', borderRadius: '14px', margin: '0 auto 14px',
+                  background: `${accent}20`, border: `1px solid ${accent}40`,
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                }}>
+                  <User size={20} strokeWidth={1.8} color={accent} />
                 </div>
-              </div>
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
-                <div>
-                  <span style={labelStyle}>Idade</span>
-                  <input style={inputStyle} type="number" placeholder="Ex: 35" min={10} max={100} value={formAge} onChange={e => setFormAge(e.target.value)} />
-                </div>
-                <div>
-                  <span style={labelStyle}>Altura (cm)</span>
-                  <input style={inputStyle} type="number" placeholder="Ex: 168" min={100} max={250} value={formHeight} onChange={e => setFormHeight(e.target.value)} />
-                </div>
-                <div>
-                  <span style={labelStyle}>Peso atual (kg)</span>
-                  <input style={inputStyle} type="number" placeholder="Ex: 82" min={30} max={300} step={0.1} value={formWeight} onChange={e => setFormWeight(e.target.value)} />
-                </div>
-                <div>
-                  <span style={labelStyle}>Peso objetivo (kg)</span>
-                  <input style={inputStyle} type="number" placeholder="Ex: 65" min={30} max={300} step={0.1} value={formGoalWeight} onChange={e => setFormGoalWeight(e.target.value)} />
-                </div>
-              </div>
-              <button
-                onClick={() => setStep(2)}
-                disabled={!step1Ok}
-                style={{
-                  width: '100%', padding: '14px', borderRadius: '14px', border: 'none',
-                  fontFamily: 'Inter, -apple-system, sans-serif', fontWeight: 800, fontSize: '15px',
-                  cursor: step1Ok ? 'pointer' : 'not-allowed',
-                  background: step1Ok ? 'linear-gradient(135deg, #16653A 0%, #059669 100%)' : 'var(--surface-3)',
-                  color: step1Ok ? '#fff' : 'var(--text-muted)',
-                  opacity: step1Ok ? 1 : 0.5, transition: 'all 0.2s',
-                  boxShadow: step1Ok ? '0 4px 14px rgba(22,101,58,0.4)' : 'none',
-                }}
-              >
-                Próximo
+                <p style={{ fontSize: '16px', fontWeight: 800, margin: '0 0 5px', letterSpacing: '-0.3px' }}>
+                  Plano {s === 'F' ? 'Feminino' : 'Masculino'}
+                </p>
+                <p style={{ fontSize: '11px', opacity: 0.55, margin: 0 }}>
+                  {s === 'F' ? '1.600 kcal · 30 dias' : '2.000 kcal · 30 dias'}
+                </p>
               </button>
-            </>
-          )}
-
-          {/* Step 2 */}
-          {step === 2 && (
-            <>
-              <div>
-                <span style={labelStyle}>Nível de atividade física</span>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                  {ACTIVITY_OPTIONS.map(a => (
-                    <button
-                      key={a.id}
-                      onClick={() => setFormActivity(a.id)}
-                      style={{
-                        padding: '11px 14px', borderRadius: '12px', border: 'none', cursor: 'pointer',
-                        fontFamily: 'Inter, -apple-system, sans-serif', textAlign: 'left',
-                        background: formActivity === a.id ? 'rgba(22,163,74,0.12)' : 'var(--surface-2)',
-                        outline: formActivity === a.id ? '2px solid #16A34A' : '1.5px solid var(--border)',
-                        transition: 'all 0.15s',
-                      }}
-                    >
-                      <p style={{ fontWeight: 700, fontSize: '13px', color: formActivity === a.id ? '#16A34A' : 'var(--text-primary)', margin: 0 }}>{a.label}</p>
-                      <p style={{ fontSize: '11px', color: 'var(--text-muted)', margin: '2px 0 0' }}>{a.sub}</p>
-                    </button>
-                  ))}
-                </div>
-              </div>
-              <div style={{ display: 'flex', gap: '8px' }}>
-                <button onClick={() => setStep(1)} style={{ flex: 1, padding: '12px', borderRadius: '12px', border: '1.5px solid var(--border)', background: 'var(--surface-2)', cursor: 'pointer', fontFamily: 'Inter, -apple-system, sans-serif', fontWeight: 700, fontSize: '13px', color: 'var(--text-secondary)' }}>
-                  Voltar
-                </button>
-                <button
-                  onClick={() => setStep(3)}
-                  disabled={!step2Ok}
-                  style={{
-                    flex: 2, padding: '12px', borderRadius: '12px', border: 'none',
-                    fontFamily: 'Inter, -apple-system, sans-serif', fontWeight: 800, fontSize: '14px',
-                    cursor: step2Ok ? 'pointer' : 'not-allowed',
-                    background: step2Ok ? 'linear-gradient(135deg, #16653A 0%, #059669 100%)' : 'var(--surface-3)',
-                    color: step2Ok ? '#fff' : 'var(--text-muted)',
-                    opacity: step2Ok ? 1 : 0.5, transition: 'all 0.2s',
-                  }}
-                >
-                  Próximo
-                </button>
-              </div>
-            </>
-          )}
-
-          {/* Step 3 — Protocol */}
-          {step === 3 && (
-            <>
-              <div>
-                <span style={labelStyle}>Fase do protocolo</span>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                  {PROTOCOL_PHASES.map(ph => (
-                    <button
-                      key={ph.id}
-                      onClick={() => setFormPhase(ph.id)}
-                      style={{
-                        padding: '11px 14px', borderRadius: '12px', border: 'none', cursor: 'pointer',
-                        fontFamily: 'Inter, -apple-system, sans-serif', textAlign: 'left',
-                        background: formPhase === ph.id ? 'rgba(22,163,74,0.12)' : 'var(--surface-2)',
-                        outline: formPhase === ph.id ? '2px solid #16A34A' : '1.5px solid var(--border)',
-                        transition: 'all 0.15s',
-                      }}
-                    >
-                      <p style={{ fontWeight: 700, fontSize: '13px', color: formPhase === ph.id ? '#16A34A' : 'var(--text-primary)', margin: 0 }}>{ph.label}</p>
-                      <p style={{ fontSize: '11px', color: 'var(--text-muted)', margin: '2px 0 0' }}>{ph.sub}</p>
-                    </button>
-                  ))}
-                </div>
-              </div>
-              <div>
-                <span style={labelStyle}>Quantas refeições costuma fazer</span>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                  {MEAL_FREQUENCY.map(mf => (
-                    <button
-                      key={mf.id}
-                      onClick={() => setFormMealFreq(mf.id)}
-                      style={{
-                        padding: '11px 14px', borderRadius: '12px', border: 'none', cursor: 'pointer',
-                        fontFamily: 'Inter, -apple-system, sans-serif', textAlign: 'left',
-                        background: formMealFreq === mf.id ? 'rgba(22,163,74,0.12)' : 'var(--surface-2)',
-                        outline: formMealFreq === mf.id ? '2px solid #16A34A' : '1.5px solid var(--border)',
-                        transition: 'all 0.15s',
-                      }}
-                    >
-                      <p style={{ fontWeight: 700, fontSize: '13px', color: formMealFreq === mf.id ? '#16A34A' : 'var(--text-primary)', margin: 0 }}>{mf.label}</p>
-                      <p style={{ fontSize: '11px', color: 'var(--text-muted)', margin: '2px 0 0' }}>{mf.sub}</p>
-                    </button>
-                  ))}
-                </div>
-              </div>
-              <div>
-                <span style={labelStyle}>Principais desafios</span>
-                <p style={{ fontSize: '11px', color: 'var(--text-muted)', margin: '0 0 8px' }}>Selecione todos que se aplicam</p>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                  {CHALLENGES.map(c => {
-                    const active = formChallenges.includes(c.id)
-                    return (
-                      <button key={c.id} onClick={() => toggleMulti(formChallenges, setFormChallenges, c.id)}
-                        style={{ padding: '10px 14px', borderRadius: '12px', border: 'none', cursor: 'pointer', fontFamily: 'Inter, -apple-system, sans-serif', textAlign: 'left', background: active ? 'rgba(22,163,74,0.12)' : 'var(--surface-2)', outline: active ? '2px solid #16A34A' : '1.5px solid var(--border)', fontWeight: 700, fontSize: '13px', color: active ? '#16A34A' : 'var(--text-primary)', transition: 'all 0.15s', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                        {c.label}
-                        {active && <Check size={14} strokeWidth={3} />}
-                      </button>
-                    )
-                  })}
-                </div>
-              </div>
-              <div>
-                <span style={labelStyle}>Condições de saúde</span>
-                <p style={{ fontSize: '11px', color: 'var(--text-muted)', margin: '0 0 8px' }}>Selecione todas que se aplicam</p>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                  {COMORBIDITIES.map(c => {
-                    const active = formComorbidities.includes(c.id)
-                    return (
-                      <button key={c.id} onClick={() => toggleMulti(formComorbidities, setFormComorbidities, c.id)}
-                        style={{ padding: '10px 14px', borderRadius: '12px', border: 'none', cursor: 'pointer', fontFamily: 'Inter, -apple-system, sans-serif', textAlign: 'left', background: active ? 'rgba(22,163,74,0.12)' : 'var(--surface-2)', outline: active ? '2px solid #16A34A' : '1.5px solid var(--border)', fontWeight: 700, fontSize: '13px', color: active ? '#16A34A' : 'var(--text-primary)', transition: 'all 0.15s', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                        {c.label}
-                        {active && <Check size={14} strokeWidth={3} />}
-                      </button>
-                    )
-                  })}
-                </div>
-              </div>
-              <div style={{ display: 'flex', gap: '8px' }}>
-                <button onClick={() => setStep(2)} style={{ flex: 1, padding: '12px', borderRadius: '12px', border: '1.5px solid var(--border)', background: 'var(--surface-2)', cursor: 'pointer', fontFamily: 'Inter, -apple-system, sans-serif', fontWeight: 700, fontSize: '13px', color: 'var(--text-secondary)' }}>
-                  Voltar
-                </button>
-                <button
-                  onClick={() => setStep(4)}
-                  disabled={!step3Ok}
-                  style={{
-                    flex: 2, padding: '12px', borderRadius: '12px', border: 'none',
-                    fontFamily: 'Inter, -apple-system, sans-serif', fontWeight: 800, fontSize: '14px',
-                    cursor: step3Ok ? 'pointer' : 'not-allowed',
-                    background: step3Ok ? 'linear-gradient(135deg, #16653A 0%, #059669 100%)' : 'var(--surface-3)',
-                    color: step3Ok ? '#fff' : 'var(--text-muted)',
-                    opacity: step3Ok ? 1 : 0.5, transition: 'all 0.2s',
-                  }}
-                >
-                  Próximo
-                </button>
-              </div>
-            </>
-          )}
-
-          {/* Step 4 — Restrictions */}
-          {step === 4 && (
-            <>
-              <div>
-                <span style={labelStyle}>Restrições alimentares</span>
-                <p style={{ fontSize: '11px', color: 'var(--text-muted)', marginBottom: '10px' }}>Selecione todas que se aplicam</p>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                  {RESTRICTIONS.map(r => {
-                    const active = formRestrictions.includes(r.id)
-                    return (
-                      <button
-                        key={r.id}
-                        onClick={() => toggleMulti(formRestrictions, setFormRestrictions, r.id)}
-                        style={{
-                          padding: '11px 14px', borderRadius: '12px', border: 'none', cursor: 'pointer',
-                          fontFamily: 'Inter, -apple-system, sans-serif', textAlign: 'left',
-                          background: active ? 'rgba(22,163,74,0.12)' : 'var(--surface-2)',
-                          outline: active ? '2px solid #16A34A' : '1.5px solid var(--border)',
-                          fontWeight: 700, fontSize: '13px', color: active ? '#16A34A' : 'var(--text-primary)',
-                          transition: 'all 0.15s', display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-                        }}
-                      >
-                        {r.label}
-                        {active && <Check size={14} strokeWidth={3} />}
-                      </button>
-                    )
-                  })}
-                </div>
-              </div>
-              <div style={{ display: 'flex', gap: '8px' }}>
-                <button onClick={() => setStep(3)} style={{ flex: 1, padding: '12px', borderRadius: '12px', border: '1.5px solid var(--border)', background: 'var(--surface-2)', cursor: 'pointer', fontFamily: 'Inter, -apple-system, sans-serif', fontWeight: 700, fontSize: '13px', color: 'var(--text-secondary)' }}>
-                  Voltar
-                </button>
-                <button
-                  onClick={saveProfile}
-                  style={{
-                    flex: 2, padding: '12px', borderRadius: '12px', border: 'none',
-                    fontFamily: 'Inter, -apple-system, sans-serif', fontWeight: 800, fontSize: '14px',
-                    cursor: 'pointer',
-                    background: 'linear-gradient(135deg, #16653A 0%, #059669 100%)',
-                    color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '7px',
-                    boxShadow: '0 4px 14px rgba(22,101,58,0.4)',
-                  }}
-                >
-                  <Utensils size={15} strokeWidth={2.5} />
-                  Gerar meu plano
-                </button>
-              </div>
-            </>
-          )}
-        </div>
-
-        <div className="card-warning">
-          <div style={{ display: 'flex', gap: '8px', alignItems: 'flex-start' }}>
-            <Info size={13} strokeWidth={2} style={{ flexShrink: 0, marginTop: '1px', color: 'var(--warn-text)' }} />
-            <p style={{ fontSize: '11px', color: 'var(--warn-text)', lineHeight: 1.6, margin: 0 }}>
-              Plano elaborado por nutricionista para uso com Tirzepatida. Não substitui acompanhamento nutricional individualizado.
-            </p>
-          </div>
+            )
+          })}
         </div>
       </div>
     )
   }
 
-  // ── PLAN VIEW ────────────────────────────────────────────────────────────────
-
-  const enginePlan     = generateDietPlan(profile)
-  const meals          = enginePlan.meals as MealSection[]
-  const lowHungerMeals = enginePlan.lowHunger as MealSection[]
-  const lists          = enginePlan.lists as ListSection[]
-  const targets        = enginePlan.targets  // { kcal, proteinG, waterL }
-
-  // Kcal por refeição — kcalShare já normalizado para somar 1.0 no motor
-  const mealKcalMap: Record<string, number> = {}
-  meals.forEach(m => { mealKcalMap[m.id] = Math.round(targets.kcal * m.kcalShare) })
-
-  // Apenas refeições do plano atual contam para o consumo (ignora IDs obsoletos)
-  const mealConsumed   = dayLog.meals.reduce((acc, id) => acc + (mealKcalMap[id] ?? 0), 0)
-  const manualConsumed = dayLog.manual.reduce((acc, m) => acc + m.kcal, 0)
-  const consumed       = mealConsumed + manualConsumed
-  const remaining      = Math.max(0, targets.kcal - consumed)
-  const pct            = targets.kcal > 0 ? Math.min(100, Math.round((consumed / targets.kcal) * 100)) : 0
-
-
-
-  const goalLabel = profile.goal === 'lose' ? 'Emagrecimento' : profile.goal === 'gain' ? 'Ganho de massa' : 'Manutenção'
-
-  const phaseLabel = profile.protocolPhase === 'beginning' ? 'Início'
-    : profile.protocolPhase === 'adaptation' ? 'Adaptação' : 'Manutenção'
-  const arcR        = 34
-  const arcCirc     = 2 * Math.PI * arcR
-  const arcOffset   = arcCirc * (1 - pct / 100)
-  const arcColor    = pct >= 100 ? '#FBBF24' : 'rgba(255,255,255,0.90)'
-  const heroMessage = pct === 0 ? 'Vamos começar!'
-    : pct < 30  ? 'Bom início, continue assim'
-    : pct < 60  ? 'Você está no ritmo'
-    : pct < 90  ? 'Quase lá!'
-    : pct < 100 ? 'Meta quase atingida'
-    : 'Meta diária concluída!'
+  // ── Tabs ──────────────────────────────────────────────────────────────────
+  const TABS: { id: ActiveTab; label: string }[] = [
+    { id: 'hoje', label: 'Hoje' }, { id: 'plano', label: 'Cardápio' }, { id: 'pouca-fome', label: 'Pouca Fome' },
+  ]
+  const accentColor = sex === 'F' ? '#A78BFA' : '#60A5FA'
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
 
-      {/* ── Calorie hero ── */}
-      <div style={{
-        background: 'linear-gradient(155deg, #1A6B3C 0%, #0F4E2C 55%, #0A3820 100%)',
-        borderRadius: '24px', padding: '20px 20px 18px', color: '#fff',
-        boxShadow: '0 16px 48px rgba(10,56,32,0.50), 0 4px 12px rgba(0,0,0,0.18), inset 0 1px 0 rgba(255,255,255,0.08)',
-        position: 'relative', overflow: 'hidden',
-      }}>
-        {/* Decorative layers */}
-        <div style={{ position: 'absolute', top: '-50px', right: '-50px', width: '160px', height: '160px', borderRadius: '50%', background: 'rgba(255,255,255,0.04)', pointerEvents: 'none' }} />
-        <div style={{ position: 'absolute', bottom: '-30px', left: '15%', width: '100px', height: '100px', borderRadius: '50%', background: 'rgba(255,255,255,0.025)', pointerEvents: 'none' }} />
-        <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: '1px', background: 'linear-gradient(90deg, transparent 0%, rgba(255,255,255,0.14) 50%, transparent 100%)', pointerEvents: 'none' }} />
-
-        {/* Top row: label + phase badge */}
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '16px' }}>
-          <div>
-            <p style={{ fontSize: '9px', fontWeight: 700, opacity: 0.55, textTransform: 'uppercase', letterSpacing: '0.12em', margin: '0 0 3px' }}>Meta diária</p>
-            <p style={{ fontSize: '13px', fontWeight: 700, opacity: 0.92, margin: 0 }}>{goalLabel}</p>
-          </div>
-          <span style={{
-            fontSize: '10px', fontWeight: 700, padding: '4px 11px', borderRadius: '99px',
-            background: 'rgba(255,255,255,0.13)', border: '1px solid rgba(255,255,255,0.18)',
-            backdropFilter: 'blur(8px)', letterSpacing: '0.02em',
-          }}>
-            {phaseLabel}
-          </span>
+      {/* Header */}
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+        <div>
+          <h2 style={{ fontSize: '22px', fontWeight: 800, color: 'var(--text-primary)', margin: '0 0 3px', letterSpacing: '-0.3px' }}>
+            Alimentação
+          </h2>
+          <p style={{ fontSize: '11px', fontWeight: 700, color: 'var(--text-muted)', margin: 0, textTransform: 'uppercase', letterSpacing: '0.07em' }}>
+            Plano {sex === 'F' ? 'Feminino' : 'Masculino'} · 30 dias · {dailyKcal} kcal
+          </p>
         </div>
-
-        {/* Main: SVG arc + calorie number */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: '16px', marginBottom: '16px' }}>
-          {/* Circular progress arc */}
-          <div style={{ position: 'relative', flexShrink: 0, width: '82px', height: '82px' }}>
-            <svg width="82" height="82" viewBox="0 0 82 82" style={{ display: 'block' }}>
-              <circle cx="41" cy="41" r={arcR} fill="none" stroke="rgba(255,255,255,0.10)" strokeWidth="6" />
-              <circle cx="41" cy="41" r={arcR} fill="none" stroke={arcColor} strokeWidth="6"
-                strokeLinecap="round"
-                strokeDasharray={arcCirc}
-                strokeDashoffset={arcOffset}
-                transform="rotate(-90 41 41)"
-                style={{ transition: 'stroke-dashoffset 0.9s cubic-bezier(0.22,1,0.36,1), stroke 0.4s ease' }}
-              />
-            </svg>
-            <div style={{ position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
-              <p style={{ fontSize: '19px', fontWeight: 800, letterSpacing: '-0.5px', margin: 0, lineHeight: 1 }}>{pct}%</p>
-              <p style={{ fontSize: '8px', opacity: 0.60, margin: '2px 0 0', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.06em' }}>meta</p>
-            </div>
-          </div>
-
-          {/* Numbers */}
-          <div style={{ flex: 1, minWidth: 0 }}>
-            <p style={{ fontSize: '44px', fontWeight: 800, lineHeight: 1, letterSpacing: '-2px', margin: '0 0 2px' }}>
-              {consumed}<span style={{ fontSize: '15px', fontWeight: 600, opacity: 0.65, marginLeft: '3px' }}>kcal</span>
-            </p>
-            <p style={{ fontSize: '11px', opacity: 0.65, margin: 0, fontWeight: 500 }}>consumidas hoje</p>
-            <p style={{ fontSize: '12px', fontWeight: 700, margin: '5px 0 0', opacity: 0.92 }}>
-              {pct >= 100
-                ? 'Meta atingida!'
-                : <>Faltam <span style={{ color: '#FCD34D' }}>{remaining} kcal</span></>
-              }
-            </p>
-          </div>
-        </div>
-
-        {/* Progress bar — thin + elegant */}
-        <div style={{ background: 'rgba(255,255,255,0.12)', borderRadius: '99px', height: '4px', overflow: 'hidden', marginBottom: '5px' }}>
-          <div style={{
-            width: `${pct}%`, height: '100%',
-            background: pct >= 100
-              ? 'linear-gradient(90deg, #F59E0B, #FBBF24)'
-              : 'linear-gradient(90deg, rgba(255,255,255,0.7), rgba(255,255,255,0.95))',
-            borderRadius: '99px',
-            transition: 'width 0.9s cubic-bezier(0.22,1,0.36,1)',
-          }} />
-        </div>
-        <p style={{ fontSize: '10px', opacity: 0.55, margin: '0 0 14px', fontWeight: 500 }}>{heroMessage}</p>
-
-        {/* Stat pills — glassmorphic */}
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '7px' }}>
-          {[
-            { label: 'Meta', value: `${targets.kcal}`, unit: 'kcal' },
-            { label: 'Proteína', value: `${targets.proteinG}`, unit: 'g/dia' },
-            { label: 'Água', value: `${targets.waterL}`, unit: 'L/dia' },
-          ].map(stat => (
-            <div key={stat.label} style={{
-              background: 'rgba(255,255,255,0.08)',
-              backdropFilter: 'blur(12px)',
-              WebkitBackdropFilter: 'blur(12px)',
-              borderRadius: '12px', padding: '9px 10px',
-              border: '1px solid rgba(255,255,255,0.10)',
-            }}>
-              <p style={{ fontSize: '8px', fontWeight: 700, opacity: 0.55, textTransform: 'uppercase', letterSpacing: '0.08em', margin: 0 }}>{stat.label}</p>
-              <p style={{ fontSize: '13px', fontWeight: 800, margin: '3px 0 0', lineHeight: 1 }}>
-                {stat.value}<span style={{ fontSize: '9px', fontWeight: 600, opacity: 0.65, marginLeft: '2px' }}>{stat.unit}</span>
-              </p>
-            </div>
-          ))}
-        </div>
+        <button onClick={() => setSex(null)} style={{
+          padding: '5px 10px', borderRadius: '8px', fontSize: '11px', fontWeight: 700,
+          background: 'var(--surface-2)', border: '1px solid var(--border)',
+          color: 'var(--text-muted)', cursor: 'pointer', fontFamily: 'Inter, sans-serif',
+        }}>
+          Trocar
+        </button>
       </div>
 
-      {/* ── Tabs ── */}
-      <div style={{ display: 'flex', gap: '4px', padding: '4px', background: 'var(--surface-2)', borderRadius: '14px', border: '1px solid var(--border)' }}>
-        {([
-          { id: 'hoje' as DietTab,       label: 'Hoje' },
-          { id: 'cardapio' as DietTab,   label: 'Cardápio' },
-          { id: 'pouca-fome' as DietTab, label: 'Pouca Fome' },
-        ]).map(tab => (
-          <button
-            key={tab.id}
-            onClick={() => setActiveTab(tab.id)}
-            style={{
-              flex: 1, padding: '9px 6px', borderRadius: '10px', border: 'none', cursor: 'pointer',
-              fontFamily: 'Inter, -apple-system, sans-serif', fontWeight: 700, fontSize: '12px',
-              background: activeTab === tab.id ? 'var(--surface)' : 'transparent',
-              color: activeTab === tab.id ? 'var(--text-primary)' : 'var(--text-muted)',
-              boxShadow: activeTab === tab.id
-                ? '0 2px 8px rgba(15,23,42,0.06), 0 0 0 1px var(--border)'
-                : 'none',
-              transition: 'all 0.18s ease',
-              letterSpacing: '-0.01em',
-            }}
-          >
-            {tab.label}
+      {/* Tabs */}
+      <div style={{ display: 'flex', gap: '4px', background: 'var(--surface-2)', borderRadius: '14px', padding: '4px' }}>
+        {TABS.map(t => (
+          <button key={t.id} onClick={() => setActiveTab(t.id)} style={{
+            flex: 1, padding: '8px 6px', borderRadius: '10px', border: 'none', cursor: 'pointer',
+            fontSize: '12px', fontWeight: 700,
+            background: activeTab === t.id ? 'var(--surface)' : 'transparent',
+            color: activeTab === t.id ? 'var(--text-primary)' : 'var(--text-muted)',
+            boxShadow: activeTab === t.id ? 'var(--shadow-xs)' : 'none',
+            transition: 'all 0.15s', fontFamily: 'Inter, sans-serif',
+          }}>
+            {t.label}
           </button>
         ))}
       </div>
 
-      {/* ── HOJE tab ─────────────────────────────────────────────────────────── */}
+      {/* ── TAB: HOJE ─────────────────────────────────────────────────── */}
       {activeTab === 'hoje' && (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
 
-          {/* Adherence summary */}
-          {(() => {
-            const planIds = new Set(meals.map(m => m.id))
-            const done  = dayLog.meals.filter(id => planIds.has(id)).length
-            const total = meals.length
-            const adh   = total > 0 ? Math.round((done / total) * 100) : 0
-            return (
-              <div style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '10px 14px', borderRadius: '14px', background: 'var(--surface)', border: '1px solid var(--border)', boxShadow: 'var(--shadow-card)' }}>
-                <div style={{ display: 'flex', gap: '4px' }}>
-                  {meals.map(m => (
-                    <div key={m.id} style={{
-                      width: '8px', height: '8px', borderRadius: '50%',
-                      background: dayLog.meals.includes(m.id) ? m.color : 'var(--border)',
-                      transition: 'background 0.3s ease',
-                    }} />
-                  ))}
-                </div>
-                <div style={{ flex: 1 }}>
-                  <p style={{ fontSize: '11px', fontWeight: 700, color: 'var(--text-primary)', margin: 0 }}>
-                    {done}/{total} refeições registradas
-                  </p>
-                </div>
-                <span style={{
-                  fontSize: '10px', fontWeight: 800, padding: '3px 9px', borderRadius: '99px',
-                  background: adh >= 80 ? 'rgba(16,185,129,0.10)' : 'var(--primary-light)',
-                  color: adh >= 80 ? '#059669' : '#16A34A',
-                }}>
-                  {adh}%
-                </span>
+          {/* Metas */}
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '8px' }}>
+            {[
+              { label: 'Kcal meta', value: `${dailyKcal}` },
+              { label: 'Proteína', value: proteinGoal },
+              { label: 'Água', value: waterGoal },
+            ].map(m => (
+              <div key={m.label} style={{
+                background: 'var(--surface)', borderRadius: '14px',
+                border: '1px solid var(--border)', padding: '10px 12px', boxShadow: 'var(--shadow-xs)',
+              }}>
+                <p style={{ fontSize: '9px', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.08em', margin: '0 0 4px', fontFamily: 'Inter, sans-serif' }}>
+                  {m.label}
+                </p>
+                <p style={{ fontSize: '13px', fontWeight: 800, color: 'var(--text-primary)', margin: 0, letterSpacing: '-0.2px', fontFamily: 'Inter, sans-serif' }}>
+                  {m.value}
+                </p>
               </div>
-            )
-          })()}
+            ))}
+          </div>
 
-          {/* Meal checklist */}
-          <div style={{ background: 'var(--surface)', borderRadius: '20px', border: '1px solid var(--border)', overflow: 'hidden', boxShadow: 'var(--shadow-card)' }}>
-            <div style={{ padding: '14px 16px 10px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-              <p style={{ fontSize: '11px', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.07em', margin: 0 }}>
-                Refeições de hoje
+          {/* Progresso kcal */}
+          <div style={{ background: 'var(--surface)', borderRadius: '20px', border: '1px solid var(--border)', padding: '16px 18px', boxShadow: 'var(--shadow-card)' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: '10px' }}>
+              <p style={{ fontSize: '13px', fontWeight: 700, color: 'var(--text-primary)', margin: 0 }}>
+                <span style={{ fontSize: '22px', fontWeight: 800, letterSpacing: '-0.5px', fontFamily: 'Inter, sans-serif' }}>{consumed}</span>
+                <span style={{ fontSize: '12px', color: 'var(--text-muted)', marginLeft: '4px' }}>kcal consumidas</span>
               </p>
-              <p style={{ fontSize: '10px', color: 'var(--text-muted)', margin: 0 }}>
-                {consumed > 0 && `${consumed} kcal consumidas`}
-              </p>
+              <span style={{ fontSize: '12px', fontWeight: 700, color: pct >= 100 ? '#F59E0B' : 'var(--primary)' }}>{pct}%</span>
             </div>
-            <div style={{ display: 'flex', flexDirection: 'column', padding: '0 10px 12px', gap: '6px' }}>
-              {meals.map(meal => {
-                const done     = dayLog.meals.includes(meal.id)
-                const mealKcal = mealKcalMap[meal.id]
-                return (
-                  <div
-                    key={meal.id}
-                    className="meal-row"
-                    style={{
-                      display: 'flex', alignItems: 'center', gap: '10px',
-                      padding: '10px 12px', borderRadius: '14px',
-                      background: done ? `${meal.color}0c` : 'var(--surface-2)',
-                      border: `1px solid ${done ? meal.color + '25' : 'transparent'}`,
-                      borderLeft: `3px solid ${done ? meal.color : 'transparent'}`,
-                    }}
-                  >
-                    <div style={{ flex: 1, minWidth: 0 }}>
-                      <p style={{
-                        fontWeight: 700, fontSize: '13px', margin: 0, lineHeight: 1.3,
-                        color: done ? meal.color : 'var(--text-primary)',
-                        opacity: done ? 0.85 : 1,
-                        transition: 'color 0.22s, opacity 0.22s',
-                      }}>
-                        {meal.label}
-                        {meal.sublabel && <span style={{ fontSize: '10px', marginLeft: '6px', opacity: 0.5, fontWeight: 600 }}>({meal.sublabel})</span>}
-                      </p>
-                      <p style={{ fontSize: '11px', color: done ? `${meal.color}99` : 'var(--text-muted)', margin: '2px 0 0', fontWeight: 600, transition: 'color 0.22s' }}>
-                        ~{mealKcal} kcal
-                      </p>
-                    </div>
-                    <button
-                      onClick={() => toggleMeal(meal.id)}
-                      className={`check-btn${done ? ' is-done' : ''}`}
-                      style={{
-                        width: '32px', height: '32px', borderRadius: '10px', flexShrink: 0,
-                        background: done ? meal.color : 'transparent',
-                        border: `1.5px solid ${done ? meal.color : 'var(--border-strong)'}`,
-                        cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center',
-                        color: done ? '#fff' : 'var(--text-muted)',
-                        boxShadow: done ? `0 3px 10px ${meal.color}45` : 'none',
-                      }}
-                    >
-                      <Check size={13} strokeWidth={3} />
-                    </button>
-                  </div>
-                )
-              })}
+            <div style={{ background: 'var(--surface-2)', borderRadius: '99px', height: '5px', overflow: 'hidden', marginBottom: '8px' }}>
+              <div style={{
+                width: `${pct}%`, height: '100%',
+                background: pct >= 100 ? 'linear-gradient(90deg, #F59E0B, #FBBF24)' : 'var(--primary)',
+                borderRadius: '99px', transition: 'width 0.6s cubic-bezier(0.22,1,0.36,1)',
+              }} />
+            </div>
+            <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+              <p style={{ fontSize: '11px', color: 'var(--text-muted)', margin: 0 }}>Proteína estimada: ~{proteinEst} g</p>
+              <p style={{ fontSize: '11px', color: 'var(--text-muted)', margin: 0 }}>
+                {pct < 100 ? `Faltam ${remaining} kcal` : 'Meta atingida!'}
+              </p>
             </div>
           </div>
 
-          {/* Manual items */}
-          <div style={{ background: 'var(--surface)', borderRadius: '20px', border: '1px solid var(--border)', overflow: 'hidden', boxShadow: 'var(--shadow-card)' }}>
-            <div style={{ padding: '14px 16px 10px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-              <p style={{ fontSize: '11px', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.07em', margin: 0 }}>
-                Alimentos manuais
-              </p>
-              {manualConsumed > 0 && (
-                <span style={{ fontSize: '10px', fontWeight: 700, color: '#16A34A' }}>{manualConsumed} kcal</span>
-              )}
-            </div>
+          {/* Dica de ordem */}
+          <div style={{ display: 'flex', gap: '8px', alignItems: 'flex-start', padding: '10px 14px', borderRadius: '12px', background: 'var(--primary-light)', border: '1px solid var(--primary-glow)' }}>
+            <Info size={13} strokeWidth={2} style={{ flexShrink: 0, color: 'var(--primary)', marginTop: '1px' }} />
+            <p style={{ fontSize: '11px', color: 'var(--primary)', fontWeight: 600, margin: 0, lineHeight: 1.5 }}>
+              Ordem no prato: <strong>1º Proteína · 2º Carboidrato · 3º Legumes cozidos · 4º Salada crua</strong>
+            </p>
+          </div>
 
-            <div style={{ padding: '0 10px 12px', display: 'flex', flexDirection: 'column', gap: '6px' }}>
-              {/* Existing manual items */}
-              {dayLog.manual.map(item => (
-                <div key={item.id} style={{
-                  display: 'flex', alignItems: 'center', gap: '10px',
-                  padding: '9px 12px', borderRadius: '12px',
-                  background: 'var(--surface-2)', border: '1px solid var(--border)',
-                  animation: 'fade-up 0.2s ease both',
+          {/* Lista de refeições */}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+            {diet.map(meal => {
+              const checked = dayLog.meals.includes(meal.id)
+              const MealIcon = MEAL_ICON[meal.id] ?? Utensils
+              const mealColor = MEAL_COLOR[meal.id] ?? '#10B981'
+              return (
+                <button key={meal.id} onClick={() => toggleMeal(meal.id)} style={{
+                  display: 'flex', alignItems: 'center', gap: '12px',
+                  padding: '12px 14px', borderRadius: '16px', textAlign: 'left',
+                  background: checked ? 'var(--primary-light)' : 'var(--surface)',
+                  border: `1.5px solid ${checked ? 'var(--primary-glow)' : 'var(--border)'}`,
+                  cursor: 'pointer', transition: 'all 0.15s',
+                  boxShadow: 'var(--shadow-xs)', fontFamily: 'Inter, sans-serif',
                 }}>
-                  <div style={{ flex: 1, minWidth: 0 }}>
-                    <p style={{ fontWeight: 600, fontSize: '13px', color: 'var(--text-primary)', margin: 0 }}>{item.name}</p>
-                    <p style={{ fontSize: '11px', color: 'var(--text-muted)', margin: '1px 0 0' }}>{item.kcal} kcal</p>
+                  {/* Checkbox */}
+                  <div style={{
+                    width: '22px', height: '22px', borderRadius: '6px', flexShrink: 0,
+                    background: checked ? 'var(--primary)' : 'var(--surface-2)',
+                    border: `2px solid ${checked ? 'var(--primary)' : 'var(--border-strong)'}`,
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    transition: 'all 0.15s',
+                  }}>
+                    {checked && (
+                      <svg width="11" height="11" viewBox="0 0 11 11" fill="none">
+                        <path d="M2 5.5L4.5 8L9 3" stroke="#fff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                      </svg>
+                    )}
                   </div>
-                  <button
-                    onClick={() => removeManual(item.id)}
-                    style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-muted)', padding: '5px', borderRadius: '8px', display: 'flex', alignItems: 'center', transition: 'color 0.15s, background 0.15s' }}
-                    onMouseEnter={e => { e.currentTarget.style.color = 'var(--error)'; e.currentTarget.style.background = 'rgba(239,68,68,0.08)' }}
-                    onMouseLeave={e => { e.currentTarget.style.color = 'var(--text-muted)'; e.currentTarget.style.background = 'none' }}
-                  >
-                    <X size={14} strokeWidth={2.5} />
-                  </button>
-                </div>
-              ))}
+                  {/* Ícone colorido */}
+                  <div style={{
+                    width: '32px', height: '32px', borderRadius: '9px', flexShrink: 0,
+                    background: `${mealColor}18`,
+                    border: `1px solid ${mealColor}35`,
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  }}>
+                    <MealIcon size={15} strokeWidth={1.8} color={mealColor} />
+                  </div>
+                  {/* Texto */}
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                      <p style={{ fontSize: '13px', fontWeight: 700, color: checked ? 'var(--primary)' : 'var(--text-primary)', margin: 0 }}>
+                        {meal.label}
+                      </p>
+                      {!meal.required && (
+                        <span style={{ fontSize: '9px', fontWeight: 700, padding: '1px 6px', borderRadius: '99px', background: 'var(--surface-2)', color: 'var(--text-muted)', border: '1px solid var(--border)' }}>
+                          OPCIONAL
+                        </span>
+                      )}
+                    </div>
+                    {meal.note && (
+                      <p style={{ fontSize: '10px', color: 'var(--text-muted)', margin: '2px 0 0' }}>{meal.note}</p>
+                    )}
+                  </div>
+                  <span style={{ fontSize: '11px', fontWeight: 600, color: 'var(--text-muted)', flexShrink: 0 }}>
+                    ~{Math.round(dailyKcal * meal.kcalShare)} kcal
+                  </span>
+                </button>
+              )
+            })}
+          </div>
 
-              {/* Add form */}
-              <div style={{ display: 'flex', gap: '8px', alignItems: 'flex-end', marginTop: dayLog.manual.length > 0 ? '4px' : 0 }}>
-                <div style={{ flex: 2 }}>
-                  <p style={{ fontSize: '10px', fontWeight: 600, color: 'var(--text-muted)', marginBottom: '5px', textTransform: 'uppercase', letterSpacing: '0.06em' }}>Alimento</p>
-                  <input
-                    ref={nameRef}
-                    type="text"
-                    placeholder="Ex: Banana"
-                    value={manualName}
-                    onChange={e => setManualName(e.target.value)}
-                    onKeyDown={e => e.key === 'Enter' && addManual()}
-                    style={{
-                      width: '100%', padding: '10px 12px', borderRadius: '11px',
-                      border: '1.5px solid var(--border)', background: 'var(--surface-2)',
-                      fontFamily: 'Inter, -apple-system, sans-serif', fontSize: '13px', fontWeight: 600,
-                      color: 'var(--text-primary)', outline: 'none', boxSizing: 'border-box',
-                      transition: 'border-color 0.2s, box-shadow 0.2s',
-                    }}
-                    onFocus={e => { e.currentTarget.style.borderColor = '#16A34A'; e.currentTarget.style.boxShadow = '0 0 0 3px rgba(22,163,74,0.18)' }}
-                    onBlur={e => { e.currentTarget.style.borderColor = 'var(--border)'; e.currentTarget.style.boxShadow = 'none' }}
-                  />
-                </div>
-                <div style={{ flex: 1 }}>
-                  <p style={{ fontSize: '10px', fontWeight: 600, color: 'var(--text-muted)', marginBottom: '5px', textTransform: 'uppercase', letterSpacing: '0.06em' }}>kcal</p>
-                  <input
-                    type="number"
-                    placeholder="90"
-                    value={manualKcal}
-                    onChange={e => setManualKcal(e.target.value)}
-                    onKeyDown={e => e.key === 'Enter' && addManual()}
-                    min={1} max={9999}
-                    style={{
-                      width: '100%', padding: '10px 12px', borderRadius: '11px',
-                      border: '1.5px solid var(--border)', background: 'var(--surface-2)',
-                      fontFamily: 'Inter, -apple-system, sans-serif', fontSize: '13px', fontWeight: 600,
-                      color: 'var(--text-primary)', outline: 'none', boxSizing: 'border-box',
-                      transition: 'border-color 0.2s, box-shadow 0.2s',
-                    }}
-                    onFocus={e => { e.currentTarget.style.borderColor = '#16A34A'; e.currentTarget.style.boxShadow = '0 0 0 3px rgba(22,163,74,0.18)' }}
-                    onBlur={e => { e.currentTarget.style.borderColor = 'var(--border)'; e.currentTarget.style.boxShadow = 'none' }}
-                  />
-                </div>
-                <button
-                  onClick={addManual}
-                  style={{
-                    width: '43px', height: '43px', borderRadius: '11px', flexShrink: 0,
-                    background: 'linear-gradient(135deg, #16653A 0%, #16A34A 100%)',
-                    border: 'none', cursor: 'pointer',
-                    display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff',
-                    boxShadow: '0 3px 10px rgba(22,163,74,0.25)',
-                    transition: 'transform 0.15s, box-shadow 0.15s',
-                  }}
-                  onMouseEnter={e => { e.currentTarget.style.transform = 'translateY(-1px)'; e.currentTarget.style.boxShadow = '0 6px 16px rgba(22,163,74,0.35)' }}
-                  onMouseLeave={e => { e.currentTarget.style.transform = 'none'; e.currentTarget.style.boxShadow = '0 3px 10px rgba(22,163,74,0.25)' }}
-                >
-                  <Plus size={18} strokeWidth={2.5} />
+          {/* Extras manuais */}
+          <div style={{ background: 'var(--surface)', borderRadius: '20px', border: '1px solid var(--border)', padding: '16px', boxShadow: 'var(--shadow-card)' }}>
+            <p style={{ fontSize: '9px', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.10em', margin: '0 0 12px', fontFamily: 'Inter, sans-serif' }}>
+              Extras / Lanches livres
+            </p>
+            <div style={{ display: 'flex', gap: '8px', marginBottom: dayLog.manual.length > 0 ? '10px' : '0' }}>
+              <input
+                ref={nameRef} type="text" value={manualName}
+                onChange={e => setManualName(e.target.value)}
+                onKeyDown={e => e.key === 'Enter' && addManual()}
+                placeholder="Descrição"
+                style={{
+                  flex: 1, padding: '9px 12px', borderRadius: '10px', fontSize: '13px',
+                  border: '1.5px solid var(--border)', background: 'var(--surface-2)',
+                  color: 'var(--text-primary)', outline: 'none', fontFamily: 'Inter, sans-serif',
+                }}
+              />
+              <input
+                type="number" value={manualKcal}
+                onChange={e => setManualKcal(e.target.value)}
+                onKeyDown={e => e.key === 'Enter' && addManual()}
+                placeholder="kcal"
+                style={{
+                  width: '68px', padding: '9px 10px', borderRadius: '10px', fontSize: '13px',
+                  border: '1.5px solid var(--border)', background: 'var(--surface-2)',
+                  color: 'var(--text-primary)', outline: 'none', fontFamily: 'Inter, sans-serif',
+                }}
+              />
+              <button onClick={addManual} style={{
+                width: '38px', height: '38px', borderRadius: '10px', border: 'none', flexShrink: 0,
+                background: 'var(--primary)', color: '#fff', cursor: 'pointer',
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+              }}>
+                <Plus size={16} strokeWidth={2.5} />
+              </button>
+            </div>
+            {dayLog.manual.map(m => (
+              <div key={m.id} style={{
+                display: 'flex', alignItems: 'center', gap: '10px',
+                padding: '8px 10px', borderRadius: '10px', background: 'var(--surface-2)', marginTop: '6px',
+              }}>
+                <p style={{ flex: 1, fontSize: '12px', color: 'var(--text-primary)', margin: 0 }}>{m.name}</p>
+                <p style={{ fontSize: '12px', fontWeight: 600, color: 'var(--text-muted)', margin: 0 }}>{m.kcal} kcal</p>
+                <button onClick={() => removeManual(m.id)} style={{
+                  background: 'none', border: 'none', cursor: 'pointer', padding: '2px',
+                  color: 'var(--text-muted)', display: 'flex', alignItems: 'center',
+                }}>
+                  <X size={14} strokeWidth={2} />
                 </button>
               </div>
-            </div>
+            ))}
           </div>
         </div>
       )}
 
-      {/* ── CARDÁPIO tab ──────────────────────────────────────────────────────── */}
-      {activeTab === 'cardapio' && (
+      {/* ── TAB: PLANO ───────────────────────────────────────────────── */}
+      {activeTab === 'plano' && (
         <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-          {/* Plate priority */}
-          <div className="card" style={{ padding: '12px 14px' }}>
-            <p style={{ fontSize: '10px', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.07em', marginBottom: '8px' }}>
-              Ordem de prioridade do prato
-            </p>
-            <div style={{ display: 'flex', gap: '5px' }}>
-              {['1. Proteína', '2. Carboidrato', '3. Legumes cozidos', '4. Saladas cruas'].map(p => (
-                <span key={p} style={{
-                  flex: '1 1 0', fontSize: '10px', fontWeight: 700, textAlign: 'center',
-                  padding: '6px 4px', borderRadius: '8px',
-                  background: 'rgba(22,163,74,0.12)', color: '#16A34A',
-                  border: '1px solid rgba(22,163,74,0.18)',
-                }}>
-                  {p}
-                </span>
+
+          <ExpandCard id="principios" Icon={Activity} iconColor="#7C3AED" label="Princípios do Plano" expanded={expanded} onToggle={toggleExpanded}>
+            <ul style={{ margin: 0, padding: '0 0 0 16px', display: 'flex', flexDirection: 'column', gap: '4px' }}>
+              {(sex === 'F' ? [
+                'Preservação de massa muscular',
+                'Maior saciedade com menor volume alimentar',
+                'Prevenção de queda de cabelo',
+                'Melhor tolerância gastrointestinal',
+                'Redução da constipação',
+                'Facilidade de adesão por 30 dias',
+                'Flexibilidade e praticidade',
+              ] : [
+                'Preservação de massa muscular',
+                'Alta saciedade',
+                'Melhor tolerância gastrointestinal',
+                'Menor risco de náusea e refluxo',
+                'Prevenção de constipação',
+                'Facilidade de adesão por longo prazo',
+              ]).map((item, i) => (
+                <li key={i} style={{ fontSize: '13px', color: 'var(--text-secondary)', lineHeight: 1.5 }}>{item}</li>
               ))}
+            </ul>
+          </ExpandCard>
+
+          <ExpandCard id="meta-prot" Icon={Target} iconColor="#10B981" label="Meta de Proteína" expanded={expanded} onToggle={toggleExpanded}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+              <p style={{ fontSize: '13px', color: 'var(--text-secondary)', margin: 0, lineHeight: 1.5 }}>
+                <strong>1,6–2,0 g de proteína por kg do peso-alvo</strong> por dia.
+              </p>
+              <div style={{ padding: '10px 14px', borderRadius: '12px', background: 'var(--primary-light)', border: '1px solid var(--primary-glow)' }}>
+                <p style={{ fontSize: '12px', fontWeight: 700, color: 'var(--primary)', margin: 0 }}>
+                  Peso-alvo: {profile.goalWeight} kg → meta {proteinGoal} de proteína/dia
+                </p>
+              </div>
+              <p style={{ fontSize: '12px', color: 'var(--text-muted)', margin: 0 }}>
+                Obrigatórias: Café · Almoço · Jantar<br/>
+                Opcionais: Lanche manhã · Lanche tarde · Ceia
+              </p>
             </div>
-          </div>
-          <Divider label="Refeições" />
-          {meals.map(s => <MealCard key={s.id} section={s} />)}
-          <Divider label="Referências" />
-          {lists.map(s => <ListCard key={s.id} section={s} />)}
+          </ExpandCard>
+
+          <ExpandCard id="hidratacao" Icon={Droplets} iconColor="#0EA5E9" label="Hidratação" expanded={expanded} onToggle={toggleExpanded}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+              <p style={{ fontSize: '13px', color: 'var(--text-secondary)', margin: 0, lineHeight: 1.5 }}>
+                <strong>Meta: 35–40 ml de água por kg de peso corporal.</strong>
+              </p>
+              <div style={{ padding: '10px 14px', borderRadius: '12px', background: 'rgba(14,165,233,0.08)', border: '1px solid rgba(14,165,233,0.20)' }}>
+                <p style={{ fontSize: '12px', fontWeight: 700, color: '#0EA5E9', margin: 0 }}>
+                  Seu peso: {currentW} kg → {waterGoal} por dia
+                </p>
+              </div>
+            </div>
+          </ExpandCard>
+
+          {diet.map(meal => (
+            <ExpandCard key={meal.id} id={`meal-${meal.id}`} Icon={meal.Icon} iconColor={meal.color} label={meal.label} badge={meal.required ? undefined : 'OPCIONAL'} note={meal.note} expanded={expanded} onToggle={toggleExpanded}>
+              <OptionsBlock options={meal.options} accentColor={accentColor} />
+            </ExpandCard>
+          ))}
+
+          {infoList.map(info => (
+            <ExpandCard key={info.id} id={info.id} Icon={info.Icon} iconColor={info.color} label={info.label} note={info.note} expanded={expanded} onToggle={toggleExpanded}>
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
+                {info.items.map((item, i) => (
+                  <span key={i} style={{
+                    padding: '5px 10px', borderRadius: '99px', fontSize: '12px', fontWeight: 600,
+                    background: 'var(--surface-2)', color: 'var(--text-secondary)', border: '1px solid var(--border)',
+                  }}>{item}</span>
+                ))}
+              </div>
+            </ExpandCard>
+          ))}
         </div>
       )}
 
-      {/* ── POUCA FOME tab ────────────────────────────────────────────────────── */}
+      {/* ── TAB: POUCA FOME ──────────────────────────────────────────── */}
       {activeTab === 'pouca-fome' && (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-          <div style={{ padding: '14px 16px', borderRadius: '16px', background: 'rgba(245,158,11,0.07)', border: '1px solid rgba(245,158,11,0.22)' }}>
-            <p style={{ fontSize: '13px', fontWeight: 800, color: '#92400E', marginBottom: '6px' }}>Quando a fome diminui muito</p>
-            <p style={{ fontSize: '12px', color: '#B45309', lineHeight: 1.5, margin: '0 0 10px' }}>
-              O objetivo não é forçar grandes refeições. A estratégia é comer menos volume e aumentar a densidade nutricional.
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+
+          {/* Banner */}
+          <div style={{
+            padding: '14px 16px', borderRadius: '16px',
+            background: 'linear-gradient(150deg, #0F766E 0%, #0A5952 100%)',
+            boxShadow: '0 6px 20px rgba(15,118,110,0.30)',
+          }}>
+            <p style={{ fontSize: '9px', fontWeight: 700, color: 'rgba(255,255,255,0.55)', textTransform: 'uppercase', letterSpacing: '0.10em', margin: '0 0 6px' }}>
+              Módulo
             </p>
-            <p style={{ fontSize: '11px', fontWeight: 700, color: '#92400E', margin: '0 0 6px' }}>Sinais desta fase:</p>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-              {['Saciedade com poucas colheradas', 'Náusea, empachamento', 'Sensação de comida parada no estômago', 'Refluxo ou falta de vontade de comer', 'Pular refeições sem perceber'].map(s => (
-                <div key={s} style={{ display: 'flex', alignItems: 'flex-start', gap: '6px' }}>
-                  <span style={{ fontSize: '10px', color: '#B45309', flexShrink: 0, marginTop: '2px' }}>•</span>
-                  <p style={{ fontSize: '12px', color: '#B45309', margin: 0, lineHeight: 1.4 }}>{s}</p>
-                </div>
-              ))}
-            </div>
+            <p style={{ fontSize: '14px', fontWeight: 800, color: '#fff', margin: '0 0 4px', letterSpacing: '-0.3px' }}>Semanas de Pouca Fome</p>
+            <p style={{ fontSize: '11px', color: 'rgba(255,255,255,0.65)', margin: 0, lineHeight: 1.5 }}>
+              Quando a fome diminui muito, o objetivo não é forçar grandes refeições — mas comer menos volume com mais densidade nutricional.
+            </p>
           </div>
 
-          <div className="card" style={{ padding: '12px 14px' }}>
-            <p style={{ fontSize: '10px', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.07em', marginBottom: '8px' }}>Ordem de prioridade</p>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-              {[
-                { n: '1', label: 'Proteína', color: '#2563EB' },
-                { n: '2', label: 'Hidratação', color: '#0891B2' },
-                { n: '3', label: 'Carboidratos de fácil digestão', color: '#059669' },
-                { n: '4', label: 'Fibras', color: '#D97706' },
-                { n: '5', label: 'Todo o restante', color: 'var(--text-muted)' },
-              ].map(p => (
-                <div key={p.n} style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                  <span style={{ width: '20px', height: '20px', borderRadius: '6px', flexShrink: 0, background: p.color === 'var(--text-muted)' ? 'var(--surface-2)' : p.color + '18', color: p.color, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '10px', fontWeight: 800 }}>{p.n}</span>
-                  <p style={{ fontSize: '13px', fontWeight: 600, color: 'var(--text-primary)', margin: 0 }}>{p.label}</p>
+          <ExpandCard id="sinais" Icon={AlertCircle} iconColor="#F59E0B" label="Sinais de Pouca Fome" expanded={expanded} onToggle={toggleExpanded} defaultOpen>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
+              {['Saciedade com poucas colheradas', 'Náusea', 'Empachamento', 'Sensação de comida parada no estômago', 'Refluxo', 'Falta de vontade de comer', 'Pular refeições sem perceber'].map((s, i) => (
+                <div key={i} style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '5px 0' }}>
+                  <div style={{ width: '5px', height: '5px', borderRadius: '50%', background: '#F59E0B', flexShrink: 0 }} />
+                  <p style={{ fontSize: '13px', color: 'var(--text-secondary)', margin: 0 }}>{s}</p>
                 </div>
               ))}
-            </div>
-          </div>
-
-          {lowHungerMeals.map(s => <MealCard key={s.id} section={s} />)}
-
-          <div style={{ borderRadius: '16px', border: '1.5px solid rgba(239,68,68,0.22)', background: 'rgba(239,68,68,0.04)', overflow: 'hidden', boxShadow: 'var(--card-shadow)' }}>
-            <button onClick={() => toggle('lh-dias-extremos')} style={{ width: '100%', padding: '13px 16px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: 'transparent', border: 'none', cursor: 'pointer', fontFamily: 'Inter, -apple-system, sans-serif' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                <AlertCircle size={15} strokeWidth={2} style={{ color: '#EF4444', flexShrink: 0 }} />
-                <div style={{ textAlign: 'left' }}>
-                  <p style={{ fontWeight: 800, fontSize: '14px', color: 'var(--text-primary)', margin: 0 }}>Dias Extremos</p>
-                  <p style={{ fontSize: '11px', color: 'var(--text-muted)', margin: 0, marginTop: '1px' }}>Quando quase não há fome</p>
-                </div>
-              </div>
-              <span style={{ color: 'var(--text-muted)', transform: expanded.has('lh-dias-extremos') ? 'rotate(180deg)' : 'none', transition: 'transform 0.2s', display: 'inline-flex', flexShrink: 0 }}>
-                <ChevronDown size={16} strokeWidth={2} />
-              </span>
-            </button>
-            {expanded.has('lh-dias-extremos') && (
-              <div style={{ padding: '0 14px 14px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                <p style={{ fontSize: '12px', color: 'var(--text-secondary)', lineHeight: 1.5, margin: 0 }}>
-                  Objetivo: não tentar "comer normal". <strong>Bater proteína</strong> é a única prioridade.
+              <div style={{ marginTop: '8px', padding: '8px 12px', borderRadius: '10px', background: 'rgba(245,158,11,0.08)', border: '1px solid rgba(245,158,11,0.18)' }}>
+                <p style={{ fontSize: '11px', color: '#B45309', margin: 0, lineHeight: 1.4 }}>
+                  Nessas semanas, o cardápio tradicional pode ser substituído por refeições menores.
                 </p>
-                {[
-                  { label: 'Café', items: ['Iogurte grego', 'Whey'], protein: '40 g' },
-                  { label: 'Almoço', items: ['180 g de frango', '100 g de arroz'], protein: '45 g' },
-                  { label: 'Jantar', items: ['Whey', 'Leite desnatado', 'Banana'], protein: '35 g' },
-                ].map(meal => (
-                  <div key={meal.label} style={{ padding: '10px 12px', borderRadius: '10px', background: 'var(--surface)', border: '1px solid rgba(239,68,68,0.15)' }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '5px' }}>
-                      <p style={{ fontWeight: 700, fontSize: '12px', color: 'var(--text-primary)', margin: 0 }}>{meal.label}</p>
-                      <span style={{ fontSize: '10px', fontWeight: 700, color: '#EF4444' }}>~{meal.protein}</span>
-                    </div>
-                    {meal.items.map(item => <p key={item} style={{ fontSize: '11px', color: 'var(--text-muted)', margin: 0, lineHeight: 1.4 }}>{item}</p>)}
+              </div>
+            </div>
+          </ExpandCard>
+
+          <ExpandCard id="lh-cafe" Icon={Sun} iconColor="#D97706" label="Café da Manhã" expanded={expanded} onToggle={toggleExpanded}>
+            <OptionsBlock accentColor={accentColor} options={[
+              { label: 'Opção 1', protein: '35–40 g', items: ['170 g de iogurte grego', '1 scoop de whey', 'Morangos ou banana'] },
+              { label: 'Opção 2 — Vitamina', protein: '30–35 g', items: ['200 ml de leite semidesnatado', '1 scoop de whey', '20 g de aveia', '1 banana'] },
+              { label: 'Opção 3', protein: '25–30 g', items: ['2 ovos', '2 claras', '1 fatia de pão'] },
+            ]} />
+          </ExpandCard>
+
+          <ExpandCard id="lh-almoco" Icon={Utensils} iconColor="#059669" label="Almoço" expanded={expanded} onToggle={toggleExpanded}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+              <div style={{ padding: '10px 14px', borderRadius: '12px', background: 'var(--surface-2)', border: '1px solid var(--border)' }}>
+                <p style={{ fontSize: '12px', fontWeight: 800, color: 'var(--text-primary)', margin: '0 0 8px' }}>Prato pequeno (ao invés de prato cheio)</p>
+                {['100–130 g de arroz', '150–180 g de frango ou carne magra', 'Legumes cozidos', 'Sem exagerar na salada crua'].map((item, i) => (
+                  <div key={i} style={{ display: 'flex', gap: '8px', alignItems: 'flex-start', marginBottom: '3px' }}>
+                    <div style={{ width: '4px', height: '4px', borderRadius: '50%', background: 'var(--primary)', flexShrink: 0, marginTop: '7px' }} />
+                    <p style={{ fontSize: '13px', color: 'var(--text-secondary)', margin: 0, lineHeight: 1.5 }}>{item}</p>
                   </div>
                 ))}
               </div>
-            )}
+              <div style={{ padding: '8px 12px', borderRadius: '10px', background: 'var(--primary-light)', border: '1px solid var(--primary-glow)' }}>
+                <p style={{ fontSize: '12px', fontWeight: 700, color: 'var(--primary)', margin: 0 }}>Prioridade: comer primeiro a proteína</p>
+              </div>
+            </div>
+          </ExpandCard>
+
+          <ExpandCard id="lh-lanches" Icon={Droplets} iconColor="#0891B2" label="Lanches" expanded={expanded} onToggle={toggleExpanded}>
+            <OptionsBlock accentColor={accentColor} options={[
+              { label: 'Opção 1', items: ['Whey com água'] },
+              { label: 'Opção 2', items: ['Iogurte proteico'] },
+              { label: 'Opção 3', items: ['Cottage ou ricota'] },
+            ]} />
+          </ExpandCard>
+
+          <ExpandCard id="lh-jantar" Icon={Moon} iconColor="#7C3AED" label="Jantar" expanded={expanded} onToggle={toggleExpanded}>
+            <OptionsBlock accentColor={accentColor} options={[
+              { label: 'Opção 1 — Omelete', items: ['3 ovos', '3 claras', 'Pequena porção de arroz'] },
+              { label: 'Opção 2 — Sanduíche', items: ['1 pão francês', '150 g de frango desfiado', '30 g de queijo branco'] },
+              { label: 'Opção 3', protein: '40 g', items: ['Iogurte grego', '1 scoop de whey', '20 g de aveia'] },
+            ]} />
+          </ExpandCard>
+
+          <ExpandCard id="lh-extremos" Icon={AlertTriangle} iconColor="#DC2626" label="Dias Extremos — Quase Sem Fome" expanded={expanded} onToggle={toggleExpanded}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+              <div style={{ padding: '10px 14px', borderRadius: '12px', background: 'rgba(239,68,68,0.06)', border: '1px solid rgba(239,68,68,0.15)' }}>
+                <p style={{ fontSize: '12px', fontWeight: 700, color: '#DC2626', margin: 0 }}>Objetivo: não tentar "comer normal". Foque em bater proteína.</p>
+              </div>
+              {[
+                { refeicao: 'Café',   items: ['Iogurte grego', 'Whey'],           protein: '40 g' },
+                { refeicao: 'Almoço', items: ['180 g de frango', '100 g de arroz'], protein: '45 g' },
+                { refeicao: 'Jantar', items: ['Whey', 'Leite desnatado', 'Banana'], protein: '35 g' },
+              ].map((r, i) => (
+                <div key={i} style={{ padding: '10px 14px', borderRadius: '12px', background: 'var(--surface-2)', border: '1px solid var(--border)' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px' }}>
+                    <p style={{ fontSize: '12px', fontWeight: 800, color: 'var(--text-primary)', margin: 0 }}>{r.refeicao}</p>
+                    <span style={{ fontSize: '10px', fontWeight: 700, padding: '2px 8px', borderRadius: '99px', background: 'rgba(16,185,129,0.10)', color: '#10B981', border: '1px solid rgba(16,185,129,0.20)' }}>
+                      {r.protein} prot.
+                    </span>
+                  </div>
+                  {r.items.map((item, j) => (
+                    <div key={j} style={{ display: 'flex', gap: '8px', alignItems: 'flex-start' }}>
+                      <div style={{ width: '4px', height: '4px', borderRadius: '50%', background: 'var(--primary)', flexShrink: 0, marginTop: '7px' }} />
+                      <p style={{ fontSize: '12px', color: 'var(--text-secondary)', margin: '0 0 2px', lineHeight: 1.5 }}>{item}</p>
+                    </div>
+                  ))}
+                </div>
+              ))}
+              <div style={{ padding: '10px 14px', borderRadius: '12px', background: 'var(--primary-light)', border: '1px solid var(--primary-glow)' }}>
+                <p style={{ fontSize: '12px', fontWeight: 700, color: 'var(--primary)', margin: 0 }}>Total: ~120 g de proteína com pouco volume alimentar</p>
+              </div>
+            </div>
+          </ExpandCard>
+
+          <ExpandCard id="lh-tolerados" Icon={Shield} iconColor="#10B981" label="Alimentos Melhor Tolerados" expanded={expanded} onToggle={toggleExpanded}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+              {[
+                { label: 'Proteínas',     items: ['Frango desfiado', 'Peixe', 'Atum em água', 'Ovos', 'Iogurte grego', 'Cottage', 'Whey'] },
+                { label: 'Carboidratos',  items: ['Arroz branco', 'Batata inglesa', 'Batata doce', 'Cuscuz', 'Pão francês', 'Banana', 'Mamão'] },
+              ].map(group => (
+                <div key={group.label}>
+                  <p style={{ fontSize: '9px', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.07em', margin: '0 0 8px' }}>{group.label}</p>
+                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
+                    {group.items.map((item, i) => (
+                      <span key={i} style={{ padding: '4px 10px', borderRadius: '99px', fontSize: '12px', fontWeight: 600, background: 'var(--surface-2)', color: 'var(--text-secondary)', border: '1px solid var(--border)' }}>
+                        {item}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </ExpandCard>
+
+          <ExpandCard id="lh-hidra" Icon={Droplets} iconColor="#0EA5E9" label="Hidratação" expanded={expanded} onToggle={toggleExpanded}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+              <p style={{ fontSize: '13px', color: 'var(--text-secondary)', margin: 0, lineHeight: 1.5 }}>
+                Mesmo sem fome, a água continua sendo obrigatória. Meta: <strong>35–40 ml por kg de peso corporal.</strong>
+              </p>
+              <div style={{ padding: '10px 14px', borderRadius: '12px', background: 'rgba(245,158,11,0.08)', border: '1px solid rgba(245,158,11,0.18)' }}>
+                <p style={{ fontSize: '12px', fontWeight: 700, color: '#B45309', margin: '0 0 2px' }}>Se houver tontura, dor de cabeça ou fadiga:</p>
+                <p style={{ fontSize: '12px', color: '#B45309', margin: 0, lineHeight: 1.4 }}>Muitas vezes o problema é desidratação, não falta de comida.</p>
+              </div>
+            </div>
+          </ExpandCard>
+
+          <ExpandCard id="lh-intestino" Icon={Leaf} iconColor="#16A34A" label="Intestino" expanded={expanded} onToggle={toggleExpanded}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+              <p style={{ fontSize: '13px', color: 'var(--text-secondary)', margin: 0, lineHeight: 1.5 }}>
+                Nas semanas de pouca fome costuma haver menos ingestão de fibras. Priorize diariamente:
+              </p>
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
+                {['Mamão', 'Kiwi', 'Feijão', 'Legumes', 'Água'].map((item, i) => (
+                  <span key={i} style={{ padding: '4px 10px', borderRadius: '99px', fontSize: '12px', fontWeight: 600, background: 'rgba(16,185,129,0.08)', color: '#059669', border: '1px solid rgba(16,185,129,0.20)' }}>
+                    {item}
+                  </span>
+                ))}
+              </div>
+              <p style={{ fontSize: '12px', color: 'var(--text-muted)', margin: 0 }}>Se necessário: Psyllium 5 g, podendo chegar a 10 g/dia.</p>
+            </div>
+          </ExpandCard>
+
+          {/* Resumo */}
+          <div style={{ borderRadius: '20px', overflow: 'hidden', border: '1px solid var(--border)', boxShadow: 'var(--shadow-card)' }}>
+            <div style={{ padding: '12px 16px', background: 'linear-gradient(150deg, #0F766E 0%, #0A5952 100%)' }}>
+              <p style={{ fontSize: '9px', fontWeight: 700, color: 'rgba(255,255,255,0.55)', textTransform: 'uppercase', letterSpacing: '0.10em', margin: '0 0 2px' }}>Estratégia</p>
+              <p style={{ fontSize: '14px', fontWeight: 800, color: '#fff', margin: 0, letterSpacing: '-0.3px' }}>Resumo</p>
+            </div>
+            <div style={{ background: 'var(--surface)', padding: '14px 16px', display: 'flex', flexDirection: 'column', gap: '10px' }}>
+              {['Bater a meta de proteína', 'Manter hidratação adequada', 'Treinar musculação regularmente', 'Ser consistente por 30 dias'].map((item, i) => (
+                <div key={i} style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                  <div style={{
+                    width: '26px', height: '26px', borderRadius: '7px', flexShrink: 0,
+                    background: 'var(--primary-light)', border: '1px solid var(--primary-glow)',
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    fontSize: '11px', fontWeight: 800, color: 'var(--primary)',
+                    fontFamily: 'Inter, sans-serif',
+                  }}>
+                    {i + 1}
+                  </div>
+                  <p style={{ fontSize: '13px', fontWeight: 700, color: 'var(--text-primary)', margin: 0 }}>{item}</p>
+                </div>
+              ))}
+            </div>
           </div>
 
-          {[
-            { id: 'lh-prot', label: 'Proteínas Melhor Toleradas', color: '#2563EB', items: ['Frango desfiado', 'Peixe', 'Atum em água', 'Ovos', 'Iogurte grego', 'Cottage', 'Whey'] },
-            { id: 'lh-carb', label: 'Carboidratos Melhor Tolerados', color: '#059669', items: ['Arroz branco', 'Batata inglesa', 'Batata doce', 'Cuscuz', 'Pão francês', 'Banana', 'Mamão'] },
-          ].map(sec => {
-            const isOpen = expanded.has(sec.id)
-            return (
-              <div key={sec.id} style={{ borderRadius: '16px', border: `1.5px solid ${isOpen ? sec.color + '35' : 'var(--border)'}`, background: isOpen ? sec.color + '07' : 'var(--surface)', overflow: 'hidden', transition: 'all 0.2s', boxShadow: 'var(--card-shadow)' }}>
-                <button onClick={() => toggle(sec.id)} style={{ width: '100%', padding: '13px 16px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: 'transparent', border: 'none', cursor: 'pointer', fontFamily: 'Inter, -apple-system, sans-serif' }}>
-                  <p style={{ fontWeight: 700, fontSize: '13px', color: 'var(--text-primary)', margin: 0 }}>{sec.label}</p>
-                  <span style={{ color: 'var(--text-muted)', transform: isOpen ? 'rotate(180deg)' : 'none', transition: 'transform 0.2s', display: 'inline-flex', flexShrink: 0 }}><ChevronDown size={16} strokeWidth={2} /></span>
-                </button>
-                {isOpen && (
-                  <div style={{ padding: '0 14px 14px' }}>
-                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
-                      {sec.items.map(item => (
-                        <span key={item} style={{ padding: '4px 10px', borderRadius: '99px', fontSize: '12px', fontWeight: 600, background: sec.color + '15', color: sec.color, border: `1px solid ${sec.color}25` }}>{item}</span>
-                      ))}
-                    </div>
-                  </div>
-                )}
-              </div>
-            )
-          })}
-
-          <div className="card" style={{ padding: '12px 14px', display: 'flex', flexDirection: 'column', gap: '10px' }}>
-            <div style={{ display: 'flex', gap: '8px', alignItems: 'flex-start' }}>
-              <Droplets size={13} strokeWidth={2} style={{ flexShrink: 0, marginTop: '1px', color: '#0891B2' }} />
-              <p style={{ fontSize: '12px', color: 'var(--text-secondary)', lineHeight: 1.5, margin: 0 }}>
-                <strong>Hidratação:</strong> mesmo sem fome, a água é obrigatória. Tontura e fadiga muitas vezes são sinais de desidratação.
-              </p>
-            </div>
-            <div style={{ display: 'flex', gap: '8px', alignItems: 'flex-start' }}>
-              <Leaf size={13} strokeWidth={2} style={{ flexShrink: 0, marginTop: '1px', color: '#059669' }} />
-              <p style={{ fontSize: '12px', color: 'var(--text-secondary)', lineHeight: 1.5, margin: 0 }}>
-                <strong>Intestino:</strong> priorize mamão, kiwi, feijão, legumes e água. Se necessário: Psyllium 5–10 g/dia.
-              </p>
-            </div>
+          <div style={{ padding: '14px 16px', borderRadius: '16px', background: 'rgba(239,68,68,0.05)', border: '1.5px solid rgba(239,68,68,0.15)' }}>
+            <p style={{ fontSize: '9px', fontWeight: 700, color: '#DC2626', textTransform: 'uppercase', letterSpacing: '0.10em', margin: '0 0 6px' }}>Regra Mais Importante</p>
+            <p style={{ fontSize: '12px', color: '#DC2626', margin: 0, lineHeight: 1.55 }}>
+              Em semanas de pouca fome por causa da Tirzepatida, não tente comer como antes. Adapte o volume das refeições. Proteína, água e constância são mais importantes do que quantidade de comida.
+            </p>
           </div>
         </div>
       )}
+    </div>
+  )
+}
 
-      {/* Reset */}
+// ── ExpandCard ────────────────────────────────────────────────────────────────
+function ExpandCard({
+  id, Icon, iconColor, label, badge, note, expanded, onToggle, defaultOpen = false, children,
+}: {
+  id: string; Icon: IconComp; iconColor: string; label: string
+  badge?: string; note?: string; expanded: Set<string>; onToggle: (id: string) => void
+  defaultOpen?: boolean; children: React.ReactNode
+}) {
+  const isOpen = defaultOpen ? !expanded.has(id) : expanded.has(id)
+
+  return (
+    <div style={{ borderRadius: '16px', overflow: 'hidden', background: 'var(--surface)', border: '1px solid var(--border)', boxShadow: 'var(--shadow-card)' }}>
       <button
-        onClick={resetProfile}
+        onClick={() => onToggle(id)}
         style={{
-          display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px',
-          padding: '10px', borderRadius: '12px', border: '1px solid var(--border)',
-          background: 'transparent', cursor: 'pointer',
-          fontFamily: 'Inter, -apple-system, sans-serif', fontSize: '12px', fontWeight: 700, color: 'var(--text-muted)',
+          width: '100%', display: 'flex', alignItems: 'center', gap: '12px',
+          padding: '13px 14px', background: 'transparent', border: 'none',
+          cursor: 'pointer', textAlign: 'left', fontFamily: 'Inter, sans-serif',
         }}
       >
-        <RotateCcw size={12} strokeWidth={2.5} />
-        Alterar dados / Reiniciar plano
-      </button>
-
-      <div className="card-warning">
-        <div style={{ display: 'flex', gap: '8px', alignItems: 'flex-start' }}>
-          <Info size={13} strokeWidth={2} style={{ flexShrink: 0, marginTop: '1px', color: 'var(--warn-text)' }} />
-          <p style={{ fontSize: '11px', color: 'var(--warn-text)', lineHeight: 1.6, margin: 0 }}>
-            Plano elaborado por nutricionista para uso com Tirzepatida. Não substitui acompanhamento nutricional individualizado. Consulte seu profissional de saúde.
-          </p>
+        <div style={{
+          width: '32px', height: '32px', borderRadius: '9px', flexShrink: 0,
+          background: `${iconColor}18`, border: `1px solid ${iconColor}35`,
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+        }}>
+          <Icon size={15} strokeWidth={1.8} color={iconColor} />
         </div>
-      </div>
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+            <p style={{ fontSize: '13px', fontWeight: 700, color: 'var(--text-primary)', margin: 0 }}>{label}</p>
+            {badge && (
+              <span style={{ fontSize: '9px', fontWeight: 700, padding: '1px 6px', borderRadius: '99px', background: 'var(--surface-2)', color: 'var(--text-muted)', border: '1px solid var(--border)' }}>
+                {badge}
+              </span>
+            )}
+          </div>
+          {note && !isOpen && (
+            <p style={{ fontSize: '10px', color: 'var(--text-muted)', margin: '2px 0 0' }}>{note}</p>
+          )}
+        </div>
+        {isOpen
+          ? <ChevronUp size={15} strokeWidth={2} color="var(--text-muted)" style={{ flexShrink: 0 }} />
+          : <ChevronDown size={15} strokeWidth={2} color="var(--text-muted)" style={{ flexShrink: 0 }} />
+        }
+      </button>
+      {isOpen && (
+        <div style={{ padding: '0 14px 14px', borderTop: '1px solid var(--border)' }}>
+          <div style={{ paddingTop: '14px' }}>
+            {note && (
+              <div style={{ display: 'flex', gap: '6px', marginBottom: '12px', padding: '8px 10px', borderRadius: '10px', background: 'rgba(245,158,11,0.07)', border: '1px solid rgba(245,158,11,0.18)' }}>
+                <Info size={12} strokeWidth={2} style={{ flexShrink: 0, color: '#B45309', marginTop: '1px' }} />
+                <p style={{ fontSize: '11px', color: '#B45309', margin: 0, lineHeight: 1.4 }}>{note}</p>
+              </div>
+            )}
+            {children}
+          </div>
+        </div>
+      )}
+    </div>
+  )
+}
+
+// ── OptionsBlock ──────────────────────────────────────────────────────────────
+function OptionsBlock({ options, accentColor }: { options: MealOption[]; accentColor: string }) {
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+      {options.map((opt, i) => (
+        <div key={i} style={{ borderRadius: '12px', overflow: 'hidden', border: '1px solid var(--border)', background: 'var(--surface-2)' }}>
+          <div style={{ padding: '7px 12px', background: 'var(--surface-3)', borderBottom: '1px solid var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '8px' }}>
+            <p style={{ fontSize: '11px', fontWeight: 800, color: 'var(--text-primary)', margin: 0 }}>{opt.label}</p>
+            {opt.protein && (
+              <span style={{ fontSize: '10px', fontWeight: 700, padding: '2px 8px', borderRadius: '99px', background: 'rgba(16,185,129,0.10)', color: '#10B981', border: '1px solid rgba(16,185,129,0.20)', flexShrink: 0 }}>
+                {opt.protein} prot.
+              </span>
+            )}
+          </div>
+          <div style={{ padding: '10px 12px', display: 'flex', flexDirection: 'column', gap: '4px' }}>
+            {opt.items.map((item, j) => (
+              <div key={j} style={{ display: 'flex', gap: '8px', alignItems: 'flex-start' }}>
+                <div style={{ width: '4px', height: '4px', borderRadius: '50%', background: accentColor, flexShrink: 0, marginTop: '7px', opacity: 0.7 }} />
+                <p style={{ fontSize: '13px', color: 'var(--text-secondary)', margin: 0, lineHeight: 1.5 }}>{item}</p>
+              </div>
+            ))}
+            {opt.note && (
+              <div style={{ display: 'flex', gap: '6px', marginTop: '4px', padding: '6px 10px', borderRadius: '8px', background: 'rgba(245,158,11,0.07)', border: '1px solid rgba(245,158,11,0.18)' }}>
+                <Info size={11} strokeWidth={2} style={{ flexShrink: 0, color: '#B45309', marginTop: '2px' }} />
+                <p style={{ fontSize: '11px', color: '#B45309', margin: 0, lineHeight: 1.4 }}>{opt.note}</p>
+              </div>
+            )}
+          </div>
+        </div>
+      ))}
     </div>
   )
 }
