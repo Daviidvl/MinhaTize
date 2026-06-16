@@ -24,28 +24,28 @@ const s = {
     margin: '0 0 14px', letterSpacing: '-0.3px',
   } as React.CSSProperties,
   h3: {
-    fontSize: '13px', fontWeight: 700, color: 'rgba(255,255,255,0.75)',
+    fontSize: '13px', fontWeight: 700, color: 'var(--text-muted)',
     margin: '16px 0 6px', textTransform: 'uppercase' as const, letterSpacing: '0.06em',
   } as React.CSSProperties,
   p: {
-    fontSize: '13px', color: 'rgba(255,255,255,0.55)', lineHeight: 1.75, margin: '0 0 10px',
+    fontSize: '13px', color: 'var(--text-secondary)', lineHeight: 1.75, margin: '0 0 10px',
   } as React.CSSProperties,
   warn: {
     padding: '12px 14px',
     background: 'rgba(239,68,68,0.07)',
     border: '1px solid rgba(239,68,68,0.2)',
     borderRadius: '10px', margin: '0 0 14px',
-    fontSize: '13px', color: '#FCA5A5', lineHeight: 1.65,
+    fontSize: '13px', color: 'var(--danger-text)', lineHeight: 1.65,
   } as React.CSSProperties,
   info: {
     padding: '12px 14px',
     background: 'rgba(37,99,235,0.07)',
     border: '1px solid rgba(37,99,235,0.18)',
     borderRadius: '10px', margin: '0 0 14px',
-    fontSize: '13px', color: 'rgba(147,197,253,0.9)', lineHeight: 1.65,
+    fontSize: '13px', color: 'var(--info-text)', lineHeight: 1.65,
   } as React.CSSProperties,
   li: {
-    fontSize: '13px', color: 'rgba(255,255,255,0.55)', lineHeight: 1.75, marginBottom: '4px',
+    fontSize: '13px', color: 'var(--text-secondary)', lineHeight: 1.75, marginBottom: '4px',
   } as React.CSSProperties,
 }
 
@@ -63,10 +63,10 @@ function Termos() {
         <p style={s.p}>
           MinhaTize é uma plataforma digital de acompanhamento educativo desenvolvida para pessoas que utilizam
           análogos de GLP-1/GIP (como tirzepatida e semaglutida) sob prescrição e supervisão médica. O serviço
-          é disponibilizado no endereço <strong style={{ color: 'rgba(255,255,255,0.75)' }}>minhatize.vercel.app</strong>.
+          é disponibilizado no endereço <strong style={{ color: 'var(--text-primary)' }}>minhatize.vercel.app</strong>.
         </p>
         <p style={s.p}>
-          Contato: <strong style={{ color: 'rgba(255,255,255,0.75)' }}>contato@minhatize.com.br</strong>
+          Contato: <strong style={{ color: 'var(--text-primary)' }}>contato@minhatize.com.br</strong>
         </p>
       </div>
 
@@ -86,7 +86,7 @@ function Termos() {
         </p>
         <p style={s.p}>
           Os resultados obtidos (perda de peso, melhora de exames laboratoriais etc.) dependem de
-          inúmeros fatores individuais e <strong style={{ color: 'rgba(255,255,255,0.75)' }}>não são garantidos</strong> pela plataforma.
+          inúmeros fatores individuais e <strong style={{ color: 'var(--text-primary)' }}>não são garantidos</strong> pela plataforma.
         </p>
       </div>
 
@@ -94,13 +94,13 @@ function Termos() {
         <h2 style={s.h2}>3. Requisitos de Acesso</h2>
         <h3 style={s.h3}>3.1 Maioridade</h3>
         <p style={s.p}>
-          O MinhaTize é destinado exclusivamente a pessoas <strong style={{ color: 'rgba(255,255,255,0.75)' }}>maiores de 18 (dezoito) anos</strong>.
+          O MinhaTize é destinado exclusivamente a pessoas <strong style={{ color: 'var(--text-primary)' }}>maiores de 18 (dezoito) anos</strong>.
           É proibido o uso por menores de idade.
         </p>
         <h3 style={s.h3}>3.2 Prescrição Médica</h3>
         <p style={s.p}>
           Os medicamentos referenciados nesta plataforma (tirzepatida, semaglutida, ozempic, wegovy, mounjaro)
-          são <strong style={{ color: 'rgba(255,255,255,0.75)' }}>medicamentos controlados que exigem prescrição médica válida</strong>.
+          são <strong style={{ color: 'var(--text-primary)' }}>medicamentos controlados que exigem prescrição médica válida</strong>.
           Ao utilizar este serviço, o usuário declara possuir prescrição médica vigente emitida por profissional
           habilitado para o medicamento utilizado.
         </p>
@@ -211,8 +211,8 @@ function Privacidade() {
       <div style={s.section}>
         <h2 style={s.h2}>1. Controlador dos Dados</h2>
         <p style={s.p}>
-          <strong style={{ color: 'rgba(255,255,255,0.75)' }}>MinhaTize — Plataforma Digital de Acompanhamento Educativo</strong><br />
-          E-mail do encarregado (DPO): <strong style={{ color: 'rgba(255,255,255,0.75)' }}>privacidade@minhatize.com.br</strong>
+          <strong style={{ color: 'var(--text-primary)' }}>MinhaTize — Plataforma Digital de Acompanhamento Educativo</strong><br />
+          E-mail do encarregado (DPO): <strong style={{ color: 'var(--text-primary)' }}>privacidade@minhatize.com.br</strong>
         </p>
       </div>
 
@@ -260,8 +260,8 @@ function Privacidade() {
         <h3 style={s.h3}>3.1 Dados locais (no seu dispositivo)</h3>
         <p style={s.p}>
           Perfil, histórico de peso, exames, diário, log alimentar, efeitos colaterais e planos
-          são armazenados <strong style={{ color: 'rgba(255,255,255,0.75)' }}>exclusivamente no localStorage do seu dispositivo</strong>.
-          Esses dados <strong style={{ color: 'rgba(255,255,255,0.75)' }}>NÃO são enviados aos nossos servidores</strong> e ficam
+          são armazenados <strong style={{ color: 'var(--text-primary)' }}>exclusivamente no localStorage do seu dispositivo</strong>.
+          Esses dados <strong style={{ color: 'var(--text-primary)' }}>NÃO são enviados aos nossos servidores</strong> e ficam
           sob seu controle absoluto.
         </p>
         <h3 style={s.h3}>3.2 Dados no servidor</h3>
@@ -272,7 +272,7 @@ function Privacidade() {
         <h3 style={s.h3}>3.3 Relatório Anti-Platô</h3>
         <p style={s.p}>
           Ao gerar o relatório, os dados do questionário são enviados de forma anônima à API da
-          Anthropic (EUA). <strong style={{ color: 'rgba(255,255,255,0.75)' }}>Nenhum dado identificador</strong> (nome, e-mail, token)
+          Anthropic (EUA). <strong style={{ color: 'var(--text-primary)' }}>Nenhum dado identificador</strong> (nome, e-mail, token)
           é transmitido.
         </p>
       </div>
@@ -297,7 +297,7 @@ function Privacidade() {
       <div style={s.section}>
         <h2 style={s.h2}>5. Compartilhamento de Dados</h2>
         <p style={s.p}>
-          <strong style={{ color: 'rgba(255,255,255,0.75)' }}>Não vendemos dados a terceiros.</strong> Compartilhamos apenas com:
+          <strong style={{ color: 'var(--text-primary)' }}>Não vendemos dados a terceiros.</strong> Compartilhamos apenas com:
         </p>
         <ul style={{ paddingLeft: '16px', margin: 0 }}>
           {[
@@ -353,8 +353,8 @@ function Privacidade() {
         </ul>
         <p style={s.p}>
           Para exercer seus direitos, envie e-mail para{' '}
-          <strong style={{ color: 'rgba(255,255,255,0.75)' }}>privacidade@minhatize.com.br</strong>.
-          Responderemos em até <strong style={{ color: 'rgba(255,255,255,0.75)' }}>15 dias úteis</strong>.
+          <strong style={{ color: 'var(--text-primary)' }}>privacidade@minhatize.com.br</strong>.
+          Responderemos em até <strong style={{ color: 'var(--text-primary)' }}>15 dias úteis</strong>.
         </p>
         <p style={s.p}>
           Dados locais podem ser exportados (Perfil → Legal → Exportar dados) ou excluídos
@@ -390,7 +390,7 @@ function Privacidade() {
         <h2 style={s.h2}>11. Contato e DPO</h2>
         <p style={s.p}>
           Encarregado de Proteção de Dados (DPO):<br />
-          <strong style={{ color: 'rgba(255,255,255,0.75)' }}>privacidade@minhatize.com.br</strong>
+          <strong style={{ color: 'var(--text-primary)' }}>privacidade@minhatize.com.br</strong>
         </p>
       </div>
     </>
@@ -409,7 +409,7 @@ function Disclaimer() {
       <div style={s.section}>
         <h2 style={s.h2}>1. Natureza Educativa — Não É Serviço Médico</h2>
         <p style={s.p}>
-          O MinhaTize é uma plataforma <strong style={{ color: 'rgba(255,255,255,0.75)' }}>educativa e informativa</strong>.
+          O MinhaTize é uma plataforma <strong style={{ color: 'var(--text-primary)' }}>educativa e informativa</strong>.
           Nenhum conteúdo disponibilizado constitui:
         </p>
         <ul style={{ paddingLeft: '16px', margin: '0 0 14px' }}>
@@ -421,7 +421,7 @@ function Disclaimer() {
             'Garantia de resultado terapêutico ou estético',
             'Substituição de acompanhamento profissional',
           ].map((item, i) => (
-            <li key={i} style={{ ...s.li, color: '#FCA5A5' }}>{item}</li>
+            <li key={i} style={{ ...s.li, color: 'var(--danger-text)' }}>{item}</li>
           ))}
         </ul>
       </div>
@@ -451,7 +451,7 @@ function Disclaimer() {
         <h2 style={s.h2}>3. Plano Alimentar e Guia Nutricional</h2>
         <p style={s.p}>
           As sugestões alimentares, planos calóricos e guias de refeição têm caráter
-          <strong style={{ color: 'rgba(255,255,255,0.75)' }}> educativo e geral</strong>. Não
+          <strong style={{ color: 'var(--text-primary)' }}> educativo e geral</strong>. Não
           constituem prescrição dietética e não substituem avaliação individualizada por
           nutricionista inscrito no CRN (Conselho Regional de Nutricionistas).
         </p>
@@ -529,7 +529,7 @@ function Cancelamento() {
       <div style={s.section}>
         <h2 style={s.h2}>1. Modelo de Acesso</h2>
         <p style={s.p}>
-          O MinhaTize é comercializado como um <strong style={{ color: 'rgba(255,255,255,0.75)' }}>produto digital de acesso único</strong>,
+          O MinhaTize é comercializado como um <strong style={{ color: 'var(--text-primary)' }}>produto digital de acesso único</strong>,
           sem assinatura recorrente ou renovação automática. O pagamento único concede acesso
           vitalício ao conteúdo e às funcionalidades disponíveis na data da compra.
         </p>
@@ -549,7 +549,7 @@ function Cancelamento() {
           Para exercer o direito de arrependimento dentro do prazo legal:
         </p>
         <ul style={{ paddingLeft: '16px', margin: '0 0 14px' }}>
-          <li style={s.li}>Envie e-mail para <strong style={{ color: 'rgba(255,255,255,0.75)' }}>contato@minhatize.com.br</strong> com assunto "Cancelamento — Arrependimento"</li>
+          <li style={s.li}>Envie e-mail para <strong style={{ color: 'var(--text-primary)' }}>contato@minhatize.com.br</strong> com assunto "Cancelamento — Arrependimento"</li>
           <li style={s.li}>Ou solicite diretamente pela plataforma onde realizou a compra (Wiven, Hotmart)</li>
           <li style={s.li}>O reembolso será processado em até 7 dias úteis pelo meio de pagamento original</li>
         </ul>
@@ -564,7 +564,7 @@ function Cancelamento() {
         </p>
         <p style={s.p}>
           Para solicitações fora do prazo legal, entre em contato:
-          <strong style={{ color: 'rgba(255,255,255,0.75)' }}> contato@minhatize.com.br</strong>
+          <strong style={{ color: 'var(--text-primary)' }}> contato@minhatize.com.br</strong>
         </p>
       </div>
 
@@ -586,15 +586,15 @@ function Cancelamento() {
         </p>
         <p style={s.p}>
           Para solicitar a exclusão do e-mail e token do nosso banco de dados, envie e-mail para
-          <strong style={{ color: 'rgba(255,255,255,0.75)' }}> privacidade@minhatize.com.br</strong>.
+          <strong style={{ color: 'var(--text-primary)' }}> privacidade@minhatize.com.br</strong>.
         </p>
       </div>
 
       <div style={s.section}>
         <h2 style={s.h2}>6. Contato</h2>
         <p style={s.p}>
-          Cancelamentos e dúvidas: <strong style={{ color: 'rgba(255,255,255,0.75)' }}>contato@minhatize.com.br</strong><br />
-          Proteção de dados: <strong style={{ color: 'rgba(255,255,255,0.75)' }}>privacidade@minhatize.com.br</strong>
+          Cancelamentos e dúvidas: <strong style={{ color: 'var(--text-primary)' }}>contato@minhatize.com.br</strong><br />
+          Proteção de dados: <strong style={{ color: 'var(--text-primary)' }}>privacidade@minhatize.com.br</strong>
         </p>
       </div>
     </>
@@ -613,7 +613,7 @@ function Cookies() {
       <div style={s.section}>
         <h2 style={s.h2}>1. O Que Usamos</h2>
         <p style={s.p}>
-          O MinhaTize utiliza <strong style={{ color: 'rgba(255,255,255,0.75)' }}>localStorage do navegador</strong> para
+          O MinhaTize utiliza <strong style={{ color: 'var(--text-primary)' }}>localStorage do navegador</strong> para
           armazenar dados do aplicativo no seu dispositivo. Não utilizamos cookies HTTP tradicionais,
           pixels de rastreamento, tecnologias de fingerprinting ou plataformas de analytics de terceiros.
         </p>
@@ -621,7 +621,7 @@ function Cookies() {
 
       <div style={s.section}>
         <h2 style={s.h2}>2. Dados Armazenados Localmente</h2>
-        <p style={s.p}>Todos os dados abaixo ficam <strong style={{ color: 'rgba(255,255,255,0.75)' }}>apenas no seu dispositivo</strong>:</p>
+        <p style={s.p}>Todos os dados abaixo ficam <strong style={{ color: 'var(--text-primary)' }}>apenas no seu dispositivo</strong>:</p>
         <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
           {[
             { chave: 'tizetrack_profile', desc: 'Perfil do usuário (nome, peso, medicamento, histórico)' },
@@ -653,7 +653,7 @@ function Cookies() {
       <div style={s.section}>
         <h2 style={s.h2}>4. Sem Rastreamento</h2>
         <p style={s.p}>
-          O MinhaTize <strong style={{ color: 'rgba(255,255,255,0.75)' }}>não utiliza</strong>:
+          O MinhaTize <strong style={{ color: 'var(--text-primary)' }}>não utiliza</strong>:
         </p>
         <ul style={{ paddingLeft: '16px', margin: 0 }}>
           {[
@@ -673,10 +673,10 @@ function Cookies() {
         <p style={s.p}>Você pode remover todos os dados armazenados localmente de duas formas:</p>
         <ul style={{ paddingLeft: '16px', margin: 0 }}>
           <li style={s.li}>
-            <strong style={{ color: 'rgba(255,255,255,0.75)' }}>Pelo app:</strong> Perfil → Legal → "Revogar e apagar dados"
+            <strong style={{ color: 'var(--text-primary)' }}>Pelo app:</strong> Perfil → Legal → "Revogar e apagar dados"
           </li>
           <li style={s.li}>
-            <strong style={{ color: 'rgba(255,255,255,0.75)' }}>Pelo navegador:</strong> Configurações → Privacidade → Limpar dados do site → minhatize.vercel.app
+            <strong style={{ color: 'var(--text-primary)' }}>Pelo navegador:</strong> Configurações → Privacidade → Limpar dados do site → minhatize.vercel.app
           </li>
         </ul>
       </div>

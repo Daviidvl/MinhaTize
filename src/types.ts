@@ -90,4 +90,4 @@ export interface UserProfile {
   labResults?: LabResult[]
 }
 
-export type Tab = 'dashboard' | 'progress' | 'health' | 'calculator' | 'profile' | 'laboratory'
+export type Tab = 'dashboard' | 'progress' | 'health' | 'calculator' | 'profile' | 'laboratory' | 'atendimento' | 'suporte'

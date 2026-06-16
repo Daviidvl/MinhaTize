@@ -18,6 +18,9 @@ function setCors(req: VercelRequest, res: VercelResponse) {
   res.setHeader('Vary', 'Origin')
 }
 
+// ─── UUID v4 ──────────────────────────────────────────────────────────────────
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i
+
 // ─── Rate limit por IP (em memória, por instância) ────────────────────────────
 const rlMap = new Map<string, { count: number; reset: number }>()
 const RL_MAX = 5         // máx 5 relatórios por janela
@@ -64,7 +67,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   // ── 1. Autenticação: requer token válido no header Authorization ─────────
   const authHeader = (req.headers.authorization as string) ?? ''
   const token = authHeader.startsWith('Bearer ') ? authHeader.slice(7).trim() : ''
-  if (!token || token.length < 8) {
+  if (!token || !UUID_RE.test(token)) {
     return res.status(401).json({ error: 'Não autorizado.' })
   }
 

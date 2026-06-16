@@ -6,7 +6,7 @@ export function useDarkMode() {
       const saved = localStorage.getItem('minha-tize-theme')
       if (saved) return saved === 'dark'
     } catch {}
-    return window.matchMedia('(prefers-color-scheme: dark)').matches
+    return false
   })
 
   useEffect(() => {

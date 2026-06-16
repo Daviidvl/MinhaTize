@@ -31,9 +31,11 @@ interface WivenPayload {
 
 // ─── Verificação de autenticidade (timing-safe) ───────────────────────────────
 function safeEqual(a: string, b: string): boolean {
-  if (a.length !== b.length) return false
-  let diff = 0
-  for (let i = 0; i < a.length; i++) diff |= a.charCodeAt(i) ^ b.charCodeAt(i)
+  const maxLen = Math.max(a.length, b.length)
+  let diff = a.length ^ b.length
+  for (let i = 0; i < maxLen; i++) {
+    diff |= (a.charCodeAt(i % a.length) ^ b.charCodeAt(i % b.length))
+  }
   return diff === 0
 }
 

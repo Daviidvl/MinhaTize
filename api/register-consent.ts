@@ -34,6 +34,23 @@ function setCors(req: VercelRequest, res: VercelResponse) {
 // UUID v4 validation
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i
 
+// ─── Rate limit por IP ────────────────────────────────────────────────────────
+const rlMap = new Map<string, { count: number; reset: number }>()
+const RL_MAX = 10
+const RL_WINDOW = 3_600_000 // 1 hora
+
+function checkRateLimit(ip: string): boolean {
+  const now = Date.now()
+  const entry = rlMap.get(ip)
+  if (!entry || now > entry.reset) {
+    rlMap.set(ip, { count: 1, reset: now + RL_WINDOW })
+    return true
+  }
+  if (entry.count >= RL_MAX) return false
+  entry.count++
+  return true
+}
+
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   setCors(req, res)
   if (req.method === 'OPTIONS') return res.status(200).end()
@@ -47,6 +64,13 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     return res.status(401).json({ error: 'Não autorizado.' })
   }
 
+  // ── Rate limit ────────────────────────────────────────────────────────────────
+  const ip = (req.headers['x-forwarded-for'] as string ?? '').split(',')[0].trim() || 'unknown'
+  if (!checkRateLimit(ip)) {
+    res.setHeader('Retry-After', '3600')
+    return res.status(429).json({ error: 'Muitas requisições. Tente novamente em 1 hora.' })
+  }
+
   // ── Payload ───────────────────────────────────────────────────────────────────
   let body: { version?: unknown }
   try {
@@ -56,7 +80,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     return res.status(400).json({ error: 'Payload inválido.' })
   }
 
-  const version = typeof body.version === 'string' ? body.version.trim() : '1.0'
+  const version = typeof body.version === 'string' ? body.version.trim().slice(0, 20) : '1.0'
 
   // ── Supabase ──────────────────────────────────────────────────────────────────
   const supabase = createClient(
