@@ -21,25 +21,14 @@ interface Props {
 
 type HealthTab = 'symptoms' | 'food' | 'exercise' | 'weaning' | 'supplementation' | 'antiplato' | 'storage'
 
-// ── Icon colors para lista premium ────────────────────────────────────────────
-const ICON_ACCENT: Record<HealthTab, { bg: string; color: string }> = {
-  symptoms:        { bg: 'rgba(245,158,11,0.10)',  color: '#F59E0B' },
-  food:            { bg: 'rgba(16,185,129,0.10)',  color: '#10B981' },
-  exercise:        { bg: 'rgba(59,130,246,0.10)',  color: '#3B82F6' },
-  weaning:         { bg: 'rgba(107,114,128,0.10)', color: '#6B7280' },
-  supplementation: { bg: 'rgba(13,148,136,0.10)',  color: '#0D9488' },
-  antiplato:       { bg: 'rgba(139,92,246,0.10)',  color: '#8B5CF6' },
-  storage:         { bg: 'rgba(14,165,233,0.10)',  color: '#0EA5E9' },
-}
-
-const SECTION_ICON_LIST: Record<HealthTab, React.ReactNode> = {
-  symptoms:        <Activity      size={20} strokeWidth={2} color={ICON_ACCENT.symptoms.color} />,
-  food:            <Utensils      size={20} strokeWidth={2} color={ICON_ACCENT.food.color} />,
-  exercise:        <Dumbbell      size={20} strokeWidth={2} color={ICON_ACCENT.exercise.color} />,
-  weaning:         <TrendingDown  size={20} strokeWidth={2} color={ICON_ACCENT.weaning.color} />,
-  supplementation: <Pill          size={20} strokeWidth={2} color={ICON_ACCENT.supplementation.color} />,
-  antiplato:       <Target        size={20} strokeWidth={2} color={ICON_ACCENT.antiplato.color} />,
-  storage:         <Package       size={20} strokeWidth={2} color={ICON_ACCENT.storage.color} />,
+const SECTION_ICON_MAP: Record<HealthTab, React.ReactNode> = {
+  symptoms:        <Activity      size={26} strokeWidth={2} color="rgba(255,255,255,0.95)" />,
+  food:            <Utensils      size={26} strokeWidth={2} color="rgba(255,255,255,0.95)" />,
+  exercise:        <Dumbbell      size={26} strokeWidth={2} color="rgba(255,255,255,0.95)" />,
+  weaning:         <TrendingDown  size={26} strokeWidth={2} color="rgba(255,255,255,0.95)" />,
+  supplementation: <Pill          size={26} strokeWidth={2} color="rgba(255,255,255,0.95)" />,
+  antiplato:       <Target        size={26} strokeWidth={2} color="rgba(255,255,255,0.95)" />,
+  storage:         <Package       size={26} strokeWidth={2} color="rgba(255,255,255,0.95)" />,
 }
 
 const SECTION_ICON_SM: Record<HealthTab, React.ReactNode> = {
@@ -255,57 +244,57 @@ const SECTION_CARDS: {
     id: 'symptoms',
     title: 'Sintomas',
     subtitle: 'Registre e acompanhe efeitos colaterais',
-    gradient: 'linear-gradient(145deg, #0D1520 0%, #090F18 100%)',
-    shadow: '0 4px 20px rgba(0,0,0,0.30)',
-    accentColor: '#3B82F6',
+    gradient: 'linear-gradient(150deg, #1E4D6B 0%, #0F3347 100%)',
+    shadow: '0 8px 28px rgba(30,77,107,0.35)',
+    accentColor: '#1E4D6B',
   },
   {
     id: 'food',
     title: 'Alimentação',
     subtitle: 'Alimentos aliados e o que evitar',
-    gradient: 'linear-gradient(145deg, #0A1A11 0%, #060D08 100%)',
-    shadow: '0 4px 20px rgba(0,0,0,0.30)',
-    accentColor: '#22C55E',
+    gradient: 'linear-gradient(150deg, #16653A 0%, #0E4A29 100%)',
+    shadow: '0 8px 28px rgba(22,101,58,0.35)',
+    accentColor: '#16653A',
   },
   {
     id: 'exercise',
     title: 'Exercício',
     subtitle: 'Guia de treino com GLP-1',
-    gradient: 'linear-gradient(145deg, #0C1A15 0%, #080F0B 100%)',
-    shadow: '0 4px 20px rgba(0,0,0,0.30)',
-    accentColor: '#4ADE80',
+    gradient: 'linear-gradient(150deg, #132D22 0%, #0C1F18 100%)',
+    shadow: '0 8px 28px rgba(12,31,24,0.50)',
+    accentColor: '#22C55E',
   },
   {
     id: 'weaning',
     title: 'Desmame',
     subtitle: 'Protocolo de interrupção gradual',
-    gradient: 'linear-gradient(145deg, #131318 0%, #0D0D12 100%)',
-    shadow: '0 4px 20px rgba(0,0,0,0.30)',
-    accentColor: '#94A3B8',
+    gradient: 'linear-gradient(150deg, #374151 0%, #1F2937 100%)',
+    shadow: '0 8px 28px rgba(55,65,81,0.40)',
+    accentColor: '#374151',
   },
   {
     id: 'supplementation',
     title: 'Suplementação',
     subtitle: 'O que priorizar durante o tratamento',
-    gradient: 'linear-gradient(145deg, #0A1A18 0%, #06100F 100%)',
-    shadow: '0 4px 20px rgba(0,0,0,0.30)',
-    accentColor: '#2DD4BF',
+    gradient: 'linear-gradient(150deg, #0F766E 0%, #0A5952 100%)',
+    shadow: '0 8px 28px rgba(15,118,110,0.35)',
+    accentColor: '#0F766E',
   },
   {
     id: 'antiplato',
     title: 'Anti-Platô',
     subtitle: 'Identifique e desbloqueie seu platô',
-    gradient: 'linear-gradient(145deg, #12091E 0%, #0C0713 100%)',
-    shadow: '0 4px 20px rgba(0,0,0,0.30)',
-    accentColor: '#A78BFA',
+    gradient: 'linear-gradient(150deg, #5B21B6 0%, #3E1480 100%)',
+    shadow: '0 8px 28px rgba(91,33,182,0.35)',
+    accentColor: '#5B21B6',
   },
   {
     id: 'storage',
     title: 'Armazenamento',
     subtitle: 'Como guardar sua medicação corretamente',
-    gradient: 'linear-gradient(145deg, #0B1522 0%, #080E18 100%)',
-    shadow: '0 4px 20px rgba(0,0,0,0.30)',
-    accentColor: '#38BDF8',
+    gradient: 'linear-gradient(150deg, #0369A1 0%, #024F7B 100%)',
+    shadow: '0 8px 28px rgba(3,105,161,0.35)',
+    accentColor: '#0369A1',
   },
 ]
 
@@ -596,114 +585,135 @@ export default function HealthHub({ profile, onUpdateProfile, initialSection }: 
     )
   }
 
-  // ── Home list view ───────────────────────────────────────────────────────────
-  const GROUPS: { label: string; ids: HealthTab[] }[] = [
-    { label: 'Nutrição & Movimento',   ids: ['food', 'exercise', 'weaning'] },
-    { label: 'Suporte ao Protocolo',   ids: ['supplementation', 'antiplato'] },
-    { label: 'Gestão',                 ids: ['storage'] },
-  ]
-
+  // ── Home grid view ───────────────────────────────────────────────────────────
   return (
-    <div className="fade-in" style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
+    <div className="fade-in" style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
 
       {/* Header */}
-      <div style={{ paddingBottom: '2px' }}>
-        <h2 style={{ fontSize: '28px', fontWeight: 800, color: 'var(--text-primary)', margin: '0 0 6px', letterSpacing: '-0.6px' }}>
+      <div>
+        <h2 style={{ fontSize: '22px', fontWeight: 800, color: 'var(--text-primary)', margin: 0, letterSpacing: '-0.3px' }}>
           Saúde
         </h2>
-        <p style={{ color: 'var(--text-muted)', fontSize: '13px', margin: 0 }}>
+        <p style={{ color: 'var(--text-muted)', fontSize: '13px', marginTop: '4px' }}>
           Seu painel de bem-estar
         </p>
       </div>
 
-      {/* Banner de sintomas */}
+      {/* Symptom status banner */}
       <button
         onClick={() => setActiveSection('symptoms')}
         style={{
           width: '100%', textAlign: 'left', cursor: 'pointer',
-          display: 'flex', alignItems: 'center', gap: '14px',
-          padding: '16px 18px', borderRadius: '20px',
-          background: 'var(--surface)',
-          border: `1px solid ${maxIntensity >= 3 ? 'rgba(239,68,68,0.20)' : maxIntensity === 2 ? 'rgba(245,158,11,0.22)' : 'var(--border)'}`,
-          boxShadow: 'var(--shadow-card)', fontFamily: 'Inter, sans-serif',
+          display: 'flex', alignItems: 'center', gap: '12px',
+          padding: '14px 16px', borderRadius: '16px',
+          background: maxIntensity >= 3
+            ? 'rgba(239,68,68,0.06)'
+            : maxIntensity === 2
+            ? 'rgba(245,158,11,0.06)'
+            : 'var(--primary-light)',
+          border: `1.5px solid ${maxIntensity >= 3 ? 'rgba(239,68,68,0.20)' : maxIntensity === 2 ? 'rgba(245,158,11,0.25)' : 'rgba(37,99,235,0.18)'}`,
         }}
       >
         <div style={{
-          width: '44px', height: '44px', borderRadius: '13px', flexShrink: 0,
-          background: maxIntensity >= 3 ? 'rgba(239,68,68,0.08)' : maxIntensity === 2 ? 'rgba(245,158,11,0.08)' : 'rgba(16,185,129,0.08)',
-          border: `1px solid ${maxIntensity >= 3 ? 'rgba(239,68,68,0.14)' : maxIntensity === 2 ? 'rgba(245,158,11,0.14)' : 'rgba(16,185,129,0.14)'}`,
-          display: 'flex', alignItems: 'center', justifyContent: 'center',
-        }}>
-          <Activity size={20} strokeWidth={2} color={maxIntensity >= 3 ? '#EF4444' : maxIntensity === 2 ? '#F59E0B' : '#10B981'} />
-        </div>
-        <div style={{ flex: 1 }}>
-          <p style={{ fontWeight: 700, fontSize: '14px', color: 'var(--text-primary)', margin: 0 }}>
-            Sintomas desta semana
+          width: '10px', height: '10px', borderRadius: '50%', flexShrink: 0,
+          background: symptomBadge.dotColor,
+          boxShadow: `0 0 0 3px ${symptomBadge.dotColor}22`,
+        }} />
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <p style={{ fontWeight: 800, fontSize: '13px', color: 'var(--text-primary)', margin: 0 }}>
+            Esta semana
           </p>
-          <p style={{ fontSize: '12px', color: symptomBadge.color, fontWeight: 600, margin: '3px 0 0' }}>
+          <p style={{ fontSize: '12px', color: symptomBadge.color, fontWeight: 600, margin: 0, marginTop: '2px' }}>
             {symptomBadge.label}
           </p>
         </div>
-        <ChevronRight size={16} strokeWidth={2} color="var(--text-muted)" />
+        <div style={{ display: 'flex', alignItems: 'center', gap: '4px', color: 'var(--text-muted)' }}>
+          <span style={{ fontSize: '11px', fontWeight: 700 }}>Ver</span>
+          <ChevronRight size={14} strokeWidth={2.5} />
+        </div>
       </button>
 
-      {/* Grupos de seções */}
-      {GROUPS.map(group => {
-        const cards = group.ids.map(id => SECTION_CARDS.find(c => c.id === id)!).filter(Boolean)
-        return (
-          <div key={group.label}>
-            <p style={{
-              fontSize: '10px', fontWeight: 700, color: 'var(--text-muted)',
-              textTransform: 'uppercase', letterSpacing: '0.09em',
-              margin: '0 0 10px 4px', fontFamily: 'Inter, sans-serif',
-            }}>
-              {group.label}
-            </p>
+      {/* 2-column card grid */}
+      <div data-tour="health-sections" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+        {SECTION_CARDS.map(card => (
+          <button
+            key={card.id}
+            onClick={() => setActiveSection(card.id)}
+            style={{
+              background: card.gradient,
+              borderRadius: '20px',
+              padding: '18px 16px 16px',
+              border: 'none',
+              cursor: 'pointer',
+              textAlign: 'left',
+              boxShadow: card.shadow,
+              display: 'flex',
+              flexDirection: 'column',
+              gap: '10px',
+              minHeight: '140px',
+              transition: 'transform 0.15s ease',
+              position: 'relative',
+              overflow: 'hidden',
+            }}
+            onMouseDown={e => (e.currentTarget.style.transform = 'scale(0.97)')}
+            onMouseUp={e => (e.currentTarget.style.transform = 'scale(1)')}
+            onTouchStart={e => (e.currentTarget.style.transform = 'scale(0.97)')}
+            onTouchEnd={e => (e.currentTarget.style.transform = 'scale(1)')}
+          >
+            {/* Inner highlight */}
             <div style={{
-              borderRadius: '20px', overflow: 'hidden',
-              background: 'var(--surface)',
-              border: '1px solid var(--border)',
-              boxShadow: 'var(--shadow-card)',
+              position: 'absolute', inset: 0,
+              background: 'linear-gradient(150deg, rgba(255,255,255,0.07) 0%, transparent 55%)',
+              borderRadius: 'inherit', pointerEvents: 'none',
+            }} />
+            {/* Decorative circle */}
+            <div style={{
+              position: 'absolute', top: '-20px', right: '-20px',
+              width: '80px', height: '80px', borderRadius: '50%',
+              background: 'rgba(255,255,255,0.06)', pointerEvents: 'none',
+            }} />
+
+            {/* Glassmorphism icon */}
+            <div style={{
+              width: '52px', height: '52px', borderRadius: '16px',
+              background: 'rgba(255,255,255,0.14)',
+              backdropFilter: 'blur(20px)',
+              WebkitBackdropFilter: 'blur(20px)',
+              border: '1px solid rgba(255,255,255,0.18)',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.15)',
+              flexShrink: 0, position: 'relative',
             }}>
-              {cards.map((card, i) => (
-                <button
-                  key={card.id}
-                  onClick={() => setActiveSection(card.id)}
-                  style={{
-                    width: '100%', display: 'flex', alignItems: 'center', gap: '14px',
-                    padding: '14px 16px',
-                    borderBottom: i < cards.length - 1 ? '1px solid var(--border)' : 'none',
-                    background: 'transparent', border: 'none', borderRadius: 0,
-                    cursor: 'pointer', textAlign: 'left',
-                    transition: 'background 0.15s', fontFamily: 'Inter, sans-serif',
-                  }}
-                  onMouseEnter={e => (e.currentTarget.style.background = 'var(--surface-2)')}
-                  onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}
-                  onTouchStart={e => (e.currentTarget.style.background = 'var(--surface-2)')}
-                  onTouchEnd={e => (e.currentTarget.style.background = 'transparent')}
-                >
-                  <div style={{
-                    width: '40px', height: '40px', borderRadius: '12px', flexShrink: 0,
-                    background: ICON_ACCENT[card.id].bg,
-                    display: 'flex', alignItems: 'center', justifyContent: 'center',
-                  }}>
-                    {SECTION_ICON_LIST[card.id]}
-                  </div>
-                  <div style={{ flex: 1, minWidth: 0 }}>
-                    <p style={{ fontWeight: 700, fontSize: '14px', color: 'var(--text-primary)', margin: 0 }}>
-                      {card.title}
-                    </p>
-                    <p style={{ fontSize: '11px', color: 'var(--text-muted)', margin: '2px 0 0', lineHeight: 1.4 }}>
-                      {card.subtitle}
-                    </p>
-                  </div>
-                  <ChevronRight size={15} strokeWidth={2} color="var(--text-muted)" style={{ flexShrink: 0 }} />
-                </button>
-              ))}
+              {SECTION_ICON_MAP[card.id]}
             </div>
-          </div>
-        )
-      })}
+
+            <div>
+              <p style={{ fontSize: '14px', fontWeight: 800, color: '#fff', margin: 0, letterSpacing: '-0.2px' }}>
+                {card.title}
+              </p>
+              <p style={{ fontSize: '10px', color: 'rgba(255,255,255,0.65)', margin: 0, marginTop: '4px', lineHeight: 1.4 }}>
+                {card.subtitle}
+              </p>
+            </div>
+
+            {card.id === 'symptoms' && activeSymptoms.length > 0 && (
+              <span style={{
+                display: 'inline-flex', alignItems: 'center', gap: '5px',
+                padding: '3px 8px', borderRadius: '99px',
+                background: 'rgba(255,255,255,0.18)',
+                fontSize: '10px', fontWeight: 700, color: '#fff',
+                alignSelf: 'flex-start',
+              }}>
+                <div style={{
+                  width: '6px', height: '6px', borderRadius: '50%',
+                  background: symptomBadge.dotColor, flexShrink: 0,
+                }} />
+                {symptomBadge.label}
+              </span>
+            )}
+          </button>
+        ))}
+      </div>
 
     </div>
   )
