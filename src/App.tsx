@@ -178,9 +178,18 @@ export default function App() {
         minHeight: '100dvh', background: 'var(--bg)',
         display: 'flex', alignItems: 'center', justifyContent: 'center',
       }}>
-        <div style={{ textAlign: 'center' }}>
-          <img src="/LogoPng.png" alt="MinhaTize" style={{ width: '64px', height: '64px', borderRadius: '18px', objectFit: 'contain', marginBottom: '16px', opacity: 0.9 }} />
-          <p style={{ fontSize: '13px', color: 'var(--text-muted)', fontFamily: 'Inter, sans-serif' }}>Verificando acesso...</p>
+        <div style={{ textAlign: 'center', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '16px' }}>
+          <div style={{ position: 'relative' }}>
+            <img src="/LogoPng.png" alt="MinhaTize" style={{ width: '60px', height: '60px', borderRadius: '16px', objectFit: 'contain', display: 'block' }} />
+            <div style={{
+              position: 'absolute', inset: '-4px', borderRadius: '20px',
+              border: '2px solid var(--border)', animation: 'pulse-soft 2s ease-in-out infinite',
+              pointerEvents: 'none',
+            }} />
+          </div>
+          <p style={{ fontSize: '12px', color: 'var(--text-muted)', fontFamily: 'Inter, sans-serif', fontWeight: 500, margin: 0, letterSpacing: '0.01em' }}>
+            Verificando acesso...
+          </p>
         </div>
       </div>
     )
@@ -239,7 +248,7 @@ export default function App() {
 
       <main
         className="main-content"
-        style={{ maxWidth: '520px', margin: '0 auto', paddingTop: '20px', paddingLeft: '16px', paddingRight: '16px' }}
+        style={{ maxWidth: '520px', margin: '0 auto', paddingTop: '24px', paddingLeft: '20px', paddingRight: '20px' }}
         key={activeTab}
       >
         {renderTab()}
