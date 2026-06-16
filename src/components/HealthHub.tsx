@@ -94,7 +94,7 @@ const SYMPTOM_TIPS: Record<string, { title: string; tips: string[] }> = {
   constipation: {
     title: 'Constipação',
     tips: [
-      'Beba pelo menos 2L de água por dia — fundamental',
+      'Beba pelo menos 2L de água por dia é fundamental',
       'Ameixa, mamão e kiwi são aliados do trânsito intestinal',
       'Caminhadas leves de 20–30 min estimulam o intestino',
       'Aveia e fibras solúveis regularizam sem agravar desconforto',
@@ -124,7 +124,7 @@ const SYMPTOM_TIPS: Record<string, { title: string; tips: string[] }> = {
       'Garanta 7–9 horas de sono de qualidade por noite',
       'Verifique a ingestão de proteínas (1,2–1,5g/kg de peso)',
       'Exercícios leves aumentam a disposição mais do que repouso total',
-      'Não pule refeições mesmo sem fome — o corpo precisa de energia',
+      'Não pule refeições mesmo sem fome é o corpo precisa de energia',
     ],
   },
   dizziness: {
@@ -139,7 +139,7 @@ const SYMPTOM_TIPS: Record<string, { title: string; tips: string[] }> = {
   abdominal: {
     title: 'Dor abdominal',
     tips: [
-      'Coma devagar e mastigue bem — a digestão começa na boca',
+      'Coma devagar e mastigue bem é a digestão começa na boca',
       'Evite alimentos produtores de gás (feijão, repolho, brócolis cru)',
       'Compressa morna no abdômen pode aliviar o desconforto',
       'Anote o que comeu para identificar gatilhos específicos',
@@ -148,7 +148,7 @@ const SYMPTOM_TIPS: Record<string, { title: string; tips: string[] }> = {
   headache: {
     title: 'Dor de cabeça',
     tips: [
-      'Verifique sua hidratação — a GLP-1 pode reduzir a sensação de sede',
+      'Verifique sua hidratação é a GLP-1 pode reduzir a sensação de sede',
       'Faça refeições regulares, evitando jejuns prolongados',
       'Mantenha constante o consumo de cafeína (evite cortes abruptos)',
       'Descanso e redução de estresse contribuem muito',
@@ -179,8 +179,8 @@ const SUPP_LEVELS = [
     iconBg: 'rgba(5,150,105,0.10)',
     iconColor: '#059669',
     items: [
-      { name: 'Proteína Adequada',  detail: 'Whey, caseína ou fontes alimentares — 1,2–1,6g/kg' },
-      { name: 'Creatina',           detail: '3–5g/dia — preserva e aumenta massa muscular' },
+      { name: 'Proteína Adequada',  detail: 'Whey, caseína ou fontes alimentares é 1,2–1,6g/kg' },
+      { name: 'Creatina',           detail: '3–5g/dia é preserva e aumenta massa muscular' },
       { name: 'Multivitamínico',    detail: 'Suporte geral de micronutrientes na restrição calórica' },
       { name: 'Magnésio',           detail: 'Qualidade do sono, cãibras e função muscular' },
     ],
@@ -634,7 +634,7 @@ export default function HealthHub({ profile, onUpdateProfile, initialSection }: 
         </div>
       </button>
 
-      {/* 2×3 card grid */}
+      {/* 2–3 card grid */}
       <div data-tour="health-sections" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
         {SECTION_CARDS.map(card => (
           <button

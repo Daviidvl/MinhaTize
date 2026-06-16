@@ -274,14 +274,14 @@ const EXAMS: ExamDef[] = [
         : 'Zinco acima da faixa de referência. Avalie com seu médico.',
   },
   {
-    id: 'acido_folico', name: 'Ácido Fólico', unit: 'ng/mL', category: 'vitamins',
+    id: 'acido_folico', name: 'ácido Fólico', unit: 'ng/mL', category: 'vitamins',
     refDisplay: '1,8 – 9 ng/mL', step: 0.1,
     getStatus: v => v < 1.8 ? 'low' : v > 9 ? 'high' : 'normal',
     interpret: (_, s) => s === 'normal'
-      ? 'Ácido fólico dentro da faixa de referência.'
+      ? 'ácido fólico dentro da faixa de referência.'
       : s === 'low'
-        ? 'Ácido fólico abaixo da faixa de referência. Deficiência pode estar associada a anemia e outros efeitos. Converse com seu médico.'
-        : 'Ácido fólico acima da faixa de referência. Avalie com seu médico.',
+        ? 'ácido fólico abaixo da faixa de referência. Deficiência pode estar associada a anemia e outros efeitos. Converse com seu médico.'
+        : 'ácido fólico acima da faixa de referência. Avalie com seu médico.',
   },
   // ── HORMONAL ───
   {
@@ -360,7 +360,7 @@ const EXAMS: ExamDef[] = [
   },
   {
     id: 'estradiol', name: 'Estradiol (E2)', unit: 'pg/mL', category: 'hormonal',
-    refDisplay: sex => sex === 'male' ? 'Varia — consulte seu laudo' : '30 – 120 pg/mL (fase folicular)',
+    refDisplay: sex => sex === 'male' ? 'Varia – consulte seu laudo' : '30 – 120 pg/mL (fase folicular)',
     sexDependent: true, step: 1,
     getStatus: (v, sex) => sex === 'male' ? 'normal' : v < 30 ? 'low' : v > 120 ? 'high' : 'normal',
     interpret: (_, s, sex) => sex === 'male'
@@ -530,11 +530,11 @@ export default function Laboratory({ profile, onUpdateProfile }: Props) {
         const ref = typeof exam.refDisplay === 'function'
           ? (sex
               ? exam.refDisplay(sex)
-              : `F: ${exam.refDisplay('female')} · M: ${exam.refDisplay('male')}`)
+              : `F: ${exam.refDisplay('female')}  – M: ${exam.refDisplay('male')}`)
           : exam.refDisplay
         return `<tr>
           <td>${exam.name}</td>
-          <td>${exam.unit || '—'}</td>
+          <td>${exam.unit || '–'}</td>
           <td>${ref}</td>
           <td></td>
         </tr>`
@@ -552,7 +552,7 @@ export default function Laboratory({ profile, onUpdateProfile }: Props) {
 <html lang="pt-BR">
 <head>
   <meta charset="UTF-8">
-  <title>Solicitação de Exames — Minha Tize</title>
+  <title>Solicitação de Exames – Minha Tize</title>
   <style>
     *{box-sizing:border-box}
     body{font-family:'Segoe UI',Arial,sans-serif;max-width:820px;margin:0 auto;padding:24px;color:#111;line-height:1.5}
@@ -570,11 +570,11 @@ export default function Laboratory({ profile, onUpdateProfile }: Props) {
   </style>
 </head>
 <body>
-  <h1>Minha Tize — Solicitação de Exames Essenciais</h1>
-  <p class="sub">Gerado em ${today} · Leve ao seu médico, nutricionista ou laboratório</p>
+  <h1>Minha Tize – Solicitação de Exames Essenciais</h1>
+  <p class="sub">Gerado em ${today} – Leve ao seu médico, nutricionista ou laboratório</p>
   ${sections}
   <div class="disc">
-    <strong>Aviso importante:</strong> Os valores de referência são gerais, baseados em literatura científica, e podem variar entre laboratórios, métodos analíticos, equipamentos, sexo, idade e contexto clínico. Sempre que houver divergência entre a plataforma e o laudo laboratorial, prevalece o valor de referência informado pelo laboratório. Esta plataforma fornece apenas orientação educativa — não realiza diagnóstico, não sugere tratamento, não sugere medicamentos e não sugere suplementação específica.
+    <strong>Aviso importante:</strong> Os valores de referência são gerais, baseados em literatura científica, e podem variar entre laboratórios, métodos analíticos, equipamentos, sexo, idade e contexto clínico. Sempre que houver divergência entre a plataforma e o laudo laboratorial, prevalece o valor de referência informado pelo laboratório. Esta plataforma fornece apenas orientação educativa – não realiza diagnóstico, não sugere tratamento, não sugere medicamentos e não sugere suplementação específica.
   </div>
 </body>
 </html>`
@@ -599,17 +599,17 @@ export default function Laboratory({ profile, onUpdateProfile }: Props) {
         const ref = typeof exam.refDisplay === 'function'
           ? (sex
               ? exam.refDisplay(sex)
-              : `F: ${exam.refDisplay('female')} · M: ${exam.refDisplay('male')}`)
+              : `F: ${exam.refDisplay('female')}  – M: ${exam.refDisplay('male')}`)
           : exam.refDisplay
         const raw    = inputs[exam.id]
         const value  = raw ? parseFloat(raw) : null
         const status = value !== null ? exam.getStatus(value, sex) : null
         const valueCell  = value !== null
           ? `<span style="font-weight:700;color:${statusColor[status!]}">${raw} ${exam.unit}</span>`
-          : `<span style="color:#9ca3af">—</span>`
+          : `<span style="color:#9ca3af">–</span>`
         const statusCell = status !== null
           ? `<span style="font-weight:700;color:${statusColor[status]}">${statusLabel[status]}</span>`
-          : `<span style="color:#d1d5db">—</span>`
+          : `<span style="color:#d1d5db">–</span>`
         return `<tr>
           <td>${exam.name}</td>
           <td>${valueCell}</td>
@@ -632,7 +632,7 @@ export default function Laboratory({ profile, onUpdateProfile }: Props) {
 <html lang="pt-BR">
 <head>
   <meta charset="UTF-8">
-  <title>Resultados de Exames — Minha Tize</title>
+  <title>Resultados de Exames – Minha Tize</title>
   <style>
     *{box-sizing:border-box}
     body{font-family:'Segoe UI',Arial,sans-serif;max-width:820px;margin:0 auto;padding:24px;color:#111;line-height:1.5}
@@ -650,11 +650,11 @@ export default function Laboratory({ profile, onUpdateProfile }: Props) {
   </style>
 </head>
 <body>
-  <h1>Minha Tize — Resultados de Exames</h1>
-  <p class="sub">Gerado em ${today} · ${filledCount} exame${filledCount !== 1 ? 's' : ''} preenchido${filledCount !== 1 ? 's' : ''}</p>
+  <h1>Minha Tize – Resultados de Exames</h1>
+  <p class="sub">Gerado em ${today} – ${filledCount} exame${filledCount !== 1 ? 's' : ''} preenchido${filledCount !== 1 ? 's' : ''}</p>
   ${sections}
   <div class="disc">
-    <strong>Aviso importante:</strong> A Minha Tize não substitui avaliação médica. Os valores de referência são gerais, baseados em literatura científica, e podem variar entre laboratórios, métodos analíticos, equipamentos, sexo, idade e contexto clínico. Sempre que houver divergência entre a plataforma e o laudo laboratorial, prevalece o valor de referência informado pelo laboratório. Esta plataforma fornece apenas orientação educativa — não realiza diagnóstico, não sugere tratamento, não sugere medicamentos e não sugere suplementação específica.
+    <strong>Aviso importante:</strong> A Minha Tize não substitui avaliação médica. Os valores de referência são gerais, baseados em literatura científica, e podem variar entre laboratórios, métodos analíticos, equipamentos, sexo, idade e contexto clínico. Sempre que houver divergência entre a plataforma e o laudo laboratorial, prevalece o valor de referência informado pelo laboratório. Esta plataforma fornece apenas orientação educativa – não realiza diagnóstico, não sugere tratamento, não sugere medicamentos e não sugere suplementação específica.
   </div>
 </body>
 </html>`
@@ -714,8 +714,8 @@ export default function Laboratory({ profile, onUpdateProfile }: Props) {
           color: priority === 'green' ? 'var(--primary)' : priority === 'yellow' ? '#B45309' : '#DC2626',
         }}>
           {priority === 'green' && 'Todos os exames analisados dentro da referência'}
-          {priority === 'yellow' && `${abnormal.length} alteração${abnormal.length > 1 ? 'ões' : ''} identificada${abnormal.length > 1 ? 's' : ''} — veja a análise`}
-          {priority === 'red'    && 'Múltiplas alterações identificadas — discuta com seu médico'}
+          {priority === 'yellow' && `${abnormal.length} alteração${abnormal.length > 1 ? 'ões' : ''} identificada${abnormal.length > 1 ? 's' : ''} – veja a análise`}
+          {priority === 'red'    && 'Múltiplas alterações identificadas – discuta com seu médico'}
         </div>
       )}
 
@@ -764,7 +764,7 @@ export default function Laboratory({ profile, onUpdateProfile }: Props) {
       {innerTab === 'exams' && (
         <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
 
-          {/* Card 1 — Solicitação de exames (sempre disponível) */}
+          {/* Card 1 – Solicitação de exames (sempre disponível) */}
           <div className="card" style={{ padding: '16px', display: 'flex', flexDirection: 'column', gap: '12px' }}>
             <div style={{ display: 'flex', alignItems: 'flex-start', gap: '12px' }}>
               <div style={{
@@ -790,7 +790,7 @@ export default function Laboratory({ profile, onUpdateProfile }: Props) {
             </button>
           </div>
 
-          {/* Card 2 — Progresso dos resultados */}
+          {/* Card 2 – Progresso dos resultados */}
           {(() => {
             const filled = EXAMS.filter(e => inputs[e.id] && inputs[e.id] !== '').length
             const total  = EXAMS.length
@@ -1084,7 +1084,7 @@ export default function Laboratory({ profile, onUpdateProfile }: Props) {
                 <div style={{ display: 'flex', gap: '8px', alignItems: 'flex-start' }}>
                   <Info size={13} strokeWidth={2} style={{ flexShrink: 0, marginTop: '1px', color: 'var(--warn-text)' }} />
                   <p style={{ fontSize: '11px', color: 'var(--warn-text)', lineHeight: 1.65, margin: 0 }}>
-                    <strong>Aviso importante:</strong> A Minha Tize não substitui avaliação médica. Os valores de referência são gerais e podem variar entre laboratórios, métodos analíticos, equipamentos, sexo, idade e contexto clínico. Quando houver divergência entre a plataforma e o laudo laboratorial, prevalece o valor de referência informado pelo laboratório. Esta ferramenta fornece apenas orientação educativa — não realiza diagnóstico, não sugere tratamento, medicamentos ou suplementação específica.
+                    <strong>Aviso importante:</strong> A Minha Tize não substitui avaliação médica. Os valores de referência são gerais e podem variar entre laboratórios, métodos analíticos, equipamentos, sexo, idade e contexto clínico. Quando houver divergência entre a plataforma e o laudo laboratorial, prevalece o valor de referência informado pelo laboratório. Esta ferramenta fornece apenas orientação educativa – não realiza diagnóstico, não sugere tratamento, medicamentos ou suplementação específica.
                   </p>
                 </div>
               </div>
