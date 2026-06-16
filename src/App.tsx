@@ -9,7 +9,6 @@ import HealthHub from './components/HealthHub'
 import Laboratory from './components/Laboratory'
 import ProfilePage from './components/ProfilePage'
 import ProfileSetup from './components/ProfileSetup'
-import OnboardingTour, { TOUR_KEY } from './components/OnboardingTour'
 import { useDarkMode } from './hooks/useDarkMode'
 import { Tab, UserProfile } from './types'
 
@@ -102,9 +101,6 @@ export default function App() {
   const [activeTab, setActiveTab]     = useState<Tab>('dashboard')
   const [deepSection, setDeepSection] = useState<string | null>(null)
   const [profile, setProfile]         = useState<UserProfile>(loadProfile)
-  const [showTour, setShowTour]       = useState(() =>
-    !!loadProfile().name && !localStorage.getItem(TOUR_KEY)
-  )
   const [tokenStatus, setTokenStatus] = useState<'checking' | 'valid' | 'invalid'>('checking')
   const prevTabRef   = useRef<Tab>('dashboard')
   const navRef       = useRef<HTMLElement>(null)
@@ -158,13 +154,11 @@ export default function App() {
 
   function handleProfileComplete(p: UserProfile) {
     setProfile(p)
-    if (!localStorage.getItem(TOUR_KEY)) setShowTour(true)
   }
 
   function handleLogout() {
     clearToken()
     setTokenStatus('invalid')
-    setShowTour(false)
   }
 
   useEffect(() => {
@@ -253,13 +247,6 @@ export default function App() {
       >
         {renderTab()}
       </main>
-
-      {showTour && (
-        <OnboardingTour
-          onDone={() => setShowTour(false)}
-          onTabChange={(tab) => handleNavigate(tab)}
-        />
-      )}
 
       <nav ref={navRef} className="bottom-nav">
         <div className="bottom-nav-inner">
