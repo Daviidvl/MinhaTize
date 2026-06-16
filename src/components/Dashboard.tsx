@@ -2,6 +2,7 @@ import type { ReactNode } from 'react'
 import { Package, AlertTriangle, ChevronRight, Moon, Zap } from 'lucide-react'
 import { UserProfile, Tab, MEDICATION_LABELS } from '../types'
 import ApplicationCalendar from './ApplicationCalendar'
+import { generateDietPlan } from '../utils/nutritionEngine'
 
 interface Props {
   profile: UserProfile
@@ -57,21 +58,22 @@ function getMotivation(lost: number, toGoal: number, weeks: number, days: number
 
 // ── Helpers de dieta ─────────────────────────────────────────────────────────
 
-const MEAL_KCAL_SHARE: Record<string, number> = {
-  'f-cafe': 0.22, 'f-lanche-m': 0.09, 'f-almoco': 0.32, 'f-lanche-t': 0.09, 'f-jantar': 0.23, 'f-ceia': 0.05,
-  'm-cafe': 0.22, 'm-lanche-m': 0.09, 'm-almoco': 0.32, 'm-lanche-t': 0.09, 'm-jantar': 0.23, 'm-ceia': 0.05,
-}
-
 function getTodayStr() { return new Date().toISOString().split('T')[0] }
 
 function getCalorieStatus(): { consumed: number; target: number; pct: number } | null {
   try {
     const diet = JSON.parse(localStorage.getItem('tizetrack_diet') || 'null')
     if (!diet?.dailyKcal) return null
-    const log  = JSON.parse(localStorage.getItem('tizetrack_food_log') || '{}')
-    const day  = log[getTodayStr()] ?? { meals: [], manual: [] }
-    const mealKcal   = (day.meals as string[]).reduce((s: number, id: string) => s + Math.round(diet.dailyKcal * (MEAL_KCAL_SHARE[id] ?? 0)), 0)
-    const manualKcal = (day.manual as { kcal: number }[]).reduce((s, m) => s + m.kcal, 0)
+    const log = JSON.parse(localStorage.getItem('tizetrack_food_log') || '{}')
+    const day = log[getTodayStr()] ?? { meals: [], manual: [] }
+
+    // Usa o mesmo motor do FoodGuide para mapear IDs → kcal
+    const plan = generateDietPlan(diet)
+    const mealKcalMap: Record<string, number> = {}
+    plan.meals.forEach(m => { mealKcalMap[m.id] = Math.round(plan.targets.kcal * m.kcalShare) })
+
+    const mealKcal   = (day.meals as string[]).reduce((s: number, id: string) => s + (mealKcalMap[id] ?? 0), 0)
+    const manualKcal = (day.manual as { kcal: number }[]).reduce((s: number, m: { kcal: number }) => s + m.kcal, 0)
     const consumed   = mealKcal + manualKcal
     return { consumed, target: diet.dailyKcal, pct: Math.min(100, Math.round((consumed / diet.dailyKcal) * 100)) }
   } catch { return null }

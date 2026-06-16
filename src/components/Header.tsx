@@ -21,7 +21,7 @@ export default function Header({ isDark, onToggle, profile, onProfileClick, onLo
         src="/LogoPng.png"
         alt="Minha Tize"
         style={{
-          width: '40px', height: '40px', borderRadius: '11px',
+          width: '48px', height: '48px', borderRadius: '13px',
           flexShrink: 0, objectFit: 'contain',
         }}
       />
