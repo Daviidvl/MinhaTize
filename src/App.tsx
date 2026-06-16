@@ -7,8 +7,6 @@ import ProgressHub from './components/ProgressHub'
 import Calculator from './components/Calculator'
 import HealthHub from './components/HealthHub'
 import Laboratory from './components/Laboratory'
-import Atendimento from './components/Atendimento'
-import Suporte from './components/Suporte'
 import ProfilePage from './components/ProfilePage'
 import ProfileSetup from './components/ProfileSetup'
 import ConsentGate, { hasConsent } from './components/ConsentGate'
@@ -86,36 +84,17 @@ function NavIcon({ tabId }: { tabId: Tab }) {
           <line x1="8.5" y1="2" x2="15.5" y2="2"/>
         </svg>
       )
-    case 'atendimento':
-      return (
-        <svg {...s}>
-          <path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/>
-          <circle cx="9" cy="7" r="4"/>
-          <path d="M23 21v-2a4 4 0 00-3-3.87"/>
-          <path d="M16 3.13a4 4 0 010 7.75"/>
-        </svg>
-      )
-    case 'suporte':
-      return (
-        <svg {...s}>
-          <circle cx="12" cy="12" r="10"/>
-          <path d="M9.09 9a3 3 0 015.83 1c0 2-3 3-3 3"/>
-          <line x1="12" y1="17" x2="12.01" y2="17"/>
-        </svg>
-      )
     default:
       return null
   }
 }
 
 const NAV_TABS: { id: Tab; label: string }[] = [
-  { id: 'dashboard',    label: 'Início'   },
-  { id: 'progress',     label: 'Progresso'},
-  { id: 'health',       label: 'Saúde'    },
-  { id: 'calculator',   label: 'Calcular' },
-  { id: 'laboratory',   label: 'Lab'      },
-  { id: 'atendimento',  label: 'Equipe'   },
-  { id: 'suporte',      label: 'Suporte'  },
+  { id: 'dashboard',  label: 'Início'   },
+  { id: 'progress',   label: 'Progresso'},
+  { id: 'health',     label: 'Saúde'    },
+  { id: 'calculator', label: 'Calcular' },
+  { id: 'laboratory', label: 'Lab'      },
 ]
 
 export default function App() {
@@ -267,10 +246,6 @@ export default function App() {
         return <Calculator />
       case 'laboratory':
         return <Laboratory profile={profile} onUpdateProfile={setProfile} />
-      case 'atendimento':
-        return <Atendimento />
-      case 'suporte':
-        return <Suporte />
       default:
         return <Dashboard profile={profile} onUpdateProfile={setProfile} onNavigate={handleNavigate} />
     }

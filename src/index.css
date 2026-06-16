@@ -480,14 +480,14 @@
   align-items: center;
   justify-content: center;
   gap: 2px;
-  padding: 7px 2px 8px;
+  padding: 8px 4px 9px;
   border: none;
   background: transparent;
   cursor: pointer;
   border-radius: 99px;
   transition: background var(--t-base) ease, transform var(--t-fast) ease;
   font-family: 'Inter', -apple-system, sans-serif;
-  min-height: 48px;
+  min-height: 52px;
   position: relative;
 }
 
@@ -517,7 +517,7 @@
 }
 
 .nav-tab-label {
-  font-size: 8px;
+  font-size: 10px;
   font-weight: 600;
   letter-spacing: 0.01em;
   color: var(--text-muted);
@@ -691,7 +691,7 @@
 
 /* ─── Main content ───────────────────────────────────────────────── */
 .main-content {
-  padding-bottom: calc(var(--nav-height, 88px) + 28px);
+  padding-bottom: var(--nav-height, 88px);
 }
 
 /* ─── Reduced motion ─────────────────────────────────────────────── */
