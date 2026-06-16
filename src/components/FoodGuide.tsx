@@ -1,4 +1,5 @@
-import { useState, useRef, useEffect, type CSSProperties } from 'react'
+﻿import { useState, useRef, type CSSProperties } from 'react'
+import { generateDietPlan } from '../utils/nutritionEngine'
 import { Utensils, Info, ChevronDown, RotateCcw, Droplets, Leaf, AlertCircle, Check, Plus, X } from 'lucide-react'
 
 // ── Types ─────────────────────────────────────────────────────────────────────
@@ -34,22 +35,10 @@ interface Option      { label?: string; items: string[]; protein?: string; note?
 interface MealSection { id: string; label: string; sublabel?: string; color: string; kcalShare: number; options: Option[] }
 interface ListSection { id: string; label: string; items: string[]; note?: string }
 
-interface AIDietCache {
-  meals:      MealSection[]
-  lowHunger:  MealSection[]
-  lists:      ListSection[]
-  profileHash: string
-}
-
 // ── Storage ───────────────────────────────────────────────────────────────────
 
 const STORAGE_KEY   = 'tizetrack_diet'
 const LOG_KEY       = 'tizetrack_food_log'
-const AI_DIET_KEY   = 'tizetrack_ai_diet'
-
-function dietProfileHash(p: DietProfile): string {
-  return `${p.sex}-${p.mealFrequency}-${p.restrictions.sort().join(',')}-${p.goal}-${Math.round(p.dailyKcal / 50) * 50}`
-}
 
 function toDateStr(d = new Date()) { return d.toISOString().split('T')[0] }
 
@@ -79,461 +68,6 @@ function calcTDEE(p: Omit<DietProfile, 'dailyKcal'>): number {
   return Math.max(1200, tdee + goalAdj)
 }
 
-// ── Meal data ─────────────────────────────────────────────────────────────────
-// kcalShare: proportion of dailyKcal assigned to this meal
-
-const FEMALE_MEALS: MealSection[] = [
-  {
-    id: 'f-cafe', label: 'Café da Manhã', color: '#D97706', kcalShare: 0.22,
-    options: [
-      { items: ['1 pão francês', '2 ovos inteiros', '30 g de queijo branco', '1 fruta: mamão (120 g), banana (50 g), kiwi (90 g) ou melão'], protein: '25–30 g' },
-      { items: ['1 pão francês', '1 ovo inteiro + 3 claras', '20 g de queijo branco ou requeijão light', '1 fruta'], protein: '28–30 g' },
-      { items: ['2 fatias de pão integral', '2 ovos inteiros', '1 fruta'], protein: '25 g' },
-      { label: 'Vitamina', items: ['200 ml de leite desnatado', '1 scoop de whey', '20 g de aveia', '1 fruta'], protein: '30–35 g' },
-      { items: ['170 g de iogurte grego natural', '1 scoop de whey', 'Morangos ou banana'], protein: '35–40 g' },
-    ],
-  },
-  {
-    id: 'f-lanche-m', label: 'Lanche da Manhã', sublabel: 'Opcional', color: '#F59E0B', kcalShare: 0.09,
-    options: [
-      { items: ['1 scoop de whey com água'] },
-      { items: ['1 iogurte proteico'] },
-      { items: ['2 ovos cozidos'] },
-      { items: ['1 fruta', '50 g de cottage ou ricota'], protein: '15–25 g (média)' },
-    ],
-  },
-  {
-    id: 'f-almoco', label: 'Almoço', color: '#059669', kcalShare: 0.32,
-    options: [
-      { items: ['Arroz branco cozido (90–120 g)', 'Feijão (70–100 g)', 'Frango grelhado (120–150 g)', 'Legumes cozidos', 'Pequena porção de salada'], protein: '35–45 g' },
-      { items: ['Arroz branco (100–120 g)', 'Frango (120–150 g)', 'Legumes'] },
-      { items: ['Baião de dois (100–130 g)', 'Frango ou carne magra (120–150 g)', 'Legumes'] },
-      { items: ['Macarrão cozido (100–120 g)', 'Sardinha ou peixe (130–150 g)', 'Legumes'] },
-      { items: ['Arroz branco (90–120 g)', 'Feijão (70–100 g)', 'Carne magra (100–120 g)', 'Legumes'] },
-    ],
-  },
-  {
-    id: 'f-lanche-t', label: 'Lanche da Tarde', sublabel: 'Opcional', color: '#0891B2', kcalShare: 0.09,
-    options: [
-      { items: ['1 scoop de whey', '1 fruta'] },
-      { label: 'Sanduíche', items: ['2 fatias de pão integral', '100 g de frango desfiado'] },
-      { items: ['Iogurte proteico', '15 g de aveia'] },
-      { items: ['2 ovos', '1 fruta'] },
-      { items: ['120 g de cuscuz', '50 g de carne magra', '10 g de requeijão light'] },
-    ],
-  },
-  {
-    id: 'f-jantar', label: 'Jantar', color: '#7C3AED', kcalShare: 0.23,
-    options: [
-      { items: ['Arroz branco (100–120 g)', 'Carne magra ou frango (100–140 g)', 'Legumes cozidos'], protein: '30–40 g' },
-      { label: 'Sanduíche', items: ['1 pão francês', 'Frango desfiado (100–120 g)', '20 g de queijo branco', 'Pequena porção de salada'] },
-      { items: ['Baião de dois (100–120 g)', 'Carne magra (100–120 g)'] },
-      { items: ['Macarrão cozido', 'Frango ou atum (100–120 g)'] },
-      { label: 'Omelete', items: ['2 ovos inteiros + 3 claras', 'Pequena porção de arroz ou batata'] },
-    ],
-  },
-  {
-    id: 'f-ceia', label: 'Ceia', sublabel: 'Somente se necessário', color: '#1E40AF', kcalShare: 0.05,
-    options: [
-      { items: ['1 scoop de whey com água'] },
-      { items: ['200 ml de leite desnatado', '20 g de whey'] },
-      { items: ['Iogurte proteico'] },
-      { items: ['Cottage ou ricota (80 g)'] },
-    ],
-  },
-]
-
-const MALE_MEALS: MealSection[] = [
-  {
-    id: 'm-cafe', label: 'Café da Manhã', color: '#D97706', kcalShare: 0.22,
-    options: [
-      { items: ['1 pão francês', '3 ovos', '30 g de queijo branco', '1 fruta: mamão (180 g), banana (70 g), kiwi (130 g) ou melão'], protein: '30 g' },
-      { items: ['2 fatias de pão integral', '120 g de frango desfiado (ou 2 ovos + 3 claras)', '1 fruta'], protein: '30–35 g' },
-      { items: ['40 g de aveia', '1 scoop de whey', '200 ml de leite semidesnatado', '1 fruta'], protein: '35 g' },
-      { items: ['170–200 g de iogurte grego natural', '1 scoop de whey', 'Morangos ou banana'], protein: '35–40 g' },
-    ],
-  },
-  {
-    id: 'm-lanche-m', label: 'Lanche da Manhã', sublabel: 'Opcional', color: '#F59E0B', kcalShare: 0.09,
-    options: [
-      { items: ['1 scoop de whey com água'] },
-      { items: ['1 iogurte proteico'] },
-      { items: ['2 ovos cozidos'] },
-      { items: ['1 fruta', '50 g de cottage ou ricota'], protein: '15–25 g (média)' },
-    ],
-  },
-  {
-    id: 'm-almoco', label: 'Almoço', color: '#059669', kcalShare: 0.32,
-    options: [
-      { items: ['Arroz branco cozido (130–180 g)', 'Feijão (100 g)', 'Frango grelhado (150–200 g)', 'Legumes cozidos', 'Pequena porção de salada'], protein: '40–50 g' },
-      { items: ['Macarrão cozido (150–180 g)', 'Patinho moído ou carne magra (150–180 g)', 'Legumes cozidos'] },
-      { items: ['Baião de dois (180–220 g)', 'Frango desfiado ou carne magra (150–180 g)', 'Legumes', 'Salada'] },
-      { items: ['Arroz (130 g)', 'Feijão (100 g)', 'Peixe (180 g)', 'Legumes cozidos'] },
-      { items: ['Batata doce ou mandioca', 'Frango ou carne magra (150–180 g)', 'Legumes'] },
-    ],
-  },
-  {
-    id: 'm-lanche-t', label: 'Lanche da Tarde', sublabel: 'Opcional', color: '#0891B2', kcalShare: 0.09,
-    options: [
-      { items: ['1 scoop de whey', '1 fruta'] },
-      { label: 'Sanduíche', items: ['2 fatias de pão integral', '100–120 g de frango desfiado (ou 1 lata de atum em água)'] },
-      { items: ['Iogurte proteico', '15 g de aveia'] },
-      { items: ['2 ovos', '1 fruta'] },
-    ],
-  },
-  {
-    id: 'm-jantar', label: 'Jantar', color: '#7C3AED', kcalShare: 0.23,
-    options: [
-      { items: ['Arroz (120–160 g)', 'Carne magra ou frango (150–180 g)', 'Legumes cozidos'], protein: '40–45 g' },
-      { items: ['1 pão francês', 'Frango desfiado (150 g)', '30 g de queijo branco', 'Legumes ou pequena salada'] },
-      { label: 'Omelete', items: ['3 ovos inteiros + 3 claras', 'Pequena porção de arroz ou batata'] },
-      { items: ['Macarrão cozido', 'Atum ou frango (150–180 g)'] },
-    ],
-  },
-  {
-    id: 'm-ceia', label: 'Ceia', sublabel: 'Somente se necessário', color: '#1E40AF', kcalShare: 0.05,
-    options: [
-      { items: ['1 scoop de whey com água'] },
-      { items: ['200 ml de leite desnatado', '20 g de whey'] },
-      { items: ['Iogurte proteico'] },
-      { items: ['Cottage ou ricota (80 g)'] },
-    ],
-  },
-]
-
-const FEMALE_LISTS: ListSection[] = [
-  { id: 'f-prot-sub', label: 'Substituições das Proteínas', items: ['Frango desfiado', 'Carne magra', 'Patinho moído', 'Peixe', 'Sardinha', 'Atum', 'Fígado (1×/sem)', '3 ovos', 'Iogurte grego', 'Whey protein'] },
-  { id: 'f-carb-sub', label: 'Substituições dos Carboidratos', items: ['Arroz branco', 'Macarrão', 'Cuscuz', 'Tapioca', 'Batata inglesa', 'Batata doce', 'Mandioca', 'Baião de dois'] },
-  { id: 'f-frutas',   label: 'Frutas Prioritárias', items: ['Mamão', 'Kiwi', 'Banana', 'Morango', 'Melão', 'Maçã', 'Pera'] },
-  { id: 'f-fibras',   label: 'Fibras e Constipação', items: ['Feijão', 'Frutas', 'Legumes', 'Vegetais', 'Água'], note: 'Se necessário: Psyllium 5 g inicialmente, podendo chegar a 10 g/dia. Sempre acompanhado de boa hidratação.' },
-  { id: 'f-peixes',   label: 'Peixes e Ômega-3', items: ['Sardinha', 'Atum', 'Salmão', 'Cavalinha'], note: 'Idealmente 2 vezes por semana.' },
-]
-
-const MALE_LISTS: ListSection[] = [
-  { id: 'm-prot-sub', label: 'Substituições das Proteínas', items: ['Frango desfiado', 'Carne magra', 'Patinho moído', 'Peixe', 'Sardinha', 'Atum', 'Fígado (1×/sem)', '3 ovos', 'Iogurte grego', 'Whey protein'] },
-  { id: 'm-carb-sub', label: 'Substituições dos Carboidratos', items: ['Arroz branco', 'Macarrão', 'Cuscuz', 'Tapioca', 'Batata inglesa', 'Batata doce', 'Mandioca', 'Baião de dois'] },
-  { id: 'm-frutas',   label: 'Frutas Prioritárias', items: ['Mamão', 'Kiwi', 'Banana', 'Morango', 'Melão', 'Maçã', 'Pera'] },
-  { id: 'm-fibras',   label: 'Fibras e Constipação', items: ['Feijão', 'Frutas', 'Legumes', 'Vegetais', 'Água'], note: 'Se necessário: Psyllium 5 g inicialmente, podendo chegar a 10 g/dia. Sempre acompanhado de boa hidratação.' },
-  { id: 'm-peixes',   label: 'Peixes e Ômega-3', items: ['Sardinha', 'Atum', 'Salmão', 'Cavalinha'], note: 'Idealmente 2 vezes por semana.' },
-]
-
-const VEGETARIAN_FEMALE_MEALS: MealSection[] = [
-  {
-    id: 'vtf-cafe', label: 'Café da Manhã', color: '#D97706', kcalShare: 0.22,
-    options: [
-      { items: ['1 pão francês', '2 ovos inteiros', '30 g de queijo branco', '1 fruta: mamão (120 g), banana (50 g), kiwi (90 g) ou melão'], protein: '25–30 g' },
-      { items: ['2 fatias de pão integral', '2 ovos + 30 g ricota', '1 fruta'], protein: '25 g' },
-      { label: 'Vitamina', items: ['200 ml de leite', '1 scoop de whey', '20 g de aveia', '1 fruta'], protein: '30–35 g' },
-      { items: ['170 g de iogurte grego natural', '1 scoop de whey', 'Morangos ou banana'], protein: '35–40 g' },
-      { label: 'Tapioca', items: ['2 tapiocas', '2 ovos mexidos', '30 g de queijo branco', '1 fruta'], protein: '28–33 g' },
-    ],
-  },
-  {
-    id: 'vtf-lanche-m', label: 'Lanche da Manhã', sublabel: 'Opcional', color: '#F59E0B', kcalShare: 0.09,
-    options: [
-      { items: ['1 scoop de whey com leite ou água'] },
-      { items: ['1 iogurte proteico'] },
-      { items: ['2 ovos cozidos'] },
-      { items: ['1 fruta', '50 g de cottage ou ricota'], protein: '15–20 g' },
-    ],
-  },
-  {
-    id: 'vtf-almoco', label: 'Almoço', color: '#059669', kcalShare: 0.32,
-    options: [
-      { items: ['Arroz (90–120 g)', 'Feijão (80–100 g)', 'Tofu grelhado temperado (120 g)', 'Legumes cozidos', 'Salada'], protein: '30–35 g' },
-      { items: ['Arroz (90–120 g)', 'Lentilha (80 g)', '2 ovos cozidos ou omelete', 'Legumes'], protein: '30–35 g' },
-      { items: ['Arroz (90–120 g)', 'Grão-de-bico (80 g)', 'Tempeh (100 g)', 'Legumes e salada'], protein: '28–34 g' },
-      { items: ['Macarrão (100 g)', 'Molho de tomate + soja texturizada (80 g)', 'Legumes'], protein: '25–30 g' },
-      { items: ['Baião de dois (100 g)', '2 ovos ou tofu grelhado (100 g)', 'Legumes'] },
-    ],
-  },
-  {
-    id: 'vtf-lanche-t', label: 'Lanche da Tarde', sublabel: 'Opcional', color: '#0891B2', kcalShare: 0.09,
-    options: [
-      { items: ['1 scoop de whey', '1 fruta'] },
-      { label: 'Sanduíche', items: ['2 fatias de pão integral', '50 g de ricota ou cottage', '1 ovo'] },
-      { items: ['Iogurte proteico', '15 g de aveia'] },
-      { items: ['2 ovos', '1 fruta'] },
-    ],
-  },
-  {
-    id: 'vtf-jantar', label: 'Jantar', color: '#7C3AED', kcalShare: 0.23,
-    options: [
-      { items: ['Arroz (100 g)', 'Tofu grelhado (120 g)', 'Legumes cozidos'], protein: '28–35 g' },
-      { label: 'Omelete', items: ['3 ovos', 'Queijo branco (30 g)', 'Pequena porção de arroz ou batata'] },
-      { items: ['Macarrão (100 g)', 'Molho de tomate com soja texturizada', 'Legumes'] },
-      { label: 'Sanduíche', items: ['1 pão francês', '2 ovos mexidos', 'Queijo prato (20 g)', 'Salada'] },
-    ],
-  },
-  {
-    id: 'vtf-ceia', label: 'Ceia', sublabel: 'Somente se necessário', color: '#1E40AF', kcalShare: 0.05,
-    options: [
-      { items: ['1 scoop de whey com leite'] },
-      { items: ['Iogurte grego (170 g)'] },
-      { items: ['Cottage ou ricota (80 g)'] },
-    ],
-  },
-]
-
-const VEGETARIAN_MALE_MEALS: MealSection[] = [
-  {
-    id: 'vtm-cafe', label: 'Café da Manhã', color: '#D97706', kcalShare: 0.22,
-    options: [
-      { items: ['1 pão francês', '3 ovos inteiros', '30 g de queijo branco', '1 fruta: mamão (180 g), banana (70 g), kiwi (130 g) ou melão'], protein: '30 g' },
-      { items: ['2 fatias de pão integral', '3 ovos + 30 g ricota', '20 g aveia', '1 fruta'], protein: '30–35 g' },
-      { label: 'Vitamina', items: ['200 ml de leite', '1 scoop de whey', '40 g de aveia', '1 fruta'], protein: '35 g' },
-      { items: ['170–200 g de iogurte grego natural', '1 scoop de whey', 'Morangos ou banana'], protein: '35–40 g' },
-    ],
-  },
-  {
-    id: 'vtm-lanche-m', label: 'Lanche da Manhã', sublabel: 'Opcional', color: '#F59E0B', kcalShare: 0.09,
-    options: [
-      { items: ['1 scoop de whey com água'] },
-      { items: ['1 iogurte proteico'] },
-      { items: ['2 ovos cozidos'] },
-      { items: ['1 fruta', '50 g de cottage ou ricota'], protein: '15–25 g (média)' },
-    ],
-  },
-  {
-    id: 'vtm-almoco', label: 'Almoço', color: '#059669', kcalShare: 0.32,
-    options: [
-      { items: ['Arroz (130–180 g)', 'Feijão (100 g)', 'Tofu grelhado (150–180 g)', 'Legumes cozidos', 'Salada'], protein: '40–45 g' },
-      { items: ['Arroz (130 g)', 'Lentilha (100 g)', '3 ovos cozidos ou omelete', 'Legumes'], protein: '38–42 g' },
-      { items: ['Macarrão (150–180 g)', 'Molho de tomate + soja texturizada (120 g)', 'Legumes cozidos'] },
-      { items: ['Baião de dois (180–220 g)', 'Tempeh (150 g)', 'Legumes', 'Salada'] },
-      { items: ['Batata doce (150 g)', 'Grão-de-bico (100 g)', 'Tofu (150 g)', 'Legumes'] },
-    ],
-  },
-  {
-    id: 'vtm-lanche-t', label: 'Lanche da Tarde', sublabel: 'Opcional', color: '#0891B2', kcalShare: 0.09,
-    options: [
-      { items: ['1 scoop de whey', '1 fruta'] },
-      { label: 'Sanduíche', items: ['2 fatias de pão integral', '60 g de ricota ou cottage', '1 ovo cozido'] },
-      { items: ['Iogurte proteico', '15 g de aveia'] },
-      { items: ['2–3 ovos', '1 fruta'] },
-    ],
-  },
-  {
-    id: 'vtm-jantar', label: 'Jantar', color: '#7C3AED', kcalShare: 0.23,
-    options: [
-      { items: ['Arroz (120–160 g)', 'Tofu ou tempeh (150–180 g)', 'Legumes cozidos'], protein: '38–45 g' },
-      { label: 'Omelete', items: ['3 ovos + 3 claras', 'Queijo branco (30 g)', 'Batata (100 g)'] },
-      { items: ['Macarrão (150 g)', 'Molho de tomate + soja texturizada (100 g)', 'Legumes'] },
-      { label: 'Sanduíche', items: ['1 pão francês', '2 ovos mexidos', 'Queijo prato (30 g)', 'Salada'] },
-    ],
-  },
-  {
-    id: 'vtm-ceia', label: 'Ceia', sublabel: 'Somente se necessário', color: '#1E40AF', kcalShare: 0.05,
-    options: [
-      { items: ['1 scoop de whey com leite ou água'] },
-      { items: ['200 ml de leite', '20 g de whey'] },
-      { items: ['Iogurte proteico'] },
-      { items: ['Cottage ou ricota (80 g)'] },
-    ],
-  },
-]
-
-const VEGAN_FEMALE_MEALS: MealSection[] = [
-  {
-    id: 'vgf-cafe', label: 'Café da Manhã', color: '#D97706', kcalShare: 0.22,
-    options: [
-      { label: 'Aveia cremosa', items: ['50 g de aveia', '200 ml de leite de aveia', '1 scoop de proteína vegetal', '1 fruta'], protein: '30–35 g' },
-      { label: 'Smoothie proteico', items: ['200 ml de leite vegetal', '1 scoop de proteína vegetal', '20 g de pasta de amendoim', '1 banana'], protein: '28–32 g' },
-      { label: 'Tapioca vegana', items: ['2 tapiocas', 'Pasta de amendoim (30 g)', '1 fruta', 'Sementes de chia (10 g)'], protein: '20–25 g' },
-      { items: ['Pão integral (2 fatias)', 'Pasta de amendoim (30 g)', 'Banana', 'Sementes de linhaça (10 g)'], protein: '18–22 g' },
-    ],
-  },
-  {
-    id: 'vgf-lanche-m', label: 'Lanche da Manhã', sublabel: 'Opcional', color: '#F59E0B', kcalShare: 0.09,
-    options: [
-      { items: ['1 scoop de proteína vegetal com água ou leite vegetal'] },
-      { items: ['Iogurte de coco (170 g)', 'Granola sem mel (20 g)'] },
-      { items: ['1 fruta', 'Mix de castanhas (30 g)'] },
-      { items: ['Edamame cozido (100 g)'], protein: '11 g' },
-    ],
-  },
-  {
-    id: 'vgf-almoco', label: 'Almoço', color: '#059669', kcalShare: 0.32,
-    options: [
-      { items: ['Arroz (90–120 g)', 'Feijão (80–100 g)', 'Tofu grelhado temperado (120 g)', 'Legumes cozidos', 'Salada'], protein: '30–35 g' },
-      { items: ['Arroz (90 g)', 'Lentilha (80–100 g)', 'Tempeh (100 g)', 'Legumes cozidos'], protein: '32–37 g' },
-      { items: ['Quinoa (80 g)', 'Grão-de-bico (80 g)', 'Tofu (100 g)', 'Legumes assados', 'Azeite'], protein: '28–33 g' },
-      { items: ['Macarrão (100 g)', 'Bolonhesa de soja texturizada (80 g)', 'Legumes'], protein: '25–30 g' },
-      { items: ['Batata doce (150 g)', 'Feijão preto (80 g)', 'Tempeh (100 g)', 'Couve refogada'], protein: '28–32 g' },
-    ],
-  },
-  {
-    id: 'vgf-lanche-t', label: 'Lanche da Tarde', sublabel: 'Opcional', color: '#0891B2', kcalShare: 0.09,
-    options: [
-      { items: ['1 scoop de proteína vegetal com leite vegetal', '1 fruta'] },
-      { label: 'Sanduíche', items: ['2 fatias de pão integral', 'Homus (50 g)', 'Tomate e rúcula'] },
-      { items: ['Iogurte de coco (170 g)', '15 g de chia ou linhaça'] },
-      { items: ['Mix de castanhas e frutas secas (30 g)'] },
-    ],
-  },
-  {
-    id: 'vgf-jantar', label: 'Jantar', color: '#7C3AED', kcalShare: 0.23,
-    options: [
-      { items: ['Arroz (100 g)', 'Tofu grelhado com molho shoyu (120 g)', 'Brócolis e cenoura cozidos'], protein: '28–33 g' },
-      { items: ['Macarrão (100 g)', 'Molho de tomate com soja texturizada (80 g)', 'Abobrinha e pimentão'], protein: '25–30 g' },
-      { items: ['Batata doce (120 g)', 'Tempeh grelhado (100 g)', 'Couve-flor ou brócolis'], protein: '26–30 g' },
-      { label: 'Bowl vegano', items: ['Quinoa (80 g)', 'Grão-de-bico (80 g)', 'Abacate (40 g)', 'Legumes', 'Molho de tahine'] },
-    ],
-  },
-  {
-    id: 'vgf-ceia', label: 'Ceia', sublabel: 'Somente se necessário', color: '#1E40AF', kcalShare: 0.05,
-    options: [
-      { items: ['1 scoop de proteína vegetal com leite de aveia ou água'] },
-      { items: ['Iogurte de coco (170 g)'] },
-      { items: ['Leite vegetal morno (200 ml)', 'Pasta de amendoim (20 g)'] },
-    ],
-  },
-]
-
-const VEGAN_MALE_MEALS: MealSection[] = [
-  {
-    id: 'vgm-cafe', label: 'Café da Manhã', color: '#D97706', kcalShare: 0.22,
-    options: [
-      { label: 'Aveia cremosa', items: ['70 g de aveia', '250 ml de leite de aveia', '1 scoop de proteína vegetal', '1 banana', '20 g de pasta de amendoim'], protein: '35–40 g' },
-      { label: 'Smoothie proteico', items: ['250 ml de leite vegetal', '1–2 scoops de proteína vegetal', '30 g de pasta de amendoim', '1 banana'], protein: '35–40 g' },
-      { label: 'Tapioca vegana', items: ['3 tapiocas', 'Pasta de amendoim (40 g)', '1 fruta', 'Sementes de chia (15 g)'], protein: '25–30 g' },
-      { items: ['Pão integral (3 fatias)', '40 g de pasta de amendoim', 'Banana', 'Proteína vegetal (1 scoop) com água'], protein: '35 g' },
-    ],
-  },
-  {
-    id: 'vgm-lanche-m', label: 'Lanche da Manhã', sublabel: 'Opcional', color: '#F59E0B', kcalShare: 0.09,
-    options: [
-      { items: ['1–2 scoops de proteína vegetal com água ou leite vegetal'] },
-      { items: ['Iogurte de coco (200 g)', 'Granola sem mel (30 g)'] },
-      { items: ['Edamame cozido (150 g)', '1 fruta'], protein: '15 g' },
-      { items: ['Mix de castanhas (40 g)', '1 fruta'] },
-    ],
-  },
-  {
-    id: 'vgm-almoco', label: 'Almoço', color: '#059669', kcalShare: 0.32,
-    options: [
-      { items: ['Arroz (130–180 g)', 'Feijão (100 g)', 'Tofu grelhado (150–180 g)', 'Legumes cozidos', 'Salada'], protein: '40–48 g' },
-      { items: ['Arroz (130 g)', 'Lentilha (100 g)', 'Tempeh (150 g)', 'Legumes cozidos'], protein: '40–45 g' },
-      { items: ['Quinoa (100 g)', 'Grão-de-bico (100 g)', 'Tofu (150 g)', 'Legumes assados', 'Azeite'], protein: '38–42 g' },
-      { items: ['Macarrão (150–180 g)', 'Bolonhesa de soja texturizada (120 g)', 'Legumes cozidos'], protein: '35–40 g' },
-      { items: ['Batata doce (200 g)', 'Feijão preto (100 g)', 'Tempeh (150 g)', 'Couve refogada'], protein: '38–42 g' },
-    ],
-  },
-  {
-    id: 'vgm-lanche-t', label: 'Lanche da Tarde', sublabel: 'Opcional', color: '#0891B2', kcalShare: 0.09,
-    options: [
-      { items: ['1–2 scoops de proteína vegetal com leite vegetal', '1 fruta'] },
-      { label: 'Sanduíche', items: ['3 fatias de pão integral', 'Homus (70 g)', 'Tomate e rúcula'] },
-      { items: ['Iogurte de coco (200 g)', '20 g de chia ou linhaça', '1 fruta'] },
-      { items: ['Mix de castanhas (50 g)', '1 fruta'] },
-    ],
-  },
-  {
-    id: 'vgm-jantar', label: 'Jantar', color: '#7C3AED', kcalShare: 0.23,
-    options: [
-      { items: ['Arroz (120–160 g)', 'Tofu ou tempeh (150–180 g)', 'Legumes cozidos'], protein: '38–45 g' },
-      { items: ['Macarrão (150 g)', 'Molho de tomate com soja texturizada (120 g)', 'Legumes'], protein: '35–40 g' },
-      { items: ['Batata doce (180 g)', 'Tempeh (150 g)', 'Brócolis e couve-flor cozidos'], protein: '34–38 g' },
-      { label: 'Bowl vegano', items: ['Quinoa (100 g)', 'Grão-de-bico (100 g)', 'Abacate (60 g)', 'Legumes', 'Molho de tahine'] },
-    ],
-  },
-  {
-    id: 'vgm-ceia', label: 'Ceia', sublabel: 'Somente se necessário', color: '#1E40AF', kcalShare: 0.05,
-    options: [
-      { items: ['1 scoop de proteína vegetal com leite de aveia ou água'] },
-      { items: ['250 ml de leite vegetal', '30 g de pasta de amendoim'] },
-      { items: ['Iogurte de coco (200 g)'] },
-    ],
-  },
-]
-
-const VEGETARIAN_LISTS: ListSection[] = [
-  { id: 'vt-prot-sub', label: 'Fontes de Proteína', items: ['Ovos inteiros', 'Clara de ovo', 'Tofu', 'Tempeh', 'Soja texturizada (PTS)', 'Cottage', 'Ricota', 'Queijo branco', 'Iogurte grego', 'Whey protein', 'Lentilha', 'Grão-de-bico', 'Feijão'] },
-  { id: 'vt-carb-sub', label: 'Carboidratos', items: ['Arroz branco ou integral', 'Macarrão', 'Pão integral', 'Tapioca', 'Batata doce', 'Mandioca', 'Aveia', 'Quinoa'] },
-  { id: 'vt-frutas',  label: 'Frutas Prioritárias', items: ['Mamão', 'Kiwi', 'Banana', 'Morango', 'Melão', 'Maçã', 'Pera'] },
-  { id: 'vt-fibras',  label: 'Fibras e Constipação', items: ['Feijão', 'Lentilha', 'Grão-de-bico', 'Frutas', 'Legumes', 'Vegetais', 'Água'], note: 'Se necessário: Psyllium 5 g inicialmente, podendo chegar a 10 g/dia.' },
-  { id: 'vt-omega3',  label: 'Ômega-3 (sem peixe)', items: ['Linhaça', 'Chia', 'Nozes', 'Edamame'], note: 'Consuma diariamente em pelo menos uma das refeições.' },
-]
-
-const VEGAN_LISTS: ListSection[] = [
-  { id: 'vg-prot-sub',  label: 'Fontes de Proteína Vegetal', items: ['Tofu', 'Tempeh', 'Soja texturizada (PTS)', 'Proteína de ervilha', 'Proteína de arroz', 'Lentilha', 'Grão-de-bico', 'Feijão', 'Edamame', 'Quinoa', 'Seitan'] },
-  { id: 'vg-carb-sub',  label: 'Carboidratos', items: ['Arroz branco ou integral', 'Macarrão', 'Pão integral', 'Batata doce', 'Aveia', 'Quinoa', 'Tapioca'] },
-  { id: 'vg-gorduras',  label: 'Gorduras Boas', items: ['Azeite extra virgem', 'Abacate', 'Pasta de amendoim', 'Castanhas', 'Nozes', 'Amêndoas', 'Sementes de girassol', 'Tahine'] },
-  { id: 'vg-latic-veg', label: 'Laticínios Vegetais', items: ['Leite de aveia', 'Leite de amêndoa', 'Leite de coco', 'Iogurte de coco'] },
-  { id: 'vg-omega3',    label: 'Ômega-3 e Micronutrientes', items: ['Linhaça', 'Chia', 'Nozes', 'Algas marinhas'], note: 'Considere suplementar B12, vitamina D, zinco e ferro — consulte seu médico.' },
-]
-
-const LOW_HUNGER_MEALS: MealSection[] = [
-  {
-    id: 'lh-cafe', label: 'Café da Manhã', color: '#D97706', kcalShare: 0,
-    options: [
-      { items: ['170 g de iogurte grego natural', '1 scoop de whey', '1 fruta pequena'], protein: '35–40 g' },
-      { items: ['1 ovo mexido', '1 fatia de pão integral', '1 fruta pequena'], protein: '15–20 g' },
-    ],
-  },
-  {
-    id: 'lh-almoco', label: 'Almoço', color: '#059669', kcalShare: 0,
-    options: [
-      { items: ['Arroz branco (80 g)', 'Frango desfiado (100 g)', 'Legumes cozidos (pouca fibra)'], protein: '25–30 g' },
-      { items: ['Caldo de frango com frango desfiado e macarrão (80 g)'], protein: '20–25 g' },
-    ],
-  },
-  {
-    id: 'lh-jantar', label: 'Jantar', color: '#7C3AED', kcalShare: 0,
-    options: [
-      { items: ['170 g de iogurte grego', '1 scoop de whey', '1 banana', '20 g de aveia'], protein: '35–40 g' },
-      { items: ['Omelete (2 ovos)', 'Pequena porção de arroz ou batata'] },
-    ],
-  },
-]
-
-const VEGETARIAN_LOW_HUNGER_MEALS: MealSection[] = [
-  {
-    id: 'lh-cafe', label: 'Café da Manhã', color: '#D97706', kcalShare: 0,
-    options: [
-      { items: ['170 g de iogurte grego natural', '1 scoop de whey', '1 fruta pequena'], protein: '35–40 g' },
-      { items: ['Omelete de 2 ovos', '1 fatia de pão integral', '1 fruta pequena'], protein: '18–22 g' },
-    ],
-  },
-  {
-    id: 'lh-almoco', label: 'Almoço', color: '#059669', kcalShare: 0,
-    options: [
-      { items: ['Arroz branco (80 g)', 'Tofu macio cozido (100 g)', 'Legumes cozidos macios (pouca fibra)'], protein: '20–25 g' },
-      { items: ['Sopa de legumes com lentilha vermelha (80 g) e arroz (60 g)'], protein: '15–18 g' },
-    ],
-  },
-  {
-    id: 'lh-jantar', label: 'Jantar', color: '#7C3AED', kcalShare: 0,
-    options: [
-      { items: ['170 g de iogurte grego', '1 scoop de whey', '1 banana', '20 g de aveia'], protein: '35–40 g' },
-      { items: ['Omelete (2 ovos)', 'Queijo branco (30 g)', 'Pequena porção de arroz'] },
-    ],
-  },
-]
-
-const VEGAN_LOW_HUNGER_MEALS: MealSection[] = [
-  {
-    id: 'lh-cafe', label: 'Café da Manhã', color: '#D97706', kcalShare: 0,
-    options: [
-      { items: ['1 scoop de proteína vegetal com 200 ml de leite de aveia', '1 fruta pequena'], protein: '25–30 g' },
-      { items: ['50 g de aveia cozida com leite vegetal', '1 banana amassada'], protein: '10–12 g' },
-    ],
-  },
-  {
-    id: 'lh-almoco', label: 'Almoço', color: '#059669', kcalShare: 0,
-    options: [
-      { items: ['Arroz branco (80 g)', 'Tofu macio (100 g)', 'Legumes cozidos macios (cenoura, abobrinha)'], protein: '18–22 g' },
-      { items: ['Caldo de legumes com lentilha vermelha (80 g) e macarrão (60 g)'], protein: '14–17 g' },
-    ],
-  },
-  {
-    id: 'lh-jantar', label: 'Jantar', color: '#7C3AED', kcalShare: 0,
-    options: [
-      { items: ['Iogurte de coco (170 g)', '1 scoop de proteína vegetal', '1 banana', '20 g de aveia'], protein: '28–32 g' },
-      { items: ['250 ml de leite de aveia morno', '30 g de pasta de amendoim', '1 banana pequena'] },
-    ],
-  },
-]
 
 const PROTOCOL_PHASES: { id: ProtocolPhase; label: string; sub: string }[] = [
   { id: 'beginning',   label: 'Início',        sub: 'Semanas 1–4 · adaptação à medicação' },
@@ -664,56 +198,6 @@ export default function FoodGuide() {
   const [formComorbidities, setFormComorbidities] = useState<string[]>([])
   const [formRestrictions, setFormRestrictions]   = useState<string[]>([])
 
-  // ── AI Diet ──
-  const [aiDiet, setAiDiet]       = useState<AIDietCache | null>(() => {
-    try { return JSON.parse(localStorage.getItem(AI_DIET_KEY) || 'null') }
-    catch { return null }
-  })
-  const [aiLoading, setAiLoading] = useState(false)
-  const [aiError, setAiError]     = useState('')
-
-  async function generateDiet(p: DietProfile) {
-    setAiLoading(true)
-    setAiError('')
-    try {
-      const res = await fetch('/api/generate-diet', {
-        method: 'POST',
-        headers: { 'content-type': 'application/json' },
-        body: JSON.stringify(p),
-      })
-      if (!res.ok) {
-        const body = await res.json().catch(() => ({})) as { error?: string }
-        throw new Error(body.error ?? `HTTP ${res.status}`)
-      }
-      const data = await res.json() as { meals?: MealSection[]; lowHunger?: MealSection[]; lists?: ListSection[]; error?: string }
-      if (data.error) throw new Error(data.error)
-      const cache: AIDietCache = {
-        meals:      data.meals ?? [],
-        lowHunger:  data.lowHunger ?? [],
-        lists:      data.lists ?? [],
-        profileHash: dietProfileHash(p),
-      }
-      localStorage.setItem(AI_DIET_KEY, JSON.stringify(cache))
-      setAiDiet(cache)
-    } catch (err) {
-      const msg = err instanceof Error ? err.message : 'Erro desconhecido'
-      console.error('[generateDiet]', msg)
-      setAiError(`IA indisponível: ${msg}. Usando plano padrão.`)
-    } finally {
-      setAiLoading(false)
-    }
-  }
-
-  // Auto-generate when profile exists but AI diet is missing or stale
-  useEffect(() => {
-    if (!profile) return
-    const hash = dietProfileHash(profile)
-    if (!aiDiet || aiDiet.profileHash !== hash) {
-      generateDiet(profile)
-    }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [profile?.sex, profile?.mealFrequency, profile?.restrictions?.join(','), profile?.goal, profile?.dailyKcal])
-
   // ── Plan view ──
   const [activeTab, setActiveTab]   = useState<DietTab>('hoje')
   const [expanded, setExpanded]     = useState<Set<string>>(new Set())
@@ -785,12 +269,9 @@ export default function FoodGuide() {
     }
     const p: DietProfile = { ...draft, dailyKcal: calcTDEE(draft) }
     localStorage.setItem(STORAGE_KEY, JSON.stringify(p))
-    localStorage.removeItem(AI_DIET_KEY)
-    setAiDiet(null)
     setProfile(p)
     setExpanded(new Set())
     setActiveTab('hoje')
-    generateDiet(p)
   }
 
   function resetProfile() {
@@ -1192,35 +673,22 @@ export default function FoodGuide() {
 
   // ── PLAN VIEW ────────────────────────────────────────────────────────────────
 
-  const _aiMatch = !!(aiDiet && aiDiet.profileHash === dietProfileHash(profile))
-  const isVegan = profile.restrictions.includes('vegan')
-  const isVegetarian = profile.restrictions.includes('vegetarian')
-  const _staticBase = isVegan
-    ? (profile.sex === 'F' ? VEGAN_FEMALE_MEALS : VEGAN_MALE_MEALS)
-    : isVegetarian
-      ? (profile.sex === 'F' ? VEGETARIAN_FEMALE_MEALS : VEGETARIAN_MALE_MEALS)
-      : (profile.sex === 'F' ? FEMALE_MEALS : MALE_MEALS)
-  const lists = _aiMatch ? aiDiet!.lists : (isVegan ? VEGAN_LISTS : isVegetarian ? VEGETARIAN_LISTS : (profile.sex === 'F' ? FEMALE_LISTS : MALE_LISTS))
-  const lowHungerMeals = _aiMatch ? aiDiet!.lowHunger : (isVegan ? VEGAN_LOW_HUNGER_MEALS : isVegetarian ? VEGETARIAN_LOW_HUNGER_MEALS : LOW_HUNGER_MEALS)
-  const FREQ_SUFFIXES: Record<MealFrequency, string[]> = {
-    '2':   ['-cafe', '-almoco'],
-    '3':   ['-cafe', '-almoco', '-jantar'],
-    '4':   ['-cafe', '-almoco', '-lanche-t', '-jantar'],
-    '5-6': ['-cafe', '-lanche-m', '-almoco', '-lanche-t', '-jantar', '-ceia'],
-  }
-  const meals = _aiMatch ? aiDiet!.meals : _staticBase.filter(m =>
-    (FREQ_SUFFIXES[profile.mealFrequency] ?? FREQ_SUFFIXES['5-6']).some(s => m.id.endsWith(s))
-  )
+  const enginePlan     = generateDietPlan(profile)
+  const meals          = enginePlan.meals as MealSection[]
+  const lowHungerMeals = enginePlan.lowHunger as MealSection[]
+  const lists          = enginePlan.lists as ListSection[]
+  const targets        = enginePlan.targets  // { kcal, proteinG, waterL }
 
-  // Calorie stats
+  // Kcal por refeição — kcalShare já normalizado para somar 1.0 no motor
   const mealKcalMap: Record<string, number> = {}
-  meals.forEach(m => { mealKcalMap[m.id] = Math.round(profile.dailyKcal * m.kcalShare) })
+  meals.forEach(m => { mealKcalMap[m.id] = Math.round(targets.kcal * m.kcalShare) })
 
+  // Apenas refeições do plano atual contam para o consumo (ignora IDs obsoletos)
   const mealConsumed   = dayLog.meals.reduce((acc, id) => acc + (mealKcalMap[id] ?? 0), 0)
   const manualConsumed = dayLog.manual.reduce((acc, m) => acc + m.kcal, 0)
   const consumed       = mealConsumed + manualConsumed
-  const remaining      = Math.max(0, profile.dailyKcal - consumed)
-  const pct            = Math.min(100, Math.round((consumed / profile.dailyKcal) * 100))
+  const remaining      = Math.max(0, targets.kcal - consumed)
+  const pct            = targets.kcal > 0 ? Math.min(100, Math.round((consumed / targets.kcal) * 100)) : 0
 
 
 
@@ -1241,66 +709,6 @@ export default function FoodGuide() {
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
-
-      {/* ── AI status bar ── */}
-      {aiLoading && (
-        <div style={{
-          display: 'flex', alignItems: 'center', gap: '10px',
-          padding: '12px 16px', borderRadius: '14px',
-          background: 'rgba(37,99,235,0.07)', border: '1px solid rgba(37,99,235,0.18)',
-        }}>
-          <div style={{
-            width: '16px', height: '16px', borderRadius: '50%', flexShrink: 0,
-            border: '2px solid rgba(37,99,235,0.25)', borderTopColor: 'var(--primary)',
-            animation: 'spin 0.7s linear infinite',
-          }} />
-          <p style={{ fontSize: '13px', fontWeight: 600, color: 'var(--primary)', margin: 0 }}>
-            Gerando seu plano personalizado com IA...
-          </p>
-          <style>{`@keyframes spin { to { transform: rotate(360deg) } }`}</style>
-        </div>
-      )}
-      {!aiLoading && aiError && (
-        <div style={{
-          padding: '10px 14px', borderRadius: '12px',
-          background: 'rgba(245,158,11,0.07)', border: '1px solid rgba(245,158,11,0.22)',
-          display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '10px',
-        }}>
-          <p style={{ fontSize: '12px', color: '#92400E', margin: 0, flex: 1 }}>{aiError}</p>
-          <button
-            onClick={() => generateDiet(profile)}
-            style={{
-              padding: '5px 12px', borderRadius: '8px', border: 'none', cursor: 'pointer',
-              background: '#D97706', color: '#fff', fontSize: '11px', fontWeight: 700,
-              fontFamily: 'Inter, -apple-system, sans-serif', whiteSpace: 'nowrap',
-            }}
-          >
-            Tentar novamente
-          </button>
-        </div>
-      )}
-      {!aiLoading && _aiMatch && (
-        <div style={{
-          display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-          padding: '9px 14px', borderRadius: '12px',
-          background: 'rgba(16,185,129,0.07)', border: '1px solid rgba(16,185,129,0.20)',
-        }}>
-          <p style={{ fontSize: '12px', fontWeight: 600, color: '#059669', margin: 0, display: 'flex', alignItems: 'center', gap: '6px' }}>
-            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M12 2a10 10 0 1 0 0 20A10 10 0 0 0 12 2z"/><path d="m9 12 2 2 4-4"/></svg>
-            Plano gerado por IA para o seu perfil
-          </p>
-          <button
-            onClick={() => generateDiet(profile)}
-            style={{
-              padding: '4px 10px', borderRadius: '8px', border: '1px solid rgba(16,185,129,0.30)',
-              background: 'transparent', cursor: 'pointer', color: '#059669',
-              fontSize: '11px', fontWeight: 700, fontFamily: 'Inter, -apple-system, sans-serif',
-            }}
-          >
-            Regenerar
-          </button>
-        </div>
-      )}
 
       {/* ── Calorie hero ── */}
       <div style={{
@@ -1380,9 +788,9 @@ export default function FoodGuide() {
         {/* Stat pills — glassmorphic */}
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '7px' }}>
           {[
-            { label: 'Meta', value: `${profile.dailyKcal}`, unit: 'kcal' },
-            { label: 'Proteína', value: `${Math.round(profile.weight * 1.8)}`, unit: 'g/dia' },
-            { label: 'Água', value: `${Math.round(profile.weight * 0.035 * 10) / 10}`, unit: 'L/dia' },
+            { label: 'Meta', value: `${targets.kcal}`, unit: 'kcal' },
+            { label: 'Proteína', value: `${targets.proteinG}`, unit: 'g/dia' },
+            { label: 'Água', value: `${targets.waterL}`, unit: 'L/dia' },
           ].map(stat => (
             <div key={stat.label} style={{
               background: 'rgba(255,255,255,0.08)',
@@ -1433,9 +841,10 @@ export default function FoodGuide() {
 
           {/* Adherence summary */}
           {(() => {
-            const done = dayLog.meals.length
+            const planIds = new Set(meals.map(m => m.id))
+            const done  = dayLog.meals.filter(id => planIds.has(id)).length
             const total = meals.length
-            const adh = Math.round((done / total) * 100)
+            const adh   = total > 0 ? Math.round((done / total) * 100) : 0
             return (
               <div style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '10px 14px', borderRadius: '14px', background: 'var(--surface)', border: '1px solid var(--border)', boxShadow: 'var(--shadow-card)' }}>
                 <div style={{ display: 'flex', gap: '4px' }}>
