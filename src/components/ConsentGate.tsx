@@ -38,12 +38,12 @@ interface Props { onAccept: () => void }
 function Section({ title, icon, children }: { title: string; icon: React.ReactNode; children: React.ReactNode }) {
   const [open, setOpen] = useState(false)
   return (
-    <div style={{ border: '1px solid rgba(255,255,255,0.08)', borderRadius: '12px', overflow: 'hidden' }}>
+    <div style={{ border: '1px solid var(--border)', borderRadius: '12px', overflow: 'hidden' }}>
       <button
         onClick={() => setOpen(o => !o)}
         style={{
           width: '100%', padding: '14px 16px',
-          background: open ? 'rgba(255,255,255,0.04)' : 'rgba(255,255,255,0.02)',
+          background: open ? 'var(--surface-2)' : 'var(--surface)',
           border: 'none', cursor: 'pointer',
           display: 'flex', alignItems: 'center', gap: '10px',
           fontFamily: 'Inter, -apple-system, sans-serif',
@@ -67,7 +67,7 @@ function Section({ title, icon, children }: { title: string; icon: React.ReactNo
         <div style={{
           padding: '4px 16px 16px',
           fontSize: '12px', lineHeight: 1.75,
-          color: 'rgba(255,255,255,0.55)',
+          color: 'var(--text-secondary)',
           maxHeight: '320px', overflowY: 'auto',
         }}>
           {children}
@@ -81,27 +81,27 @@ function P({ children }: { children: React.ReactNode }) {
   return <p style={{ margin: '10px 0' }}>{children}</p>
 }
 function H({ children }: { children: React.ReactNode }) {
-  return <p style={{ margin: '14px 0 4px', fontWeight: 700, color: 'rgba(255,255,255,0.75)', fontSize: '11px', textTransform: 'uppercase', letterSpacing: '0.06em' }}>{children}</p>
+  return <p style={{ margin: '14px 0 4px', fontWeight: 700, color: 'var(--text-muted)', fontSize: '11px', textTransform: 'uppercase', letterSpacing: '0.06em' }}>{children}</p>
 }
 
 // ─── Termos de Uso ────────────────────────────────────────────────────────────
 function TermsContent() {
   return (
     <>
-      <P><strong style={{ color: 'rgba(255,255,255,0.75)' }}>Versão 1.0 — Junho de 2026</strong></P>
+      <P><strong style={{ color: 'var(--text-primary)' }}>Versão 1.0 — Junho de 2026</strong></P>
 
       <H>1. Identificação do Serviço</H>
       <P>MinhaTize é uma plataforma digital de acompanhamento educativo desenvolvida para pessoas que utilizam análogos de GLP-1/GIP (como tirzepatida e semaglutida) sob prescrição e supervisão médica.</P>
 
       <H>2. Natureza Educativa — Limitações Fundamentais</H>
-      <P><strong style={{ color: '#FCA5A5' }}>O MinhaTize é um serviço EXCLUSIVAMENTE EDUCATIVO E INFORMATIVO.</strong></P>
+      <P><strong style={{ color: 'var(--danger-text)' }}>O MinhaTize é um serviço EXCLUSIVAMENTE EDUCATIVO E INFORMATIVO.</strong></P>
       <P>O MinhaTize NÃO é um serviço de saúde, NÃO constitui consultório médico virtual, NÃO realiza diagnósticos, NÃO prescreve medicamentos e NÃO substitui a avaliação de profissional de saúde habilitado.</P>
       <P>Todas as informações, cálculos, protocolos e sugestões apresentados têm finalidade meramente educativa. O usuário é inteiramente responsável por qualquer decisão relacionada à sua saúde, devendo sempre consultar médico, farmacêutico ou nutricionista habilitado antes de qualquer alteração em seu protocolo terapêutico.</P>
       <P>Os resultados obtidos no uso do aplicativo (perda de peso, valores laboratoriais, etc.) dependem de inúmeros fatores individuais e não constituem garantia ou promessa de resultado.</P>
 
       <H>3. Requisitos de Acesso</H>
-      <P>O MinhaTize é destinado exclusivamente a pessoas <strong style={{ color: 'rgba(255,255,255,0.75)' }}>maiores de 18 (dezoito) anos</strong>.</P>
-      <P>Os medicamentos referenciados nesta plataforma são medicamentos controlados que exigem <strong style={{ color: 'rgba(255,255,255,0.75)' }}>prescrição médica válida</strong>. Ao utilizar este serviço, você declara possuir prescrição médica vigente emitida por profissional habilitado para o medicamento informado em seu perfil.</P>
+      <P>O MinhaTize é destinado exclusivamente a pessoas <strong style={{ color: 'var(--text-primary)' }}>maiores de 18 (dezoito) anos</strong>.</P>
+      <P>Os medicamentos referenciados nesta plataforma são medicamentos controlados que exigem <strong style={{ color: 'var(--text-primary)' }}>prescrição médica válida</strong>. Ao utilizar este serviço, você declara possuir prescrição médica vigente emitida por profissional habilitado para o medicamento informado em seu perfil.</P>
       <P>O acesso é individual e intransferível, vinculado ao token de acesso enviado ao e-mail cadastrado na compra.</P>
 
       <H>4. Calculadora de Doses</H>
@@ -130,22 +130,22 @@ function TermsContent() {
 function PrivacyContent() {
   return (
     <>
-      <P><strong style={{ color: 'rgba(255,255,255,0.75)' }}>Versão 1.0 — Junho de 2026</strong></P>
+      <P><strong style={{ color: 'var(--text-primary)' }}>Versão 1.0 — Junho de 2026</strong></P>
       <P>Em conformidade com a Lei Geral de Proteção de Dados (Lei 13.709/2018 — LGPD).</P>
 
       <H>1. Controlador dos Dados</H>
       <P>MinhaTize — Plataforma Digital de Acompanhamento Educativo<br />
-      Contato e exercício de direitos: <strong style={{ color: 'rgba(255,255,255,0.75)' }}>privacidade@minhatize.com.br</strong></P>
+      Contato e exercício de direitos: <strong style={{ color: 'var(--text-primary)' }}>privacidade@minhatize.com.br</strong></P>
 
       <H>2. Dados Coletados</H>
-      <P><strong style={{ color: 'rgba(255,255,255,0.75)' }}>Dados fornecidos por você (perfil):</strong> nome/apelido, idade, sexo, altura, peso, meta de peso, medicamento em uso, dosagem, data de início, dia de aplicação.</P>
-      <P><strong style={{ color: '#FCA5A5' }}>Dados de saúde sensíveis (Art. 11 LGPD):</strong> resultados de exames laboratoriais (quando inseridos voluntariamente), registro de efeitos colaterais, diário pessoal de saúde.</P>
-      <P><strong style={{ color: 'rgba(255,255,255,0.75)' }}>Dados coletados automaticamente:</strong> endereço IP (processado temporariamente para segurança), endereço de e-mail e token de acesso (coletados na compra).</P>
+      <P><strong style={{ color: 'var(--text-primary)' }}>Dados fornecidos por você (perfil):</strong> nome/apelido, idade, sexo, altura, peso, meta de peso, medicamento em uso, dosagem, data de início, dia de aplicação.</P>
+      <P><strong style={{ color: 'var(--danger-text)' }}>Dados de saúde sensíveis (Art. 11 LGPD):</strong> resultados de exames laboratoriais (quando inseridos voluntariamente), registro de efeitos colaterais, diário pessoal de saúde.</P>
+      <P><strong style={{ color: 'var(--text-primary)' }}>Dados coletados automaticamente:</strong> endereço IP (processado temporariamente para segurança), endereço de e-mail e token de acesso (coletados na compra).</P>
 
       <H>3. Onde os Dados Ficam Armazenados</H>
-      <P><strong style={{ color: 'rgba(255,255,255,0.75)' }}>Dados do perfil, histórico, exames e diário:</strong> armazenados LOCALMENTE no seu dispositivo (localStorage). Esses dados NÃO são enviados aos nossos servidores e ficam sob seu controle exclusivo.</P>
-      <P><strong style={{ color: 'rgba(255,255,255,0.75)' }}>E-mail e token de acesso:</strong> armazenados em banco de dados Supabase (servidores nos EUA) com criptografia em trânsito e em repouso.</P>
-      <P><strong style={{ color: 'rgba(255,255,255,0.75)' }}>Relatório Anti-Platô:</strong> ao gerar o relatório, os dados do questionário são enviados de forma anônima à API da Anthropic (EUA) para geração do texto. Nenhum dado identificador (nome, e-mail) é transmitido.</P>
+      <P><strong style={{ color: 'var(--text-primary)' }}>Dados do perfil, histórico, exames e diário:</strong> armazenados LOCALMENTE no seu dispositivo (localStorage). Esses dados NÃO são enviados aos nossos servidores e ficam sob seu controle exclusivo.</P>
+      <P><strong style={{ color: 'var(--text-primary)' }}>E-mail e token de acesso:</strong> armazenados em banco de dados Supabase (servidores nos EUA) com criptografia em trânsito e em repouso.</P>
+      <P><strong style={{ color: 'var(--text-primary)' }}>Relatório Anti-Platô:</strong> ao gerar o relatório, os dados do questionário são enviados de forma anônima à API da Anthropic (EUA) para geração do texto. Nenhum dado identificador (nome, e-mail) é transmitido.</P>
 
       <H>4. Finalidade e Base Legal</H>
       <P>Dados de perfil e saúde: exibição e acompanhamento exclusivo pelo usuário — base legal: consentimento (Art. 7, I e Art. 11, I, LGPD).</P>
@@ -159,7 +159,7 @@ function PrivacyContent() {
       <P>Dados locais (perfil, saúde): permanecem no dispositivo até você apagá-los ou limpar o armazenamento do navegador. Token de acesso: mantido pelo período de vigência do seu acesso. Logs de IP: não são retidos após o processamento.</P>
 
       <H>7. Seus Direitos (Art. 18 LGPD)</H>
-      <P>Você tem direito a: confirmação da existência de tratamento; acesso aos dados; correção; exclusão; portabilidade; revogação do consentimento; e informação sobre compartilhamento. Para exercer seus direitos, envie e-mail para <strong style={{ color: 'rgba(255,255,255,0.75)' }}>privacidade@minhatize.com.br</strong>. Responderemos em até 15 dias úteis.</P>
+      <P>Você tem direito a: confirmação da existência de tratamento; acesso aos dados; correção; exclusão; portabilidade; revogação do consentimento; e informação sobre compartilhamento. Para exercer seus direitos, envie e-mail para <strong style={{ color: 'var(--text-primary)' }}>privacidade@minhatize.com.br</strong>. Responderemos em até 15 dias úteis.</P>
       <P>Para excluir todos os seus dados locais, utilize a opção "Resetar todos os dados" na aba de perfil do app. Para solicitar a exclusão do token/e-mail do nosso banco, envie e-mail com seu endereço de e-mail cadastrado.</P>
 
       <H>8. Segurança</H>
@@ -230,11 +230,11 @@ export default function ConsentGate({ onAccept }: Props) {
         }}>
           <AlertTriangle size={18} strokeWidth={2} style={{ color: '#F87171', flexShrink: 0, marginTop: '1px' }} />
           <div>
-            <p style={{ fontSize: '12px', fontWeight: 700, color: '#FCA5A5', margin: '0 0 4px', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
+            <p style={{ fontSize: '12px', fontWeight: 700, color: 'var(--danger-text)', margin: '0 0 4px', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
               Aviso Médico Importante
             </p>
-            <p style={{ fontSize: '12px', color: 'rgba(255,255,255,0.55)', margin: 0, lineHeight: 1.6 }}>
-              O MinhaTize é um aplicativo <strong style={{ color: 'rgba(255,255,255,0.75)' }}>educativo</strong> e <strong style={{ color: 'rgba(255,255,255,0.75)' }}>não constitui serviço médico</strong>. Não realiza diagnósticos, não prescreve medicamentos e não substitui a orientação do seu médico, farmacêutico ou nutricionista. Os medicamentos referenciados são controlados e requerem prescrição médica válida.
+            <p style={{ fontSize: '12px', color: 'var(--text-secondary)', margin: 0, lineHeight: 1.6 }}>
+              O MinhaTize é um aplicativo <strong style={{ color: 'var(--text-primary)' }}>educativo</strong> e <strong style={{ color: 'var(--text-primary)' }}>não constitui serviço médico</strong>. Não realiza diagnósticos, não prescreve medicamentos e não substitui a orientação do seu médico, farmacêutico ou nutricionista. Os medicamentos referenciados são controlados e requerem prescrição médica válida.
             </p>
           </div>
         </div>
@@ -283,22 +283,22 @@ export default function ConsentGate({ onAccept }: Props) {
               style={{
                 display: 'flex', alignItems: 'flex-start', gap: '12px',
                 cursor: 'pointer', padding: '12px 14px',
-                background: item.checked ? 'rgba(37,99,235,0.08)' : 'rgba(255,255,255,0.02)',
-                border: `1px solid ${item.checked ? 'rgba(37,99,235,0.25)' : 'rgba(255,255,255,0.08)'}`,
+                background: item.checked ? 'var(--primary-light)' : 'var(--surface)',
+                border: `1px solid ${item.checked ? 'var(--primary-glow)' : 'var(--border)'}`,
                 borderRadius: '11px', transition: 'all 0.15s',
               }}
               onClick={() => item.set(v => !v)}
             >
               <div style={{
                 width: '18px', height: '18px', borderRadius: '5px', flexShrink: 0,
-                background: item.checked ? 'var(--primary)' : 'rgba(255,255,255,0.05)',
-                border: `2px solid ${item.checked ? 'var(--primary)' : 'rgba(255,255,255,0.2)'}`,
+                background: item.checked ? 'var(--primary)' : 'var(--surface-2)',
+                border: `2px solid ${item.checked ? 'var(--primary)' : 'var(--border-strong)'}`,
                 display: 'flex', alignItems: 'center', justifyContent: 'center',
                 transition: 'all 0.15s', marginTop: '1px',
               }}>
                 {item.checked && <Check size={11} strokeWidth={3} style={{ color: '#fff' }} />}
               </div>
-              <span style={{ fontSize: '12px', color: 'rgba(255,255,255,0.65)', lineHeight: 1.55 }}>
+              <span style={{ fontSize: '12px', color: 'var(--text-secondary)', lineHeight: 1.55 }}>
                 {item.label}
               </span>
             </label>
@@ -313,10 +313,10 @@ export default function ConsentGate({ onAccept }: Props) {
             width: '100%', padding: '15px',
             background: allChecked
               ? 'linear-gradient(135deg, var(--primary), #0D9488)'
-              : 'rgba(255,255,255,0.05)',
-            border: allChecked ? 'none' : '1px solid rgba(255,255,255,0.08)',
+              : 'var(--surface-2)',
+            border: allChecked ? 'none' : '1px solid var(--border)',
             borderRadius: '13px', cursor: allChecked ? 'pointer' : 'not-allowed',
-            color: allChecked ? '#fff' : 'rgba(255,255,255,0.25)',
+            color: allChecked ? '#fff' : 'var(--text-faint)',
             fontWeight: 800, fontSize: '15px',
             fontFamily: 'Inter, -apple-system, sans-serif',
             transition: 'all 0.2s',
@@ -325,7 +325,7 @@ export default function ConsentGate({ onAccept }: Props) {
           {allChecked ? 'Aceitar e continuar' : 'Marque todas as opções acima'}
         </button>
 
-        <p style={{ fontSize: '11px', color: 'rgba(255,255,255,0.25)', textAlign: 'center', lineHeight: 1.5 }}>
+        <p style={{ fontSize: '11px', color: 'var(--text-faint)', textAlign: 'center', lineHeight: 1.5 }}>
           Ao aceitar, registramos a data e a versão do seu consentimento conforme exigido pela LGPD.
           Você pode revogar seu consentimento a qualquer momento via privacidade@minhatize.com.br.
         </p>

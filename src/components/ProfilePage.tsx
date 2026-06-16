@@ -537,11 +537,11 @@ export default function ProfilePage({ profile, onUpdateProfile, onBack, initialS
               border: '1px solid rgba(239,68,68,0.2)',
               borderRadius: '12px',
             }}>
-              <p style={{ fontSize: '11px', fontWeight: 700, color: '#FCA5A5', margin: '0 0 6px', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
+              <p style={{ fontSize: '11px', fontWeight: 700, color: 'var(--danger-text)', margin: '0 0 6px', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
                 Aviso Médico
               </p>
-              <p style={{ fontSize: '12px', color: 'rgba(255,255,255,0.55)', margin: 0, lineHeight: 1.65 }}>
-                O MinhaTize é um aplicativo <strong style={{ color: 'rgba(255,255,255,0.75)' }}>exclusivamente educativo</strong>. Não realiza diagnósticos, não prescreve medicamentos e não substitui o acompanhamento de médico, farmacêutico ou nutricionista. Os medicamentos referenciados são controlados e exigem prescrição médica válida.
+              <p style={{ fontSize: '12px', color: 'var(--text-secondary)', margin: 0, lineHeight: 1.65 }}>
+                O MinhaTize é um aplicativo <strong style={{ color: 'var(--text-primary)' }}>exclusivamente educativo</strong>. Não realiza diagnósticos, não prescreve medicamentos e não substitui o acompanhamento de médico, farmacêutico ou nutricionista. Os medicamentos referenciados são controlados e exigem prescrição médica válida.
               </p>
             </div>
 
