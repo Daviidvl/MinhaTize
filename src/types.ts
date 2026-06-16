@@ -86,8 +86,9 @@ export interface UserProfile {
   lastApplication?: string
   applicationLog?: string[]
   applicationNotes?: Record<string, string>
+  applicationSites?: Record<string, string>
   stock?: StockInfo
   labResults?: LabResult[]
 }
 
-export type Tab = 'dashboard' | 'progress' | 'health' | 'calculator' | 'profile' | 'laboratory' | 'atendimento' | 'suporte'
+export type Tab = 'dashboard' | 'progress' | 'health' | 'calculator' | 'profile' | 'laboratory'
