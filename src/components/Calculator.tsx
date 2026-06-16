@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import { AmpolaOption, DoseOption, SyringeOption, CalculationResult } from '../types'
 import { calculateDose } from '../utils/calculator'
 import Result from './Result'
+import { AlertTriangle } from 'lucide-react'
 
 const AMPOLAS: AmpolaOption[] = [
   { value: '15-0.5', label: '15mg / 0,5mL', mg: 15, ml: 0.5 },
@@ -46,6 +47,21 @@ export default function Calculator() {
 
   return (
     <div data-tour="calc-main" className="space-y-8">
+
+      {/* Disclaimer obrigatório */}
+      <div style={{
+        padding: '12px 14px',
+        background: 'rgba(245,158,11,0.07)',
+        border: '1px solid rgba(245,158,11,0.22)',
+        borderRadius: '12px',
+        display: 'flex', alignItems: 'flex-start', gap: '10px',
+      }}>
+        <AlertTriangle size={15} strokeWidth={2} style={{ color: '#F59E0B', flexShrink: 0, marginTop: '1px' }} />
+        <p style={{ fontSize: '12px', color: 'rgba(255,255,255,0.55)', margin: 0, lineHeight: 1.6 }}>
+          <strong style={{ color: '#FCD34D' }}>Uso educativo.</strong> Esta calculadora converte mg em unidades de seringa (UI) para fins de referência. O resultado NÃO substitui a orientação do médico ou farmacêutico responsável pelo seu protocolo. Confirme sempre a dose com o profissional que prescreveu o medicamento.
+        </p>
+      </div>
+
       <div className="card space-y-6">
         <h2
           className="text-xl font-jakarta font-700"

@@ -6,6 +6,7 @@ import {
   CheckCheck, TrendingUp, Minus, Flag,
   Scale, Info, FileText, Zap, Leaf, Lightbulb, Check,
 } from 'lucide-react'
+import { getStoredToken } from '../utils/token'
 
 const PLAN_KEY = 'tizetrack_antiplato'
 
@@ -321,7 +322,10 @@ export default function AntiPlato() {
     try {
       const res = await fetch('/api/generate-report', {
         method: 'POST',
-        headers: { 'content-type': 'application/json' },
+        headers: {
+          'content-type': 'application/json',
+          'Authorization': `Bearer ${getStoredToken() ?? ''}`,
+        },
         body: JSON.stringify(payload),
       })
       if (!res.ok) throw new Error(`HTTP ${res.status}`)

@@ -9,6 +9,9 @@ import HealthHub from './components/HealthHub'
 import Laboratory from './components/Laboratory'
 import ProfilePage from './components/ProfilePage'
 import ProfileSetup from './components/ProfileSetup'
+import ConsentGate, { hasConsent } from './components/ConsentGate'
+import LegalPage, { type LegalDoc } from './components/LegalPage'
+import Footer from './components/Footer'
 import { useDarkMode } from './hooks/useDarkMode'
 import { Tab, UserProfile } from './types'
 
@@ -102,6 +105,11 @@ export default function App() {
   const [deepSection, setDeepSection] = useState<string | null>(null)
   const [profile, setProfile]         = useState<UserProfile>(loadProfile)
   const [tokenStatus, setTokenStatus] = useState<'checking' | 'valid' | 'invalid'>('checking')
+  const [consentGiven, setConsentGiven] = useState<boolean>(hasConsent)
+  const [legalDoc, setLegalDoc]       = useState<LegalDoc | null>(() => {
+    const p = new URLSearchParams(window.location.search).get('legal')
+    return (p as LegalDoc | null)
+  })
   const prevTabRef   = useRef<Tab>('dashboard')
   const navRef       = useRef<HTMLElement>(null)
 
@@ -165,6 +173,21 @@ export default function App() {
     localStorage.setItem('tizetrack_profile', JSON.stringify(profile))
   }, [profile])
 
+  // ── Página legal pública (sem autenticação) ─────────────────────────────────
+  if (legalDoc) {
+    return (
+      <LegalPage
+        initialDoc={legalDoc}
+        onBack={() => {
+          setLegalDoc(null)
+          const url = new URL(window.location.href)
+          url.searchParams.delete('legal')
+          window.history.replaceState({}, '', url.pathname + (url.search === '?' ? '' : url.search))
+        }}
+      />
+    )
+  }
+
   // ── Gate de acesso ──────────────────────────────────────────────────────────
   if (tokenStatus === 'checking') {
     return (
@@ -190,7 +213,11 @@ export default function App() {
   }
 
   if (tokenStatus === 'invalid') {
-    return <LoginScreen onAccessGranted={() => setTokenStatus('valid')} />
+    return <LoginScreen onAccessGranted={() => setTokenStatus('valid')} onLegal={doc => setLegalDoc(doc as LegalDoc)} />
+  }
+
+  if (!consentGiven) {
+    return <ConsentGate onAccept={() => setConsentGiven(true)} />
   }
 
   if (isFirstAccess) {
@@ -246,6 +273,7 @@ export default function App() {
         key={activeTab}
       >
         {renderTab()}
+        <Footer onLegal={setLegalDoc} />
       </main>
 
       <nav ref={navRef} className="bottom-nav">

@@ -3,9 +3,10 @@ import { validateToken, saveToken, extractToken } from '../utils/token'
 
 interface Props {
   onAccessGranted: () => void
+  onLegal?: (doc: string) => void
 }
 
-export default function LoginScreen({ onAccessGranted }: Props) {
+export default function LoginScreen({ onAccessGranted, onLegal }: Props) {
   const [value, setValue]   = useState('')
   const [loading, setLoading] = useState(false)
   const [error, setError]   = useState('')
@@ -197,6 +198,34 @@ export default function LoginScreen({ onAccessGranted }: Props) {
           Não recebeu o e-mail? Verifique a caixa de spam<br />ou entre em contato com o suporte.
         </p>
       </div>
+
+      {/* Links legais */}
+      {onLegal && (
+        <div style={{
+          marginTop: '24px', display: 'flex', gap: '16px', flexWrap: 'wrap',
+          justifyContent: 'center',
+        }}>
+          {[
+            { id: 'termos', label: 'Termos de Uso' },
+            { id: 'privacidade', label: 'Privacidade' },
+            { id: 'disclaimer', label: 'Aviso Médico' },
+            { id: 'cancelamento', label: 'Cancelamento' },
+          ].map(link => (
+            <button
+              key={link.id}
+              onClick={() => onLegal(link.id)}
+              style={{
+                background: 'none', border: 'none', cursor: 'pointer', padding: 0,
+                fontSize: '11px', color: 'rgba(255,255,255,0.28)',
+                fontFamily: 'Inter, sans-serif',
+                textDecoration: 'underline',
+              }}
+            >
+              {link.label}
+            </button>
+          ))}
+        </div>
+      )}
 
       <style>{`@keyframes spin { to { transform: rotate(360deg) } }`}</style>
     </div>
