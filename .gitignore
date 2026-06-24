@@ -34,7 +34,7 @@ coverage
 .vercel
 .env*
 !.env.example
-tsconfig.tsbuildinfo
+tsconfig*.tsbuildinfo
 
 # Claude Code internal files
 .agents/
