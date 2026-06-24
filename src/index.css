@@ -118,8 +118,8 @@
     /* ─ Tipografia */
     --text-primary:   #EDF2FF;
     --text-secondary: #A5BCDD;
-    --text-muted:     #6785AD;
-    --text-faint:     #3C5070;
+    --text-muted:     #7A96BC;
+    --text-faint:     #536B8A;
 
     /* ─ Bordas */
     --border:        rgba(200,220,255,0.07);
@@ -171,6 +171,19 @@
 
   * { -webkit-tap-highlight-color: transparent; }
 
+  /* Remove focus ring for mouse/touch, keep for keyboard nav */
+  :focus:not(:focus-visible) { outline: none; }
+  :focus-visible {
+    outline: 2px solid var(--primary);
+    outline-offset: 2px;
+    border-radius: 4px;
+  }
+
+  /* Eliminate 300ms tap delay on all interactive elements */
+  button, a, [role="button"], label, input, select, textarea {
+    touch-action: manipulation;
+  }
+
   input, select, textarea {
     font-size: 16px !important;
     font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
@@ -220,6 +233,12 @@
     box-shadow: var(--shadow-lg);
   }
 
+  .card-premium:active {
+    transform: scale(0.985);
+    box-shadow: var(--shadow-sm);
+    transition: transform 0.10s ease, box-shadow 0.10s ease;
+  }
+
   .card-warning {
     background: var(--warn-bg);
     border: 1px solid var(--warn-border);
@@ -240,6 +259,11 @@
   .stat-card:hover {
     transform: translateY(-2px);
     box-shadow: var(--shadow-md);
+  }
+
+  .stat-card:active {
+    transform: scale(0.985);
+    transition: transform 0.10s ease;
   }
 
   /* ── Form ── */
@@ -329,11 +353,8 @@
     transition: all var(--t-base);
   }
 
-  .btn-ghost:hover {
-    border-color: var(--primary);
-    color: var(--primary);
-    background: var(--primary-light);
-  }
+  .btn-ghost:hover  { border-color: var(--primary); color: var(--primary); background: var(--primary-light); }
+  .btn-ghost:active { transform: scale(0.97); opacity: 0.88; }
 
   /* ── Inner tab pill ── */
   .inner-tab {
@@ -437,7 +458,8 @@
     transition: background var(--t-fast);
   }
 
-  .section-action:hover { background: var(--primary-light); }
+  .section-action:hover  { background: var(--primary-light); }
+  .section-action:active { transform: scale(0.93); transition: transform 0.10s ease; }
 }
 
 /* ─── Bottom Navigation — Pílula flutuante ───────────────────────── */
@@ -692,6 +714,7 @@
 /* ─── Main content ───────────────────────────────────────────────── */
 .main-content {
   padding-bottom: var(--nav-height, 88px);
+  overscroll-behavior: contain;
 }
 
 /* ─── Reduced motion ─────────────────────────────────────────────── */

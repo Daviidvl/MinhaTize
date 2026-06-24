@@ -1,6 +1,7 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node'
 import { createClient } from '@supabase/supabase-js'
 import { Resend } from 'resend'
+import { timingSafeEqual } from 'crypto'
 
 // ─── Tipos do payload da Wiven ────────────────────────────────────────────────
 interface WivenPayload {
@@ -30,15 +31,6 @@ interface WivenPayload {
 }
 
 // ─── Verificação de autenticidade (timing-safe) ───────────────────────────────
-function safeEqual(a: string, b: string): boolean {
-  const maxLen = Math.max(a.length, b.length)
-  let diff = a.length ^ b.length
-  for (let i = 0; i < maxLen; i++) {
-    diff |= (a.charCodeAt(i % a.length) ^ b.charCodeAt(i % b.length))
-  }
-  return diff === 0
-}
-
 function isValidRequest(body: WivenPayload): boolean {
   const secret = process.env.WIVEN_WEBHOOK_SECRET
   if (!secret) {
@@ -46,7 +38,8 @@ function isValidRequest(body: WivenPayload): boolean {
     return false
   }
   if (!body.token || typeof body.token !== 'string') return false
-  return safeEqual(body.token, secret)
+  if (body.token.length !== secret.length) return false
+  return timingSafeEqual(Buffer.from(body.token), Buffer.from(secret))
 }
 
 // ─── Handler ──────────────────────────────────────────────────────────────────
@@ -165,7 +158,8 @@ function buildEmailHtml({ name, accessLink, pdfUrl, appUrl }: {
   pdfUrl: string
   appUrl: string
 }): string {
-  const firstName = name.split(' ')[0] || 'Olá'
+  const firstName = (name.split(' ')[0] || 'Olá')
+    .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
   const logoUrl   = `${appUrl}/LogoPng.png`
 
   return `<!DOCTYPE html>
