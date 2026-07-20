@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { Pill, Syringe, TrendingUp, Lock, ChevronLeft, ChevronRight, Check, AlertTriangle } from 'lucide-react'
 import { Medication, Sex, UserProfile, WEEK_DAYS_FULL } from '../types'
+import { calcIMC } from '../utils/bmiUtils'
 
 interface Props {
   onComplete: (profile: UserProfile) => void
@@ -71,7 +72,8 @@ function ageWarn(val: string): string | null {
 function coherenceBlock(height: string, weight: string): string | null {
   const h = parseFloat(height), w = parseFloat(weight)
   if (!h || !w || h < 80 || w < 20) return null
-  const bmi = w / ((h / 100) ** 2)
+  const bmi = calcIMC(w, h)
+  if (bmi === null) return null
   if (bmi < 8)  return `Com ${h}cm e ${w}kg, o IMC seria ${bmi.toFixed(1)} — fisicamente impossível. Verifique se altura está em cm e peso em kg.`
   if (bmi > 90) return `Com ${h}cm e ${w}kg, o IMC seria ${bmi.toFixed(1)} — valor extremo. Confirme se os dados estão corretos.`
   return null

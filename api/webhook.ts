@@ -1,7 +1,7 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node'
-import { createClient } from '@supabase/supabase-js'
 import { Resend } from 'resend'
 import { timingSafeEqual } from 'crypto'
+import { getSupabaseAdmin } from './_lib/supabaseAdmin'
 
 // ─── Tipos do payload da Wiven ────────────────────────────────────────────────
 interface WivenPayload {
@@ -83,10 +83,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   }
 
   // 4. Conectar ao Supabase
-  const supabase = createClient(
-    process.env.SUPABASE_URL!,
-    process.env.SUPABASE_SERVICE_ROLE_KEY!
-  )
+  const supabase = getSupabaseAdmin()
 
   // 5. Evitar duplicatas — mesmo transaction.id não gera dois tokens
   if (transactionId) {

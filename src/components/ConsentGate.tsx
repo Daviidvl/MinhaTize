@@ -1,24 +1,22 @@
 import { useState } from 'react'
 import { AlertTriangle, Shield, FileText, ChevronDown, Check } from 'lucide-react'
 import { getStoredToken } from '../utils/token'
+import { readJSON, writeJSON } from '../utils/storage'
+import { STORAGE_KEYS } from '../utils/storageKeys'
 
-export const CONSENT_KEY     = 'tizetrack_consent'
+export const CONSENT_KEY     = STORAGE_KEYS.consent
 export const CONSENT_VERSION = '1.0'
 
 export function hasConsent(): boolean {
-  try {
-    const raw = localStorage.getItem(CONSENT_KEY)
-    if (!raw) return false
-    const parsed = JSON.parse(raw) as { version?: string }
-    return parsed.version === CONSENT_VERSION
-  } catch { return false }
+  const parsed = readJSON<{ version?: string } | null>(CONSENT_KEY, null)
+  return parsed?.version === CONSENT_VERSION
 }
 
 export function saveConsent(): void {
-  localStorage.setItem(CONSENT_KEY, JSON.stringify({
+  writeJSON(CONSENT_KEY, {
     date:    new Date().toISOString(),
     version: CONSENT_VERSION,
-  }))
+  })
   // Registrar no servidor (fire-and-forget — não bloqueia o usuário)
   const token = getStoredToken()
   if (token) {

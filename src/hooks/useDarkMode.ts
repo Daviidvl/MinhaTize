@@ -1,18 +1,17 @@
 import { useState, useEffect } from 'react'
+import { readRaw, writeRaw } from '../utils/storage'
+import { STORAGE_KEYS } from '../utils/storageKeys'
 
 export function useDarkMode() {
   const [isDark, setIsDark] = useState<boolean>(() => {
-    try {
-      const saved = localStorage.getItem('minha-tize-theme')
-      if (saved) return saved === 'dark'
-    } catch {}
-    return false
+    const saved = readRaw(STORAGE_KEYS.theme)
+    return saved ? saved === 'dark' : false
   })
 
   useEffect(() => {
     const root = document.documentElement
     root.classList.toggle('dark', isDark)
-    try { localStorage.setItem('minha-tize-theme', isDark ? 'dark' : 'light') } catch {}
+    writeRaw(STORAGE_KEYS.theme, isDark ? 'dark' : 'light')
   }, [isDark])
 
   const toggle = () => setIsDark((prev) => !prev)

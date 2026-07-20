@@ -1,48 +1,18 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node'
-import { createClient } from '@supabase/supabase-js'
+import { setCors } from './_lib/cors'
+import { createRateLimiter } from './_lib/rateLimit'
+import { getClientIp, UUID_RE } from './_lib/auth'
+import { getSupabaseAdmin } from './_lib/supabaseAdmin'
 
-// ─── CORS ─────────────────────────────────────────────────────────────────────
-const ALLOWED_ORIGINS = [
-  'https://minhatize.vercel.app',
-  'http://localhost:3000',
-  'http://localhost:5173',
-]
-
-function setCors(req: VercelRequest, res: VercelResponse) {
-  const origin = (req.headers.origin as string) ?? ''
-  const allowed = ALLOWED_ORIGINS.includes(origin) ? origin : ALLOWED_ORIGINS[0]
-  res.setHeader('Access-Control-Allow-Origin', allowed)
-  res.setHeader('Access-Control-Allow-Methods', 'GET,OPTIONS')
-  res.setHeader('Vary', 'Origin')
-}
-
-// ─── Rate limit por IP (brute-force protection) ───────────────────────────────
-const rlMap = new Map<string, { count: number; reset: number }>()
-const RL_MAX    = 30         // máx 30 tentativas
-const RL_WINDOW = 60_000     // por minuto
-
-function checkRateLimit(ip: string): boolean {
-  const now = Date.now()
-  const entry = rlMap.get(ip)
-  if (!entry || now > entry.reset) {
-    rlMap.set(ip, { count: 1, reset: now + RL_WINDOW })
-    return true
-  }
-  if (entry.count >= RL_MAX) return false
-  entry.count++
-  return true
-}
-
-// UUID v4 regex
-const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i
+const checkRateLimit = createRateLimiter(30, 60_000) // máx 30 tentativas por minuto
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
-  setCors(req, res)
+  setCors(req, res, 'GET,OPTIONS')
   if (req.method === 'OPTIONS') return res.status(200).end()
   if (req.method !== 'GET') return res.status(405).end()
 
   // ── Rate limit ────────────────────────────────────────────────────────────
-  const ip = (req.headers['x-forwarded-for'] as string ?? '').split(',')[0].trim() || 'unknown'
+  const ip = getClientIp(req) || 'unknown'
   if (!checkRateLimit(ip)) {
     res.setHeader('Retry-After', '60')
     return res.status(429).json({ valid: false })
@@ -60,10 +30,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
   // ── Consultar Supabase ────────────────────────────────────────────────────
   try {
-    const supabase = createClient(
-      process.env.SUPABASE_URL!,
-      process.env.SUPABASE_SERVICE_ROLE_KEY!
-    )
+    const supabase = getSupabaseAdmin()
 
     const { data, error } = await supabase
       .from('tokens')

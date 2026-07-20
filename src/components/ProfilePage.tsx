@@ -7,6 +7,9 @@ import {
 import { UserProfile, Medication, Sex, MEDICATION_LABELS, WEEK_DAYS_FULL } from '../types'
 import StockControl from './StockControl'
 import { CONSENT_KEY } from './ConsentGate'
+import { readJSON, removeKey } from '../utils/storage'
+import { USER_DATA_KEYS } from '../utils/storageKeys'
+import { exportAllData } from '../utils/dataExport'
 
 interface Props {
   profile: UserProfile
@@ -371,7 +374,7 @@ export default function ProfilePage({ profile, onUpdateProfile, onBack, initialS
           <div style={{ display: 'flex', gap: '8px' }}>
             <button onClick={() => setShowReset(false)} className="btn-ghost" style={{ flex: 1 }}>Cancelar</button>
             <button onClick={() => {
-              ['tizetrack_profile','tizetrack_food_log','tizetrack_diet','tizetrack_antiplato','tizetrack_workout','tizetrack_workout_log','tizetrack_side_effects','tizetrack_diary'].forEach(k => localStorage.removeItem(k))
+              USER_DATA_KEYS.forEach(removeKey)
               window.location.reload()
             }} style={{ flex: 1, padding: '10px', borderRadius: '8px', border: 'none', background: '#EF4444', color: '#fff', fontWeight: 700, cursor: 'pointer', fontFamily: 'Inter, -apple-system, sans-serif' }}>
               Sim, resetar
@@ -507,7 +510,7 @@ export default function ProfilePage({ profile, onUpdateProfile, onBack, initialS
           Ao revogar, seus dados locais serão apagados e você precisará aceitar os termos novamente.
         </p>
         <button onClick={() => {
-          ['tizetrack_profile','tizetrack_food_log','tizetrack_diet','tizetrack_antiplato','tizetrack_workout','tizetrack_workout_log','tizetrack_side_effects','tizetrack_diary', CONSENT_KEY].forEach(k => localStorage.removeItem(k))
+          [...USER_DATA_KEYS, CONSENT_KEY].forEach(removeKey)
           window.location.reload()
         }} style={{
           width: '100%', padding: '11px', borderRadius: '10px',
@@ -646,27 +649,6 @@ export default function ProfilePage({ profile, onUpdateProfile, onBack, initialS
 }
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
-function exportAllData(profile: UserProfile) {
-  const safeGet = (key: string) => {
-    try { const v = localStorage.getItem(key); return v ? JSON.parse(v) : null } catch { return null }
-  }
-  const consent = safeGet('tizetrack_consent')
-  const data = {
-    exportMeta: { platform: 'MinhaTize', exportedAt: new Date().toISOString(), lgpd: 'Art. 18, V da Lei 13.709/2018 (LGPD)', consentDate: consent?.date ?? null },
-    profile,
-    foodLog: safeGet('tizetrack_food_log'), diet: safeGet('tizetrack_diet'),
-    antiplato: safeGet('tizetrack_antiplato'), workout: safeGet('tizetrack_workout'),
-    workoutLog: safeGet('tizetrack_workout_log'), consent,
-  }
-  const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' })
-  const url  = URL.createObjectURL(blob)
-  const a    = document.createElement('a')
-  a.href     = url
-  a.download = `minhatize-dados-${new Date().toISOString().split('T')[0]}.json`
-  document.body.appendChild(a); a.click(); document.body.removeChild(a)
-  URL.revokeObjectURL(url)
-}
-
 function InfoRow({ label, value }: { label: string; value: string }) {
   return (
     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '10px 14px', background: 'var(--surface-2)', borderRadius: '10px' }}>
@@ -679,16 +661,13 @@ function InfoRow({ label, value }: { label: string; value: string }) {
 function ConsentInfo() {
   let date = 'Não registrado'
   let version = '—'
-  try {
-    const raw = localStorage.getItem(CONSENT_KEY)
-    if (raw) {
-      const parsed = JSON.parse(raw) as { date?: string; version?: string }
-      version = parsed.version ?? '—'
-      if (parsed.date) {
-        date = new Date(parsed.date).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' })
-      }
+  const parsed = readJSON<{ date?: string; version?: string } | null>(CONSENT_KEY, null)
+  if (parsed) {
+    version = parsed.version ?? '—'
+    if (parsed.date) {
+      date = new Date(parsed.date).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' })
     }
-  } catch { /* empty */ }
+  }
   return (
     <div style={{ padding: '14px 16px', background: 'rgba(34,197,94,0.07)', border: '1px solid rgba(34,197,94,0.18)', borderRadius: '12px' }}>
       <p style={{ fontSize: '11px', fontWeight: 700, color: 'var(--success)', margin: '0 0 8px', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
