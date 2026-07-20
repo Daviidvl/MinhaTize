@@ -13,6 +13,8 @@ import ConsentGate, { hasConsent } from './components/ConsentGate'
 import LegalPage, { type LegalDoc } from './components/LegalPage'
 import Footer from './components/Footer'
 import { useDarkMode } from './hooks/useDarkMode'
+import { readJSON, writeJSON } from './utils/storage'
+import { STORAGE_KEYS } from './utils/storageKeys'
 import { Tab, UserProfile } from './types'
 
 const DEFAULT_PROFILE: UserProfile = {
@@ -30,11 +32,8 @@ const DEFAULT_PROFILE: UserProfile = {
 }
 
 function loadProfile(): UserProfile {
-  try {
-    const raw = localStorage.getItem('tizetrack_profile')
-    if (raw) return { ...DEFAULT_PROFILE, ...JSON.parse(raw) }
-  } catch {}
-  return DEFAULT_PROFILE
+  const stored = readJSON<Partial<UserProfile> | null>(STORAGE_KEYS.profile, null)
+  return stored ? { ...DEFAULT_PROFILE, ...stored } : DEFAULT_PROFILE
 }
 
 // ── Inline SVG nav icons ─────────────────────────────────────────────────────
@@ -168,7 +167,7 @@ export default function App() {
   }
 
   useEffect(() => {
-    localStorage.setItem('tizetrack_profile', JSON.stringify(profile))
+    writeJSON(STORAGE_KEYS.profile, profile)
   }, [profile])
 
   // ── Página legal pública (sem autenticação) ─────────────────────────────────

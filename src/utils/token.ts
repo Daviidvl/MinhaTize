@@ -1,15 +1,16 @@
-const TOKEN_KEY = 'tizetrack_token'
+import { readRaw, writeRaw, removeKey } from './storage'
+import { STORAGE_KEYS } from './storageKeys'
 
 export function getStoredToken(): string | null {
-  return localStorage.getItem(TOKEN_KEY)
+  return readRaw(STORAGE_KEYS.token)
 }
 
 export function saveToken(token: string): void {
-  localStorage.setItem(TOKEN_KEY, token)
+  writeRaw(STORAGE_KEYS.token, token)
 }
 
 export function clearToken(): void {
-  localStorage.removeItem(TOKEN_KEY)
+  removeKey(STORAGE_KEYS.token)
 }
 
 export function getTokenFromURL(): string | null {
