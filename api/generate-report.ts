@@ -1,8 +1,8 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node'
 import https from 'https'
-import { setCors } from './_lib/cors'
-import { createRateLimiter } from './_lib/rateLimit'
-import { extractBearerToken, getClientIp, isActiveToken, UUID_RE } from './_lib/auth'
+import { setCors } from './_lib/cors.js'
+import { createRateLimiter } from './_lib/rateLimit.js'
+import { extractBearerToken, getClientIp, isActiveToken, UUID_RE } from './_lib/auth.js'
 
 const checkRateLimit = createRateLimiter(5, 3_600_000) // máx 5 relatórios por hora
 

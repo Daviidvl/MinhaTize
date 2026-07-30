@@ -1,7 +1,7 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node'
 import { Resend } from 'resend'
 import { timingSafeEqual, randomUUID } from 'crypto'
-import { getSupabaseAdmin } from './_lib/supabaseAdmin'
+import { getSupabaseAdmin } from './_lib/supabaseAdmin.js'
 
 // ─── Tipos do payload da Wiven ────────────────────────────────────────────────
 interface WivenPayload {

@@ -1,8 +1,8 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node'
-import { setCors } from './_lib/cors'
-import { createRateLimiter } from './_lib/rateLimit'
-import { extractBearerToken, getClientIp, isActiveToken, UUID_RE } from './_lib/auth'
-import { getSupabaseAdmin } from './_lib/supabaseAdmin'
+import { setCors } from './_lib/cors.js'
+import { createRateLimiter } from './_lib/rateLimit.js'
+import { extractBearerToken, getClientIp, isActiveToken, UUID_RE } from './_lib/auth.js'
+import { getSupabaseAdmin } from './_lib/supabaseAdmin.js'
 
 /*
   Supabase SQL para criar a tabela (execute uma vez no SQL Editor do Supabase):

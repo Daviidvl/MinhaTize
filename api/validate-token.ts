@@ -1,8 +1,8 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node'
-import { setCors } from './_lib/cors'
-import { createRateLimiter } from './_lib/rateLimit'
-import { getClientIp, UUID_RE } from './_lib/auth'
-import { getSupabaseAdmin } from './_lib/supabaseAdmin'
+import { setCors } from './_lib/cors.js'
+import { createRateLimiter } from './_lib/rateLimit.js'
+import { getClientIp, UUID_RE } from './_lib/auth.js'
+import { getSupabaseAdmin } from './_lib/supabaseAdmin.js'
 
 const checkRateLimit = createRateLimiter(30, 60_000) // máx 30 tentativas por minuto
 
