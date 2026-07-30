@@ -1,6 +1,6 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node'
 import { Resend } from 'resend'
-import { timingSafeEqual } from 'crypto'
+import { timingSafeEqual, randomUUID } from 'crypto'
 import { getSupabaseAdmin } from './_lib/supabaseAdmin'
 
 // ─── Tipos do payload da Wiven ────────────────────────────────────────────────
@@ -101,7 +101,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   }
 
   // 6. Gerar token único de acesso
-  const token = crypto.randomUUID()
+  const token = randomUUID()
 
   // 7. Salvar no banco
   const { error: dbError } = await supabase.from('tokens').insert({
