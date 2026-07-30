@@ -139,7 +139,7 @@ async function sendEmail(token: string, email: string, name: string): Promise<bo
       from:    `MinhaTize <${fromEmail}>`,
       to:      email,
       subject: 'Seu acesso ao MinhaTize está pronto',
-      html:    buildEmailHtml({ name, accessLink, pdfUrl, appUrl }),
+      html:    buildEmailHtml({ name, accessLink, pdfUrl, appUrl, token }),
     })
     return true
   } catch (err) {
@@ -149,11 +149,12 @@ async function sendEmail(token: string, email: string, name: string): Promise<bo
 }
 
 // ─── Template de e-mail ───────────────────────────────────────────────────────
-function buildEmailHtml({ name, accessLink, pdfUrl, appUrl }: {
+function buildEmailHtml({ name, accessLink, pdfUrl, appUrl, token }: {
   name: string
   accessLink: string
   pdfUrl: string
   appUrl: string
+  token: string
 }): string {
   const firstName = (name.split(' ')[0] || 'Olá')
     .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
@@ -223,6 +224,19 @@ function buildEmailHtml({ name, accessLink, pdfUrl, appUrl }: {
           <a href="${accessLink}" style="display:inline-block;padding:13px 28px;background:linear-gradient(135deg,#16A34A,#22C55E);border-radius:11px;color:#fff;font-size:14px;font-weight:800;text-decoration:none;letter-spacing:-0.2px;">
             Acessar o app &#8594;
           </a>
+        </td></tr>
+      </table>
+
+      <!-- Token de acesso -->
+      <table width="100%" cellpadding="0" cellspacing="0" style="background:rgba(255,255,255,0.03);border-radius:10px;margin-bottom:10px;">
+        <tr><td style="padding:14px 16px;">
+          <p style="font-size:11px;font-weight:700;color:rgba(255,255,255,0.40);margin:0 0 4px;">&#128273; Seu token de acesso</p>
+          <p style="font-family:monospace;font-size:13px;font-weight:700;color:#fff;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.08);border-radius:7px;padding:8px 10px;margin:0 0 8px;word-break:break-all;">
+            ${token}
+          </p>
+          <p style="font-size:11px;color:rgba(255,255,255,0.28);margin:0;line-height:1.65;">
+            Se voc&#234; sair da conta no app, ele vai pedir esse token para entrar de novo. &#201; o seu c&#243;digo pessoal de acesso &#8212; guarde-o junto com este e-mail.
+          </p>
         </td></tr>
       </table>
 
