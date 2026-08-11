@@ -20,7 +20,7 @@ export function saveConsent(): void {
   // Registrar no servidor (fire-and-forget — não bloqueia o usuário)
   const token = getStoredToken()
   if (token) {
-    fetch('/serveless/register-consent', {
+    fetch('/api/register-consent', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
