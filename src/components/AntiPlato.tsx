@@ -198,7 +198,7 @@ export default function AntiPlato() {
       resultado_14_dias: plan.reevalResult ?? 'sem dado',
     }
     try {
-      const res = await fetch('/api/generate-report', {
+      const res = await fetch('/serveless/generate-report', {
         method: 'POST',
         headers: {
           'content-type': 'application/json',
