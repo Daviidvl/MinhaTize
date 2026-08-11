@@ -37,7 +37,7 @@ self.addEventListener('fetch', (event) => {
 
   // Nunca interceptar rotas da API ou requests não-GET
   if (request.method !== 'GET') return
-  if (url.pathname.startsWith('/api/')) return
+  if (url.pathname.startsWith('/serveless/')) return
 
   // Requests cross-origin (Google Fonts, CDNs): deixar passar sem cache
   if (url.origin !== self.location.origin) return
