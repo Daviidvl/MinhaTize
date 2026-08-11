@@ -43,7 +43,7 @@ export async function validateToken(token: string): Promise<boolean> {
 
   // Prod: valida via API (tokens ficam no servidor — nunca expostos ao browser)
   try {
-    const res = await fetch(`/api/validate-token?token=${encodeURIComponent(token)}`)
+    const res = await fetch(`/serveless/validate-token?token=${encodeURIComponent(token)}`)
     if (!res.ok) return false
     const data = await res.json() as { valid: boolean }
     return data.valid === true

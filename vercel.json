@@ -2,7 +2,7 @@
   "buildCommand": "npm run build",
   "outputDirectory": "dist",
   "functions": {
-    "api/generate-report.ts": { "maxDuration": 60 }
+    "serveless/generate-report.ts": { "maxDuration": 60 }
   },
   "headers": [
     {
@@ -37,7 +37,7 @@
     }
   ],
   "rewrites": [
-    { "source": "/api/(.*)", "destination": "/api/$1" },
-    { "source": "/((?!api).*)", "destination": "/index.html" }
+    { "source": "/serveless/(.*)", "destination": "/serveless/$1" },
+    { "source": "/((?!serveless).*)", "destination": "/index.html" }
   ]
 }
