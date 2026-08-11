@@ -39,6 +39,8 @@ tsconfig*.tsbuildinfo
 # Claude Code internal files
 .agents/
 skills-lock.json
+.claude/
+.api/
 
 # Temporary utility scripts
 fix-utf8.mjs
