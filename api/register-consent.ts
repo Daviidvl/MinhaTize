@@ -5,7 +5,7 @@ import { extractBearerToken, getClientIp, isActiveToken, UUID_RE } from './_lib/
 import { getSupabaseAdmin } from './_lib/supabaseAdmin.js'
 
 
-const checkRateLimit = createRateLimiter(10, 3_600_000) // máx 10 por hora
+const checkRateLimit = createRateLimiter('register-consent', 10, 3_600_000) // máx 10 por hora
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   setCors(req, res, 'POST,OPTIONS', 'Content-Type,Authorization')
@@ -20,8 +20,9 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
   // ── Rate limit ────────────────────────────────────────────────────────────────
   const ip = getClientIp(req) || 'unknown'
-  if (!checkRateLimit(ip)) {
-    res.setHeader('Retry-After', '3600')
+  const rl = await checkRateLimit(ip)
+  if (!rl.allowed) {
+    res.setHeader('Retry-After', String(rl.retryAfterSeconds))
     return res.status(429).json({ error: 'Muitas requisições. Tente novamente em 1 hora.' })
   }
 

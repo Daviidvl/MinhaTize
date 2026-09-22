@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react'
 import LoginScreen from './components/LoginScreen'
-import { getTokenFromURL, getStoredToken, saveToken, cleanTokenFromURL, clearToken, validateToken } from './utils/token'
+import { getStoredToken, clearToken, validateToken } from './utils/token'
 import Header from './components/Header'
 import Dashboard from './components/Dashboard'
 import ProgressHub from './components/ProgressHub'
@@ -114,17 +114,6 @@ export default function App() {
   useEffect(() => {
     let cancelled = false
     async function checkAccess() {
-      const urlToken = getTokenFromURL()
-      if (urlToken) {
-        const valid = await validateToken(urlToken)
-        if (cancelled) return
-        if (valid) {
-          saveToken(urlToken)
-          cleanTokenFromURL()
-          setTokenStatus('valid')
-          return
-        }
-      }
       const stored = getStoredToken()
       if (stored) {
         const valid = await validateToken(stored)
@@ -240,9 +229,9 @@ export default function App() {
       case 'progress':
         return <ProgressHub profile={profile} onUpdateProfile={setProfile} />
       case 'health':
-        return <HealthHub profile={profile} onUpdateProfile={setProfile} initialSection={deepSection ?? undefined} />
+        return <HealthHub profile={profile} onUpdateProfile={setProfile} initialSection={deepSection ?? undefined} onNavigate={handleNavigate} />
       case 'calculator':
-        return <Calculator />
+        return <Calculator profile={profile} />
       case 'laboratory':
         return <Laboratory profile={profile} onUpdateProfile={setProfile} />
       default:

@@ -16,6 +16,18 @@ interface Props {
   onUpdateProfile: (p: UserProfile) => void
 }
 
+// Os relatórios abaixo são montados com template strings e injetados via
+// document.write — qualquer valor de origem do usuário precisa passar por
+// aqui antes de entrar no HTML.
+function escapeHtml(str: string): string {
+  return str
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;')
+}
+
 // ── Main component ───────────────────────────────────────────────────────────
 export default function Laboratory({ profile, onUpdateProfile }: Props) {
   const sex = profile.sex
@@ -139,7 +151,7 @@ export default function Laboratory({ profile, onUpdateProfile }: Props) {
 </body>
 </html>`
 
-    const win = window.open('', '_blank')
+    const win = window.open('', '_blank', 'noopener')
     if (win) {
       win.document.write(html)
       win.document.close()
@@ -165,7 +177,7 @@ export default function Laboratory({ profile, onUpdateProfile }: Props) {
         const value  = raw ? parseFloat(raw) : null
         const status = value !== null ? exam.getStatus(value, sex) : null
         const valueCell  = value !== null
-          ? `<span style="font-weight:700;color:${statusColor[status!]}">${raw} ${exam.unit}</span>`
+          ? `<span style="font-weight:700;color:${statusColor[status!]}">${escapeHtml(raw)} ${exam.unit}</span>`
           : `<span style="color:#9ca3af">–</span>`
         const statusCell = status !== null
           ? `<span style="font-weight:700;color:${statusColor[status]}">${statusLabel[status]}</span>`
@@ -219,7 +231,7 @@ export default function Laboratory({ profile, onUpdateProfile }: Props) {
 </body>
 </html>`
 
-    const win = window.open('', '_blank')
+    const win = window.open('', '_blank', 'noopener')
     if (win) {
       win.document.write(html)
       win.document.close()

@@ -57,13 +57,33 @@ describe('isActiveToken', () => {
     maybeSingle.mockReset()
   })
 
-  it('returns true when an active token row exists', async () => {
-    maybeSingle.mockResolvedValue({ data: { id: '1' }, error: null })
+  it('returns true when an active token row exists with no expiration', async () => {
+    maybeSingle.mockResolvedValue({ data: { id: '1', expires_at: null }, error: null })
     expect(await isActiveToken('123e4567-e89b-42d3-a456-426614174000')).toBe(true)
+  })
+
+  it('returns true when the token has a future expiration', async () => {
+    const future = new Date(Date.now() + 1000 * 60 * 60).toISOString()
+    maybeSingle.mockResolvedValue({ data: { id: '1', expires_at: future }, error: null })
+    expect(await isActiveToken('123e4567-e89b-42d3-a456-426614174000')).toBe(true)
+  })
+
+  it('returns false when the token has already expired', async () => {
+    const past = new Date(Date.now() - 1000 * 60 * 60).toISOString()
+    maybeSingle.mockResolvedValue({ data: { id: '1', expires_at: past }, error: null })
+    expect(await isActiveToken('123e4567-e89b-42d3-a456-426614174000')).toBe(false)
   })
 
   it('returns false when no row is found', async () => {
     maybeSingle.mockResolvedValue({ data: null, error: null })
     expect(await isActiveToken('123e4567-e89b-42d3-a456-426614174000')).toBe(false)
+  })
+
+  it('returns false and logs when Supabase returns an error', async () => {
+    const errSpy = vi.spyOn(console, 'error').mockImplementation(() => {})
+    maybeSingle.mockResolvedValue({ data: null, error: { message: 'boom' } })
+    expect(await isActiveToken('123e4567-e89b-42d3-a456-426614174000')).toBe(false)
+    expect(errSpy).toHaveBeenCalled()
+    errSpy.mockRestore()
   })
 })

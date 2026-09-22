@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
-import { AmpolaOption, DoseOption, SyringeOption, CalculationResult } from '../types'
+import { AmpolaOption, DoseOption, SyringeOption, CalculationResult, UserProfile } from '../types'
 import { calculateDose } from '../utils/calculator'
+import { getDoseValue, hasPresentation } from '../utils/medicationUtils'
 import Result from './Result'
 import { AlertTriangle } from 'lucide-react'
 
@@ -25,14 +26,27 @@ const SYRINGES: SyringeOption[] = [
   { value: 100, label: '100 UI', maxUI: 100 },
 ]
 
-export default function Calculator() {
-  const [selectedAmpola, setSelectedAmpola] = useState<AmpolaOption>(AMPOLAS[0])
-  const [selectedDose, setSelectedDose] = useState<number>(DOSES[0].value)
+interface Props { profile?: UserProfile }
+
+export default function Calculator({ profile }: Props) {
+  // Apresentação/dose cadastrados no perfil viram opções extra nos seletores,
+  // sem substituir a lista padrão nem forçar nada quando não preenchidos.
+  const registeredAmpola: AmpolaOption | null = profile && hasPresentation(profile)
+    ? { value: 'cadastrada', label: `${profile.presentationMg}mg / ${profile.presentationMl}mL (cadastrada)`, mg: profile.presentationMg!, ml: profile.presentationMl! }
+    : null
+  const registeredDose = profile ? getDoseValue(profile) : null
+  const ampolaOptions = registeredAmpola ? [registeredAmpola, ...AMPOLAS] : AMPOLAS
+  const doseOptions = registeredDose != null && !DOSES.some(d => d.value === registeredDose)
+    ? [{ value: registeredDose, label: `${registeredDose}mg (cadastrada)` }, ...DOSES]
+    : DOSES
+
+  const [selectedAmpola, setSelectedAmpola] = useState<AmpolaOption>(() => registeredAmpola ?? AMPOLAS[0])
+  const [selectedDose, setSelectedDose] = useState<number>(() => registeredDose ?? DOSES[0].value)
   const [selectedSyringe, setSelectedSyringe] = useState<number>(SYRINGES[2].value)
   const [result, setResult] = useState<CalculationResult | null>(null)
 
   const handleAmpolaChange = (value: string) => {
-    setSelectedAmpola(AMPOLAS.find((a) => a.value === value) || AMPOLAS[0])
+    setSelectedAmpola(ampolaOptions.find((a) => a.value === value) || AMPOLAS[0])
   }
   const handleDoseChange = (value: string) => setSelectedDose(parseFloat(value))
   const handleSyringeChange = (value: string) => setSelectedSyringe(parseInt(value))
@@ -79,7 +93,7 @@ export default function Calculator() {
             className="select-field"
             aria-label="Selecione a concentração da ampola"
           >
-            {AMPOLAS.map((a) => (
+            {ampolaOptions.map((a) => (
               <option key={a.value} value={a.value}>{a.label}</option>
             ))}
           </select>
@@ -94,7 +108,7 @@ export default function Calculator() {
             className="select-field"
             aria-label="Selecione a dose desejada"
           >
-            {DOSES.map((d) => (
+            {doseOptions.map((d) => (
               <option key={d.value} value={d.value}>{d.label}</option>
             ))}
           </select>

@@ -1,10 +1,12 @@
 import type { ReactNode } from 'react'
-import { Package, AlertTriangle, ChevronRight, Moon, Zap } from 'lucide-react'
-import { UserProfile, Tab, MEDICATION_LABELS } from '../types'
+import { Package, AlertTriangle, ChevronRight, Moon, Zap, Search } from 'lucide-react'
+import { UserProfile, Tab } from '../types'
 import ApplicationCalendar from './ApplicationCalendar'
 import { calcIMC, imcLabel } from '../utils/bmiUtils'
 import { readJSON } from '../utils/storage'
 import { STORAGE_KEYS } from '../utils/storageKeys'
+import { getAppsLeft, getDoseValue, getMedicationLabel } from '../utils/medicationUtils'
+import { getPlateauStatus, getPlateauStatusMeta } from '../utils/plateauUtils'
 import {
   daysSince, getGreeting, getFormattedDate, DOSE_PHASE, getMotivation, getCalorieStatus,
   SPLIT_INFO, WORKOUT_SCHEDULE, LEVEL_LABEL, getMealNow,
@@ -62,8 +64,8 @@ function WorkoutWidget({ onNavigate }: { onNavigate: (t: Tab, s?: string) => voi
   }
 
   const bgGradient = isRest
-    ? 'linear-gradient(150deg, #1B2530 0%, #111820 100%)'
-    : 'linear-gradient(150deg, #0B1F17 0%, #132D20 60%, #0E221A 100%)'
+    ? 'linear-gradient(150deg, #1C2438 0%, #12182A 100%)'
+    : 'linear-gradient(150deg, #101B3F 0%, #1B2F72 100%)'
 
   return (
     <button
@@ -72,7 +74,9 @@ function WorkoutWidget({ onNavigate }: { onNavigate: (t: Tab, s?: string) => voi
         display: 'flex', flexDirection: 'column', gap: '12px',
         padding: '16px', borderRadius: '20px', textAlign: 'left', cursor: 'pointer',
         background: bgGradient, border: 'none',
-        boxShadow: '0 8px 28px rgba(0,0,0,0.22), 0 2px 6px rgba(0,0,0,0.14), inset 0 1px 0 rgba(255,255,255,0.06)',
+        boxShadow: isRest
+          ? '0 6px 20px rgba(0,0,0,0.20), 0 1px 3px rgba(0,0,0,0.12)'
+          : '0 6px 20px rgba(20,40,120,0.28), 0 1px 3px rgba(0,0,0,0.12)',
         fontFamily: 'Inter, -apple-system, sans-serif',
         color: '#fff', transition: 'transform 0.15s ease, box-shadow 0.2s ease',
       }}
@@ -120,9 +124,9 @@ function WorkoutWidget({ onNavigate }: { onNavigate: (t: Tab, s?: string) => voi
             <div key={i} style={{
               flex: 1, height: '3px', borderRadius: '99px',
               background: d.done
-                ? (isRest ? 'rgba(255,255,255,0.55)' : accent)
+                ? '#fff'
                 : d.isToday ? 'rgba(255,255,255,0.22)' : 'rgba(255,255,255,0.07)',
-              outline: d.isToday ? `1.5px solid ${isRest ? 'rgba(255,255,255,0.28)' : accent + '60'}` : 'none',
+              outline: d.isToday ? '1.5px solid rgba(255,255,255,0.35)' : 'none',
               outlineOffset: '1.5px',
               transition: 'background 0.3s',
             }} />
@@ -151,7 +155,7 @@ function MealWidget({ profile, onNavigate }: { profile: UserProfile; onNavigate:
   const arcR     = 18
   const arcCirc  = 2 * Math.PI * arcR
   const arcOff   = arcCirc * (1 - pct / 100)
-  const arcClr   = pct >= 100 ? '#FBBF24' : 'rgba(255,255,255,0.88)'
+  const arcClr   = '#fff'
   const sub      = (dietSex === 'F' ? slot.sub_F : slot.sub_M).split(' · ')[0].trim()
 
   if (!dietSet) {
@@ -179,9 +183,9 @@ function MealWidget({ profile, onNavigate }: { profile: UserProfile; onNavigate:
       style={{
         display: 'flex', flexDirection: 'column', gap: '12px',
         padding: '16px', borderRadius: '20px', textAlign: 'left', cursor: 'pointer',
-        background: 'linear-gradient(150deg, #0B2B1C 0%, #0F3D27 60%, #0A2C1E 100%)',
+        background: 'linear-gradient(150deg, #1E1245 0%, #33207A 100%)',
         border: 'none',
-        boxShadow: '0 8px 28px rgba(10,44,30,0.36), 0 2px 6px rgba(0,0,0,0.14), inset 0 1px 0 rgba(255,255,255,0.06)',
+        boxShadow: '0 6px 20px rgba(51,32,122,0.28), 0 1px 3px rgba(0,0,0,0.12)',
         fontFamily: 'Inter, -apple-system, sans-serif',
         color: '#fff', transition: 'transform 0.15s ease, box-shadow 0.2s ease',
       }}
@@ -224,7 +228,7 @@ function MealWidget({ profile, onNavigate }: { profile: UserProfile; onNavigate:
         <div style={{ background: 'rgba(255,255,255,0.10)', borderRadius: '99px', height: '3px', overflow: 'hidden', marginBottom: '5px' }}>
           <div style={{
             width: `${pct}%`, height: '100%',
-            background: pct >= 100 ? 'linear-gradient(90deg, #F59E0B, #FBBF24)' : 'rgba(255,255,255,0.78)',
+            background: '#fff',
             borderRadius: '99px', transition: 'width 0.9s cubic-bezier(0.22,1,0.36,1)',
           }} />
         </div>
@@ -290,11 +294,12 @@ export default function Dashboard({ profile, onNavigate, onUpdateProfile }: Prop
 
   const motivation = getMotivation(totalLost, toGoal, weeks, days, reachedGoal)
 
-  const stock    = profile.stock
-  const appsLeft = stock && profile.currentDose > 0
-    ? Math.floor(stock.amouleMg / profile.currentDose) * stock.ampouleCount
-    : null
+  const appsLeft = getAppsLeft(profile)
   const stockLow = appsLeft != null && appsLeft < 4
+
+  const plateauStatus = getPlateauStatus(profile)
+  const showPlateauBanner = ['possivel_estagnacao', 'em_acompanhamento_14dias', 'estagnacao_persistente'].includes(plateauStatus)
+  const plateauMeta = getPlateauStatusMeta(plateauStatus)
 
   // Arco SVG para progresso da meta
   const arcR    = 44
@@ -362,7 +367,7 @@ export default function Dashboard({ profile, onNavigate, onUpdateProfile }: Prop
                 Peso atual
               </p>
               <p style={{ fontSize: '10px', opacity: 0.45, margin: 0, fontFamily: 'Inter, sans-serif', fontWeight: 500 }}>
-                {weeks === 0 ? 'Início' : `${weeks}ª semana`} · {MEDICATION_LABELS[profile.medication]}
+                {weeks === 0 ? 'Início' : `${weeks}ª semana`} · {getMedicationLabel(profile)}
               </p>
             </div>
 
@@ -449,6 +454,33 @@ export default function Dashboard({ profile, onNavigate, onUpdateProfile }: Prop
         </div>
       </button>
 
+      {/* ── Indicador de platô ── */}
+      {showPlateauBanner && (
+        <button
+          onClick={() => onNavigate('health', 'antiplato')}
+          style={{ background: 'none', border: 'none', padding: 0, cursor: 'pointer', textAlign: 'left', width: '100%' }}
+          aria-label="Ver avaliação de platô"
+        >
+          <div style={{
+            display: 'flex', alignItems: 'center', gap: '10px',
+            padding: '11px 16px', borderRadius: '16px',
+            background: `${plateauMeta.color}0f`, border: `1.5px solid ${plateauMeta.color}30`,
+          }}>
+            <div style={{
+              width: '30px', height: '30px', borderRadius: '9px', flexShrink: 0,
+              background: `${plateauMeta.color}18`, display: 'flex',
+              alignItems: 'center', justifyContent: 'center', color: plateauMeta.color,
+            }}>
+              <Search size={15} strokeWidth={2} />
+            </div>
+            <p style={{ flex: 1, fontSize: '12px', fontWeight: 700, color: plateauMeta.color, margin: 0 }}>
+              {plateauMeta.label}
+            </p>
+            <ChevronRight size={14} strokeWidth={2.5} color={plateauMeta.color} />
+          </div>
+        </button>
+      )}
+
       {/* ── Widgets diários ── */}
       <div data-tour="dash-widgets" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
         <WorkoutWidget onNavigate={onNavigate} />
@@ -471,9 +503,13 @@ export default function Dashboard({ profile, onNavigate, onUpdateProfile }: Prop
             <Zap size={36} strokeWidth={1.5} />
           </div>
           <p className="label-base" style={{ marginBottom: '8px' }}>Dose atual</p>
-          <p className="num-display" style={{ fontSize: '28px', color: 'var(--text-primary)', margin: '0 0 6px' }}>
-            {profile.currentDose}
-            <span style={{ fontSize: '13px', fontWeight: 600, color: 'var(--text-muted)', marginLeft: '3px', letterSpacing: '0' }}>mg</span>
+          <p className="num-display" style={{ fontSize: getDoseValue(profile) != null ? '28px' : '16px', color: 'var(--text-primary)', margin: '0 0 6px' }}>
+            {getDoseValue(profile) != null ? (
+              <>
+                {getDoseValue(profile)}
+                <span style={{ fontSize: '13px', fontWeight: 600, color: 'var(--text-muted)', marginLeft: '3px', letterSpacing: '0' }}>mg</span>
+              </>
+            ) : 'Não informada'}
           </p>
           {daysUntilNext !== null && (
             <div style={{
@@ -488,9 +524,9 @@ export default function Dashboard({ profile, onNavigate, onUpdateProfile }: Prop
               </span>
             </div>
           )}
-          {DOSE_PHASE[profile.currentDose] && (
+          {getDoseValue(profile) != null && DOSE_PHASE[getDoseValue(profile)!] && (
             <p style={{ fontSize: '10px', fontWeight: 600, color: 'var(--text-muted)', margin: 0 }}>
-              {DOSE_PHASE[profile.currentDose]}
+              {DOSE_PHASE[getDoseValue(profile)!]}
             </p>
           )}
         </div>

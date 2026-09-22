@@ -14,14 +14,28 @@ export function extractBearerToken(req: VercelRequest): string {
   return authHeader.startsWith('Bearer ') ? authHeader.slice(7).trim() : ''
 }
 
-// Assume que o token já passou pelo UUID_RE — apenas confirma que existe e está ativo
+// Assume que o token já passou pelo UUID_RE — apenas confirma que existe, está
+// ativo e (se expires_at estiver preenchido) ainda não expirou.
+//
+// expires_at é opcional/nullable: tokens sem essa coluna preenchida nunca
+// expiram (comportamento idêntico ao anterior a esta mudança). A emissão de
+// tokens com expiração automática não está habilitada — é uma decisão de
+// produto separada; esta função só passa a respeitar a data quando ela for
+// setada manualmente em algum token.
 export async function isActiveToken(token: string): Promise<boolean> {
   const supabase = getSupabaseAdmin()
-  const { data } = await supabase
+  const { data, error } = await supabase
     .from('tokens')
-    .select('id')
+    .select('id, expires_at')
     .eq('token', token)
     .eq('active', true)
     .maybeSingle()
-  return !!data
+
+  if (error) {
+    console.error('[auth] Erro ao validar token:', error.message)
+    return false
+  }
+  if (!data) return false
+  if (data.expires_at && new Date(data.expires_at).getTime() <= Date.now()) return false
+  return true
 }

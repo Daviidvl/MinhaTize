@@ -13,16 +13,6 @@ export function clearToken(): void {
   removeKey(STORAGE_KEYS.token)
 }
 
-export function getTokenFromURL(): string | null {
-  return new URLSearchParams(window.location.search).get('token')
-}
-
-export function cleanTokenFromURL(): void {
-  const url = new URL(window.location.href)
-  url.searchParams.delete('token')
-  window.history.replaceState({}, '', url.pathname + (url.search !== '?' ? url.search : ''))
-}
-
 // Aceita token puro ou URL completa colada pelo usuário
 export function extractToken(input: string): string {
   const trimmed = input.trim()

@@ -4,7 +4,7 @@ import { setCors } from './_lib/cors.js'
 import { createRateLimiter } from './_lib/rateLimit.js'
 import { extractBearerToken, getClientIp, isActiveToken, UUID_RE } from './_lib/auth.js'
 
-const checkRateLimit = createRateLimiter(5, 3_600_000) // máx 5 relatórios por hora
+const checkRateLimit = createRateLimiter('generate-report', 5, 3_600_000) // máx 5 relatórios por hora
 
 // ─── HTTP helper ──────────────────────────────────────────────────────────────
 function post(url: string, headers: Record<string, string>, body: string): Promise<{ status: number; text: string }> {
@@ -32,10 +32,21 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   if (req.method === 'OPTIONS') return res.status(200).end()
   if (req.method !== 'POST') return res.status(405).end()
 
-  // ── 1. Autenticação: requer token válido no header Authorization ─────────
+  // ── 1. Formato do token (barato, sem I/O) ─────────────────────────────────
   const token = extractBearerToken(req)
   if (!token || !UUID_RE.test(token)) {
     return res.status(401).json({ error: 'Não autorizado.' })
+  }
+
+  // ── 2. Rate limit por IP — antes de qualquer chamada ao banco/Anthropic ───
+  // (movido para antes da consulta ao Supabase: evita que um token de formato
+  // válido mas inexistente/inativo gere uma query ao banco a cada requisição,
+  // sem limite algum de volume.)
+  const ip = getClientIp(req) || 'unknown'
+  const rl = await checkRateLimit(ip)
+  if (!rl.allowed) {
+    res.setHeader('Retry-After', String(rl.retryAfterSeconds))
+    return res.status(429).json({ error: 'Muitas requisições. Tente novamente em 1 hora.' })
   }
 
   if (!process.env.SUPABASE_URL || !process.env.SUPABASE_SERVICE_ROLE_KEY) {
@@ -44,13 +55,6 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
   if (!(await isActiveToken(token))) {
     return res.status(401).json({ error: 'Token inválido.' })
-  }
-
-  // ── 2. Rate limit por IP ──────────────────────────────────────────────────
-  const ip = getClientIp(req) || 'unknown'
-  if (!checkRateLimit(ip)) {
-    res.setHeader('Retry-After', '3600')
-    return res.status(429).json({ error: 'Muitas requisições. Tente novamente em 1 hora.' })
   }
 
   // ── 3. Chave da API Anthropic ─────────────────────────────────────────────

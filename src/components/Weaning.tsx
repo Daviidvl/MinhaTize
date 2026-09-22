@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { AlertTriangle, RotateCcw, Info, ChevronLeft, Scale, Flame, Zap, Utensils, Dumbbell } from 'lucide-react'
-import { UserProfile } from '../types'
+import { DOSE_OPTIONS, UserProfile } from '../types'
+import { getDoseValue } from '../utils/medicationUtils'
 import {
   type Step, type Answers,
   STEP_ORDER, NONE_SYMPTOM, SEVERE_SYMPTOMS, classify, TAPER_DOSES, PROFILE_CONFIG,
@@ -72,7 +73,7 @@ function MultiOption({ label, selected, onClick }: { label: string; selected: bo
 
 // ── Main component ────────────────────────────────────────────────────────────
 export default function Weaning({ profile }: Props) {
-  const defaultDose = profile.currentDose.toString()
+  const defaultDose = String(getDoseValue(profile) ?? '')
 
   const [step, setStep]       = useState<Step>('intro')
   const [answers, setAnswers] = useState<Answers>({
@@ -345,7 +346,7 @@ export default function Weaning({ profile }: Props) {
             Qual a sua dose atual?
           </p>
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '8px', marginTop: '4px' }}>
-            {(['2.5', '5', '7.5', '10', '12.5', '15'] as const).map(dose => (
+            {DOSE_OPTIONS.map(String).map(dose => (
               <button
                 key={dose}
                 onClick={() => { setAnswers(prev => ({ ...prev, q8: dose })); finish() }}

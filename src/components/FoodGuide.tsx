@@ -447,8 +447,8 @@ export default function FoodGuide({ profile }: Props) {
           {/* Banner */}
           <div style={{
             padding: '14px 16px', borderRadius: '16px',
-            background: 'linear-gradient(150deg, #0F766E 0%, #0A5952 100%)',
-            boxShadow: '0 6px 20px rgba(15,118,110,0.30)',
+            background: 'linear-gradient(150deg, #1E1245 0%, #33207A 100%)',
+            boxShadow: '0 6px 20px rgba(51,32,122,0.28)',
           }}>
             <p style={{ fontSize: '9px', fontWeight: 700, color: 'rgba(255,255,255,0.55)', textTransform: 'uppercase', letterSpacing: '0.10em', margin: '0 0 6px' }}>
               Módulo
@@ -597,7 +597,7 @@ export default function FoodGuide({ profile }: Props) {
 
           {/* Resumo */}
           <div style={{ borderRadius: '20px', overflow: 'hidden', border: '1px solid var(--border)', boxShadow: 'var(--shadow-card)' }}>
-            <div style={{ padding: '12px 16px', background: 'linear-gradient(150deg, #0F766E 0%, #0A5952 100%)' }}>
+            <div style={{ padding: '12px 16px', background: 'linear-gradient(150deg, #1E1245 0%, #33207A 100%)' }}>
               <p style={{ fontSize: '9px', fontWeight: 700, color: 'rgba(255,255,255,0.55)', textTransform: 'uppercase', letterSpacing: '0.10em', margin: '0 0 2px' }}>Estratégia</p>
               <p style={{ fontSize: '14px', fontWeight: 800, color: '#fff', margin: 0, letterSpacing: '-0.3px' }}>Resumo</p>
             </div>

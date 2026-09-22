@@ -4,12 +4,13 @@ import {
   Target, Lightbulb, AlertTriangle, Check, ChevronLeft, ChevronRight, Shield,
   MessageCircle, Utensils,
 } from 'lucide-react'
-import { UserProfile, Medication, Sex, MEDICATION_LABELS, WEEK_DAYS_FULL } from '../types'
+import { UserProfile, Medication, Sex, MEDICATION_LABELS, DOSE_OPTIONS, WEEK_DAYS_FULL } from '../types'
 import StockControl from './StockControl'
 import { CONSENT_KEY } from './ConsentGate'
 import { readJSON, removeKey } from '../utils/storage'
 import { USER_DATA_KEYS } from '../utils/storageKeys'
 import { exportAllData } from '../utils/dataExport'
+import { getAppsLeft, getDoseLabel, getMedicationLabel, resolveDoseMode } from '../utils/medicationUtils'
 
 interface Props {
   profile: UserProfile
@@ -20,8 +21,7 @@ interface Props {
 
 type ProfileSection = null | 'achievements' | 'stock' | 'edit' | 'equipe' | 'suporte' | 'legal'
 
-const DOSES = [2.5, 5, 7.5, 10, 12.5, 15]
-const MEDS  = Object.entries(MEDICATION_LABELS) as [Medication, string][]
+const MEDS = Object.entries(MEDICATION_LABELS) as [Medication, string][]
 
 interface Achievement {
   id: string; icon: React.ReactNode; title: string; phrase: string; unlocked: boolean
@@ -129,17 +129,23 @@ function SubHeader({ title, onBack }: { title: string; onBack: () => void }) {
 // ── Main ──────────────────────────────────────────────────────────────────────
 export default function ProfilePage({ profile, onUpdateProfile, onBack, initialSection }: Props) {
   const [section, setSection] = useState<ProfileSection>((initialSection as ProfileSection) ?? null)
+  const initialDose = resolveDoseMode(profile)
   const [form, setForm] = useState({
-    name:           profile.name,
-    age:            profile.age?.toString() ?? '',
-    sex:            (profile.sex ?? '') as Sex | '',
-    medication:     profile.medication,
-    height:         profile.height.toString(),
-    startWeight:    profile.startWeight.toString(),
-    goalWeight:     profile.goalWeight.toString(),
-    currentDose:    profile.currentDose,
-    startDate:      profile.startDate,
-    applicationDay: profile.applicationDay ?? new Date().getDay(),
+    name:            profile.name,
+    age:             profile.age?.toString() ?? '',
+    sex:             (profile.sex ?? '') as Sex | '',
+    medication:      profile.medication,
+    medicationName:  profile.medicationName ?? '',
+    height:          profile.height.toString(),
+    startWeight:     profile.startWeight.toString(),
+    goalWeight:      profile.goalWeight.toString(),
+    doseMode:        initialDose.mode,
+    fixedDose:       initialDose.fixedValue,
+    customDose:      initialDose.customValue,
+    presentationMg:  profile.presentationMg?.toString() ?? '',
+    presentationMl:  profile.presentationMl?.toString() ?? '',
+    startDate:       profile.startDate,
+    applicationDay:  profile.applicationDay ?? new Date().getDay(),
   })
   const [saved, setSaved]         = useState(false)
   const [showReset, setShowReset] = useState(false)
@@ -150,8 +156,25 @@ export default function ProfilePage({ profile, onUpdateProfile, onBack, initialS
   const lastWeight = profile.weightHistory.at(-1)?.weight ?? profile.startWeight
   const totalLost  = profile.startWeight - lastWeight
 
-  function setF(field: string, value: string | number) { setForm(f => ({ ...f, [field]: value })) }
+  function setF(field: string, value: string | number | boolean) { setForm(f => ({ ...f, [field]: value })) }
+
+  function selectMedication(m: Medication) {
+    setForm(f => ({
+      ...f, medication: m,
+      doseMode: m === 'retatrutida' && f.doseMode === 'fixed' ? 'custom' : f.doseMode,
+    }))
+  }
+
+  function resolvedDose(): number | undefined {
+    if (form.doseMode === 'unknown') return undefined
+    if (form.doseMode === 'fixed') return form.fixedDose
+    const n = parseFloat(form.customDose)
+    return n > 0 ? n : undefined
+  }
+
   function canSave() {
+    if (form.medication === 'outro' && form.medicationName.trim().length < 2) return false
+    if (form.doseMode === 'custom' && !(parseFloat(form.customDose) > 0)) return false
     return form.name.trim().length >= 2
       && parseFloat(form.height) > 0
       && parseFloat(form.startWeight) > 0
@@ -159,16 +182,21 @@ export default function ProfilePage({ profile, onUpdateProfile, onBack, initialS
   }
   function handleSave() {
     if (!canSave()) return
+    const presMg = parseFloat(form.presentationMg), presMl = parseFloat(form.presentationMl)
+    const hasPres = presMg > 0 && presMl > 0
     onUpdateProfile({
       ...profile,
       name:           form.name.trim(),
       age:            form.age ? parseInt(form.age) : undefined,
       sex:            (form.sex as Sex) || undefined,
       medication:     form.medication,
+      medicationName: form.medication === 'outro' ? form.medicationName.trim() : undefined,
       height:         parseFloat(form.height),
       startWeight:    parseFloat(form.startWeight),
       goalWeight:     parseFloat(form.goalWeight),
-      currentDose:    form.currentDose,
+      currentDose:    resolvedDose(),
+      presentationMg: hasPres ? presMg : undefined,
+      presentationMl: hasPres ? presMl : undefined,
       startDate:      form.startDate,
       applicationDay: form.applicationDay,
     })
@@ -187,8 +215,7 @@ export default function ProfilePage({ profile, onUpdateProfile, onBack, initialS
 
   const achievements = buildAchievements(profile)
   const unlocked     = achievements.filter(a => a.unlocked).length
-  const stock        = profile.stock
-  const appsLeft     = stock ? Math.floor(stock.amouleMg / profile.currentDose) * stock.ampouleCount : null
+  const appsLeft     = getAppsLeft(profile)
   const stockLow     = appsLeft != null && appsLeft < 4
 
   // ── Sub-pages ───────────────────────────────────────────────────────────────
@@ -262,7 +289,7 @@ export default function ProfilePage({ profile, onUpdateProfile, onBack, initialS
         <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
           <p style={{ fontWeight: 700, fontSize: '14px', color: 'var(--text-primary)', flex: 1, margin: 0 }}>Informe suas ampolas</p>
           <span style={{ fontSize: '11px', color: 'var(--primary)', fontWeight: 700, background: 'var(--primary-light)', padding: '3px 8px', borderRadius: '99px' }}>
-            Dose: {profile.currentDose}mg
+            Dose: {getDoseLabel(profile)}
           </span>
         </div>
         <StockControl profile={profile} onUpdateProfile={onUpdateProfile} />
@@ -329,17 +356,64 @@ export default function ProfilePage({ profile, onUpdateProfile, onBack, initialS
         <p style={{ fontWeight: 700, fontSize: '13px', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.06em', margin: 0 }}>Medicamento</p>
         <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
           {MEDS.map(([v, l]) => (
-            <button key={v} style={{ ...selBtn(form.medication === v), textAlign: 'left', padding: '11px 14px' }} onClick={() => setF('medication', v)}>{l}</button>
+            <button key={v} style={{ ...selBtn(form.medication === v), textAlign: 'left', padding: '11px 14px', display: 'flex', alignItems: 'center', gap: '8px' }}
+              onClick={() => selectMedication(v)}>
+              <span style={{ flex: 1 }}>{l}</span>
+              {v === 'retatrutida' && <span className="badge badge-warm" style={{ fontSize: '9px' }}>investigacional</span>}
+            </button>
           ))}
         </div>
+
+        {form.medication === 'outro' && (
+          <div>
+            <label className="label-base">Nome do medicamento</label>
+            <input type="text" className="input-field" placeholder="Digite o nome do medicamento"
+              value={form.medicationName} onChange={e => setF('medicationName', e.target.value)} maxLength={60} />
+          </div>
+        )}
+
+        {form.medication === 'retatrutida' && (
+          <div className="card-warning">
+            <p style={{ fontSize: '11px', fontWeight: 700, color: 'var(--warn-text)', margin: '0 0 4px' }}>
+              Retatrutida — molécula investigacional
+            </p>
+            <p style={{ fontSize: '12px', color: 'var(--warn-text)', margin: 0, lineHeight: 1.5 }}>
+              As informações cadastradas correspondem aos dados informados pelo usuário e não representam validação da apresentação ou procedência do produto.
+            </p>
+          </div>
+        )}
       </div>
 
       <div className="card" style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
         <p style={{ fontWeight: 700, fontSize: '13px', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.06em', margin: 0 }}>Dose atual</p>
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '7px' }}>
-          {DOSES.map(d => (
-            <button key={d} style={selBtn(form.currentDose === d)} onClick={() => setF('currentDose', d)}>{d}mg</button>
-          ))}
+        {form.medication !== 'retatrutida' && (
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '7px' }}>
+            {DOSE_OPTIONS.map(d => (
+              <button key={d} style={selBtn(form.doseMode === 'fixed' && form.fixedDose === d)}
+                onClick={() => setForm(f => ({ ...f, doseMode: 'fixed', fixedDose: d }))}>{d}mg</button>
+            ))}
+          </div>
+        )}
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '7px' }}>
+          <button style={selBtn(form.doseMode === 'custom')} onClick={() => setF('doseMode', 'custom')}>Outra dose</button>
+          <button style={selBtn(form.doseMode === 'unknown')} onClick={() => setF('doseMode', 'unknown')}>Não sei informar</button>
+        </div>
+        {form.doseMode === 'custom' && (
+          <div>
+            <label className="label-base">Digite a dose utilizada por aplicação (mg)</label>
+            <input type="number" className="input-field" placeholder="Ex: 6"
+              value={form.customDose} onChange={e => setF('customDose', e.target.value)} min={0.1} step={0.1} />
+          </div>
+        )}
+      </div>
+
+      <div className="card" style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+        <p style={{ fontWeight: 700, fontSize: '13px', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.06em', margin: 0 }}>Apresentação do produto (opcional)</p>
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
+          <input type="number" className="input-field" placeholder="Concentração (mg)"
+            value={form.presentationMg} onChange={e => setF('presentationMg', e.target.value)} min={0.1} step={0.1} />
+          <input type="number" className="input-field" placeholder="Volume (mL)"
+            value={form.presentationMl} onChange={e => setF('presentationMl', e.target.value)} min={0.01} step={0.01} />
         </div>
       </div>
 
@@ -553,7 +627,7 @@ export default function ProfilePage({ profile, onUpdateProfile, onBack, initialS
         <div style={{ flex: 1, minWidth: 0 }}>
           <p style={{ fontWeight: 800, fontSize: '18px', margin: 0, letterSpacing: '-0.3px' }}>{profile.name}</p>
           <p style={{ fontSize: '12px', opacity: 0.75, margin: '3px 0 0' }}>
-            {MEDICATION_LABELS[profile.medication]} · {profile.currentDose}mg
+            {getMedicationLabel(profile)} · {getDoseLabel(profile)}
           </p>
         </div>
         <button onClick={() => setSection('edit')} style={{
