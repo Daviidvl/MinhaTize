@@ -236,9 +236,9 @@ function AutoView({ profile, onUpdateProfile, onGoProgress, onStartScreening, on
       <PlateauCard
         tone="neutral"
         icon={<BarChart2 size={26} strokeWidth={2} />}
-        title="Ainda precisamos de mais dados"
-        subtitle="Continue registrando seu peso para que o Minha Tize consiga analisar sua evolução com mais precisão."
-        cta={{ label: 'Registrar peso', onClick: onGoProgress }}
+        title="Sua evolução continua acontecendo"
+        subtitle="Pelos registros disponíveis, seu peso ainda apresenta tendência de mudança. No momento, não há sinal claro de estabilização."
+        cta={{ label: 'Ver minha evolução', onClick: onGoProgress }}
       />
     )
   }
@@ -381,8 +381,18 @@ function ReassessmentView({ profile, onUpdateProfile, tracking, onOpenHabits, on
 // ── Triagem rápida (4 perguntas — usuário com histórico) ───────────────────────
 
 const DEFAULT_SCREENING: PlateauScreeningAnswers = {
-  fomeAumentou: null, mudouRotina: null, retencao: null, pesoEstavel: null,
+  pesoIgualTresSemanas: null, alimentacaoMudou: null, atividadeMudou: null,
+  fatoresTemporarios: [], controleFome: null,
 }
+
+const FATORES_TEMPORARIOS = [
+  { id: 'retencao',        label: 'Retenção de líquidos' },
+  { id: 'constipacao',     label: 'Constipação' },
+  { id: 'ciclo_menstrual', label: 'Ciclo menstrual' },
+  { id: 'treino_intenso',  label: 'Treino mais intenso' },
+  { id: 'sono_estresse',   label: 'Sono / estresse' },
+  { id: 'nenhum',          label: 'Nenhum' },
+]
 
 function ScreeningFlow({ profile, onUpdateProfile, onDone, onCancel }: {
   profile: UserProfile
@@ -391,8 +401,17 @@ function ScreeningFlow({ profile, onUpdateProfile, onDone, onCancel }: {
   onCancel: () => void
 }) {
   const [answers, setAnswers] = useState<PlateauScreeningAnswers>(DEFAULT_SCREENING)
-  const ok = answers.fomeAumentou !== null && answers.mudouRotina !== null
-    && answers.retencao !== null && answers.pesoEstavel !== null
+  const ok = answers.pesoIgualTresSemanas !== null && answers.alimentacaoMudou !== null
+    && answers.atividadeMudou !== null && answers.fatoresTemporarios.length > 0 && answers.controleFome !== null
+
+  function toggleFator(id: string) {
+    setAnswers(a => {
+      if (id === 'nenhum') return { ...a, fatoresTemporarios: a.fatoresTemporarios.includes('nenhum') ? [] : ['nenhum'] }
+      const semNenhum = a.fatoresTemporarios.filter(f => f !== 'nenhum')
+      const next = semNenhum.includes(id) ? semNenhum.filter(f => f !== id) : [...semNenhum, id]
+      return { ...a, fatoresTemporarios: next }
+    })
+  }
 
   function startTracking() {
     const lastWeight = profile.weightHistory.at(-1)?.weight ?? profile.currentWeight ?? profile.startWeight
@@ -404,38 +423,50 @@ function ScreeningFlow({ profile, onUpdateProfile, onDone, onCancel }: {
     onDone()
   }
 
-  const showNote = ok && (answers.retencao !== 'nao' || answers.pesoEstavel === 'oscilando')
+  const fatoresAtivos = answers.fatoresTemporarios.filter(f => f !== 'nenhum')
+  const showNote = ok && (fatoresAtivos.length > 0 || answers.pesoIgualTresSemanas === 'nao_tenho_certeza')
 
   return (
     <div className="fade-in" style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
-      <StepHeader title="Avaliação rápida" subtitle="4 perguntas para entender melhor o momento" />
+      <StepHeader title="Avaliação rápida" subtitle="5 perguntas para entender melhor o momento" />
 
       <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-        <p style={{ fontWeight: 700, fontSize: '14px', color: 'var(--text-primary)', margin: 0 }}>A fome aumentou recentemente?</p>
-        <RadioBtn label="Sim" selected={answers.fomeAumentou === true} onClick={() => setAnswers(a => ({ ...a, fomeAumentou: true }))} />
-        <RadioBtn label="Não" selected={answers.fomeAumentou === false} onClick={() => setAnswers(a => ({ ...a, fomeAumentou: false }))} />
+        <p style={{ fontWeight: 700, fontSize: '14px', color: 'var(--text-primary)', margin: 0 }}>
+          Seu peso está praticamente igual há 3 semanas ou mais?
+        </p>
+        <RadioBtn label="Sim" selected={answers.pesoIgualTresSemanas === 'sim'} onClick={() => setAnswers(a => ({ ...a, pesoIgualTresSemanas: 'sim' }))} />
+        <RadioBtn label="Não" selected={answers.pesoIgualTresSemanas === 'nao'} onClick={() => setAnswers(a => ({ ...a, pesoIgualTresSemanas: 'nao' }))} />
+        <RadioBtn label="Não tenho certeza" selected={answers.pesoIgualTresSemanas === 'nao_tenho_certeza'} onClick={() => setAnswers(a => ({ ...a, pesoIgualTresSemanas: 'nao_tenho_certeza' }))} />
       </div>
 
       <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-        <p style={{ fontWeight: 700, fontSize: '14px', color: 'var(--text-primary)', margin: 0 }}>Sua alimentação ou atividade física mudou recentemente?</p>
-        <RadioBtn label="Sim" selected={answers.mudouRotina === true} onClick={() => setAnswers(a => ({ ...a, mudouRotina: true }))} />
-        <RadioBtn label="Não" selected={answers.mudouRotina === false} onClick={() => setAnswers(a => ({ ...a, mudouRotina: false }))} />
+        <p style={{ fontWeight: 700, fontSize: '14px', color: 'var(--text-primary)', margin: 0 }}>Sua alimentação mudou nas últimas semanas?</p>
+        <RadioBtn label="Sim"       selected={answers.alimentacaoMudou === 'sim'}       onClick={() => setAnswers(a => ({ ...a, alimentacaoMudou: 'sim' }))} />
+        <RadioBtn label="Não"       selected={answers.alimentacaoMudou === 'nao'}       onClick={() => setAnswers(a => ({ ...a, alimentacaoMudou: 'nao' }))} />
+        <RadioBtn label="Um pouco"  selected={answers.alimentacaoMudou === 'um_pouco'}  onClick={() => setAnswers(a => ({ ...a, alimentacaoMudou: 'um_pouco' }))} />
+      </div>
+
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+        <p style={{ fontWeight: 700, fontSize: '14px', color: 'var(--text-primary)', margin: 0 }}>Sua atividade física ou rotina de exercícios mudou?</p>
+        <RadioBtn label="Sim"      selected={answers.atividadeMudou === 'sim'}      onClick={() => setAnswers(a => ({ ...a, atividadeMudou: 'sim' }))} />
+        <RadioBtn label="Não"      selected={answers.atividadeMudou === 'nao'}      onClick={() => setAnswers(a => ({ ...a, atividadeMudou: 'nao' }))} />
+        <RadioBtn label="Um pouco" selected={answers.atividadeMudou === 'um_pouco'} onClick={() => setAnswers(a => ({ ...a, atividadeMudou: 'um_pouco' }))} />
       </div>
 
       <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
         <p style={{ fontWeight: 700, fontSize: '14px', color: 'var(--text-primary)', margin: 0 }}>
-          Percebeu retenção, constipação ou alguma alteração que possa influenciar a balança?
+          Você percebeu algum fator que possa alterar temporariamente seu peso?
         </p>
-        <RadioBtn label="Sim"     selected={answers.retencao === 'sim'}     onClick={() => setAnswers(a => ({ ...a, retencao: 'sim' }))} />
-        <RadioBtn label="Não"     selected={answers.retencao === 'nao'}     onClick={() => setAnswers(a => ({ ...a, retencao: 'nao' }))} />
-        <RadioBtn label="Não sei" selected={answers.retencao === 'nao_sei'} onClick={() => setAnswers(a => ({ ...a, retencao: 'nao_sei' }))} />
+        {FATORES_TEMPORARIOS.map(f => (
+          <CheckBtn key={f.id} label={f.label} checked={answers.fatoresTemporarios.includes(f.id)} onChange={() => toggleFator(f.id)} />
+        ))}
       </div>
 
       <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-        <p style={{ fontWeight: 700, fontSize: '14px', color: 'var(--text-primary)', margin: 0 }}>Seu peso está realmente estável ou está oscilando?</p>
-        <RadioBtn label="Estável"  selected={answers.pesoEstavel === 'estavel'}   onClick={() => setAnswers(a => ({ ...a, pesoEstavel: 'estavel' }))} />
-        <RadioBtn label="Oscilando" selected={answers.pesoEstavel === 'oscilando'} onClick={() => setAnswers(a => ({ ...a, pesoEstavel: 'oscilando' }))} />
-        <RadioBtn label="Não sei"  selected={answers.pesoEstavel === 'nao_sei'}   onClick={() => setAnswers(a => ({ ...a, pesoEstavel: 'nao_sei' }))} />
+        <p style={{ fontWeight: 700, fontSize: '14px', color: 'var(--text-primary)', margin: 0 }}>Como está o controle da fome atualmente?</p>
+        <RadioBtn label="Igual"     selected={answers.controleFome === 'igual'}     onClick={() => setAnswers(a => ({ ...a, controleFome: 'igual' }))} />
+        <RadioBtn label="Aumentou"  selected={answers.controleFome === 'aumentou'}  onClick={() => setAnswers(a => ({ ...a, controleFome: 'aumentou' }))} />
+        <RadioBtn label="Diminuiu"  selected={answers.controleFome === 'diminuiu'}  onClick={() => setAnswers(a => ({ ...a, controleFome: 'diminuiu' }))} />
       </div>
 
       {showNote && (
@@ -443,8 +474,8 @@ function ScreeningFlow({ profile, onUpdateProfile, onDone, onCancel }: {
           <div style={{ display: 'flex', gap: '8px', alignItems: 'flex-start' }}>
             <Info size={13} strokeWidth={2} style={{ flexShrink: 0, marginTop: '1px', color: 'var(--warn-text)' }} />
             <p style={{ fontSize: '12px', color: 'var(--warn-text)', lineHeight: 1.5, margin: 0 }}>
-              {answers.retencao !== 'nao' && 'Retenção ou constipação podem mascarar a balança temporariamente. '}
-              {answers.pesoEstavel === 'oscilando' && 'Peso oscilando pode não indicar um platô real ainda.'}
+              {fatoresAtivos.length > 0 && 'Os fatores selecionados podem mascarar a balança temporariamente. '}
+              {answers.pesoIgualTresSemanas === 'nao_tenho_certeza' && 'Sem certeza sobre a estabilidade, o acompanhamento de 14 dias ajuda a confirmar a tendência.'}
             </p>
           </div>
         </div>
