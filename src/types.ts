@@ -37,10 +37,11 @@ export type PlateauStatus =
   | 'estagnacao_persistente'
 
 export interface PlateauScreeningAnswers {
-  fomeAumentou: boolean | null
-  mudouRotina: boolean | null
-  retencao: 'sim' | 'nao' | 'nao_sei' | null
-  pesoEstavel: 'estavel' | 'oscilando' | 'nao_sei' | null
+  pesoIgualTresSemanas: 'sim' | 'nao' | 'nao_tenho_certeza' | null
+  alimentacaoMudou: 'sim' | 'nao' | 'um_pouco' | null
+  atividadeMudou: 'sim' | 'nao' | 'um_pouco' | null
+  fatoresTemporarios: string[]
+  controleFome: 'igual' | 'aumentou' | 'diminuiu' | null
 }
 
 export interface PlateauNewUserAnswers {
