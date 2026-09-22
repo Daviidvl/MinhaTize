@@ -6,7 +6,7 @@ import SideEffects from './SideEffects'
 import AntiPlato from './AntiPlato'
 import Storage from './Storage'
 import Exercise from './Exercise'
-import { UserProfile } from '../types'
+import { Tab, UserProfile } from '../types'
 import {
   type HealthTab,
   SECTION_ICON_MAP, SECTION_ICON_SM, SYMPTOM_ICON_MAP, SUPP_ICON_MAP,
@@ -17,9 +17,10 @@ interface Props {
   profile: UserProfile
   onUpdateProfile: (p: UserProfile) => void
   initialSection?: string
+  onNavigate?: (tab: Tab, section?: string) => void
 }
 // ── Component ─────────────────────────────────────────────────────────────────
-export default function HealthHub({ profile, onUpdateProfile, initialSection }: Props) {
+export default function HealthHub({ profile, onUpdateProfile, initialSection, onNavigate }: Props) {
   const [activeSection, setActiveSection] = useState<HealthTab | null>(
     (initialSection as HealthTab) ?? null
   )
@@ -295,7 +296,9 @@ export default function HealthHub({ profile, onUpdateProfile, initialSection }: 
           )}
 
           {/* ── ANTI-PLATÔ ─────────────────────────────────────────────── */}
-          {activeSection === 'antiplato' && <AntiPlato />}
+          {activeSection === 'antiplato' && (
+            <AntiPlato profile={profile} onUpdateProfile={onUpdateProfile} onNavigate={onNavigate} />
+          )}
 
           {/* ── ARMAZENAMENTO ──────────────────────────────────────────── */}
           {activeSection === 'storage' && <Storage />}

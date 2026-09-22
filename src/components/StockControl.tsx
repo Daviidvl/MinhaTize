@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { StockInfo, UserProfile } from '../types'
+import { getDoseValue } from '../utils/medicationUtils'
 
 interface Props {
   profile: UserProfile
@@ -32,9 +33,9 @@ export default function StockControl({ profile, onUpdateProfile }: Props) {
   // Cálculos
   const amouleMg    = parseFloat(form.amouleMg)   || 0
   const ampouleCount= parseFloat(form.ampouleCount)|| 0
-  const dose        = profile.currentDose
+  const dose        = getDoseValue(profile)
 
-  const dosesPerAmpoule = amouleMg > 0 && dose > 0 ? Math.floor(amouleMg / dose) : 0
+  const dosesPerAmpoule = amouleMg > 0 && dose != null && dose > 0 ? Math.floor(amouleMg / dose) : 0
   const totalDoses      = dosesPerAmpoule * ampouleCount
   const weeksRemaining  = totalDoses
   const daysRemaining   = weeksRemaining * 7
@@ -72,8 +73,16 @@ export default function StockControl({ profile, onUpdateProfile }: Props) {
         </button>
       </div>
 
+      {dose == null && (
+        <div className="card-warning">
+          <p style={{ fontSize: '12px', color: 'var(--warn-text)', margin: 0 }}>
+            Informe sua dose no cadastro do perfil para calcular quantas aplicações restam no estoque.
+          </p>
+        </div>
+      )}
+
       {/* Resultado */}
-      {dosesPerAmpoule > 0 && ampouleCount > 0 && (
+      {dose != null && dosesPerAmpoule > 0 && ampouleCount > 0 && (
         <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
           {[
             { label: 'Doses por ampola',         value: `${dosesPerAmpoule} aplicações`, color: 'var(--text-primary)' },

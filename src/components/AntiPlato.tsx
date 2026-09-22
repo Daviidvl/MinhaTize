@@ -1,21 +1,21 @@
 import { useState, useEffect } from 'react'
 import {
-  Target, Search, BarChart2, Calendar, ClipboardList,
+  Target, Search, BarChart2, ClipboardList,
   Droplets, Dumbbell, Activity, Moon,
   AlertCircle, AlertTriangle, CheckCircle2, Sparkles,
-  CheckCheck, TrendingUp, Minus, Flag,
+  CheckCheck, TrendingUp, TrendingDown, Minus, Flag,
   Scale, Info, FileText, Zap, Leaf, Lightbulb, Check,
 } from 'lucide-react'
 import { getStoredToken } from '../utils/token'
-import { readJSON, writeJSON, removeKey } from '../utils/storage'
-import { STORAGE_KEYS } from '../utils/storageKeys'
+import { UserProfile, Tab, PlateauScreeningAnswers, PlateauNewUserAnswers, PlateauTracking } from '../types'
 import {
   type WizardStep, type Answers, type PlanData,
   FOOD_ITEMS, MEDS_LIST, CHECK_ITEMS, WEIGH_DAYS, STEP_NUMS, DEFAULT_ANSWERS,
   computeDiagnosis, getDayNumber, getRawDay,
 } from '../utils/antiPlatoUtils'
-
-const PLAN_KEY = STORAGE_KEYS.antiPlatoPlan
+import {
+  hasUsableHistory, getWeightTrend, evaluateNewUser, evaluateReassessment, writePlateauStatus,
+} from '../utils/plateauUtils'
 
 const CHECK_ICON: Record<string, React.ReactNode> = {
   water:    <Droplets      size={16} strokeWidth={2} />,
@@ -30,10 +30,6 @@ const LEVEL_ICON: Record<string, React.ReactNode> = {
   high:     <AlertCircle   size={18} strokeWidth={2} />,
   moderate: <AlertTriangle size={18} strokeWidth={2} />,
   low:      <CheckCircle2  size={18} strokeWidth={2} />,
-}
-
-function saveToStorage(plan: PlanData) {
-  writeJSON(PLAN_KEY, plan)
 }
 
 // ── Shared UI helpers ─────────────────────────────────────────────────────────
@@ -89,42 +85,528 @@ function CheckBtn({ label, checked, onChange }: { label: string; checked: boolea
   )
 }
 
-// ── Component ─────────────────────────────────────────────────────────────────
+function StepHeader({ title, subtitle, stepNum, totalSteps }: {
+  title: string; subtitle?: string; stepNum?: number; totalSteps?: number
+}) {
+  return (
+    <div>
+      {stepNum != null && totalSteps != null && (
+        <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '12px' }}>
+          <div style={{ flex: 1, height: '4px', borderRadius: '99px', background: 'var(--surface-3)', overflow: 'hidden' }}>
+            <div style={{
+              height: '100%', borderRadius: '99px', background: 'var(--primary)',
+              width: `${(stepNum / totalSteps) * 100}%`, transition: 'width 0.4s ease',
+            }} />
+          </div>
+          <span style={{ fontSize: '11px', fontWeight: 700, color: 'var(--text-muted)', whiteSpace: 'nowrap' }}>
+            {stepNum} de {totalSteps}
+          </span>
+        </div>
+      )}
+      <h3 style={{ fontSize: '18px', fontWeight: 800, color: 'var(--text-primary)', margin: 0 }}>{title}</h3>
+      {subtitle && <p style={{ fontSize: '13px', color: 'var(--text-muted)', margin: 0, marginTop: '4px' }}>{subtitle}</p>}
+    </div>
+  )
+}
 
-export default function AntiPlato() {
-  const [step, setStep]         = useState<WizardStep>('intro')
-  const [answers, setAnswers]   = useState<Answers>(DEFAULT_ANSWERS)
-  const [plan, setPlan]         = useState<PlanData | null>(null)
+function NextBtn({ onClick, disabled = false, label = 'Continuar →' }: { onClick: () => void; disabled?: boolean; label?: string }) {
+  return (
+    <button onClick={onClick} disabled={disabled} className="btn-primary" style={{ width: '100%', marginTop: '4px' }}>
+      {label}
+    </button>
+  )
+}
+
+function PlateauCard({
+  tone, icon, title, subtitle, cta, secondaryCta,
+}: {
+  tone: 'positive' | 'warning' | 'negative' | 'neutral'
+  icon: React.ReactNode
+  title: string
+  subtitle: string
+  cta: { label: string; onClick: () => void }
+  secondaryCta?: { label: string; onClick: () => void }
+}) {
+  const palette = {
+    positive: { bg: 'var(--primary-light)', border: 'rgba(16,185,129,0.3)', color: '#10B981' },
+    warning:  { bg: 'rgba(245,158,11,0.08)', border: 'rgba(245,158,11,0.3)', color: '#F59E0B' },
+    negative: { bg: 'rgba(239,68,68,0.06)', border: 'rgba(239,68,68,0.2)', color: '#EF4444' },
+    neutral:  { bg: 'var(--surface)', border: 'var(--border)', color: 'var(--text-muted)' },
+  }[tone]
+
+  return (
+    <div className="fade-in" style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+      <div style={{
+        borderRadius: '20px', padding: '24px 22px', textAlign: 'center',
+        background: palette.bg, border: `1.5px solid ${palette.border}`,
+      }}>
+        <div style={{
+          width: '52px', height: '52px', borderRadius: '14px', margin: '0 auto 14px',
+          background: palette.bg, border: `1px solid ${palette.border}`,
+          display: 'flex', alignItems: 'center', justifyContent: 'center', color: palette.color,
+        }}>
+          {icon}
+        </div>
+        <h3 style={{ fontSize: '18px', fontWeight: 800, color: palette.color, margin: 0 }}>{title}</h3>
+        <p style={{ fontSize: '13px', color: 'var(--text-secondary)', marginTop: '8px', lineHeight: 1.6 }}>{subtitle}</p>
+      </div>
+
+      <button onClick={cta.onClick} className="btn-primary" style={{ width: '100%' }}>{cta.label}</button>
+      {secondaryCta && (
+        <button onClick={secondaryCta.onClick} className="btn-ghost" style={{ width: '100%' }}>{secondaryCta.label}</button>
+      )}
+
+      <p style={{ fontSize: '11px', color: 'var(--text-muted)', textAlign: 'center', lineHeight: 1.5 }}>
+        Módulo educativo. Não substitui avaliação médica. Não sugere alteração de dose.
+      </p>
+    </div>
+  )
+}
+
+// ── Fluxo automático (entrada da tela Platô) ───────────────────────────────────
+
+interface AutoViewProps {
+  profile: UserProfile
+  onUpdateProfile: (p: UserProfile) => void
+  onGoProgress: () => void
+  onStartScreening: () => void
+  onStartNewUser: () => void
+  onOpenHabits: () => void
+}
+
+function AutoView({ profile, onUpdateProfile, onGoProgress, onStartScreening, onStartNewUser, onOpenHabits }: AutoViewProps) {
+  const tracking = profile.plateau?.tracking
+  const usable   = !tracking && hasUsableHistory(profile)
+  const trend    = usable ? getWeightTrend(profile) : null
+
+  useEffect(() => {
+    if (tracking || !trend) return
+    const desired = trend.verdict === 'queda'
+      ? 'tendencia_queda'
+      : trend.verdict === 'insuficiente'
+        ? 'sem_sinal'
+        : 'possivel_estagnacao'
+    const current = profile.plateau?.status ?? 'sem_sinal'
+    if (current === 'estagnacao_persistente' && desired !== 'tendencia_queda') return
+    if (current !== desired) {
+      onUpdateProfile(writePlateauStatus(profile, { status: desired }))
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [tracking, trend?.verdict, profile.plateau?.status])
+
+  if (tracking) {
+    const rawDay = getRawDay(tracking.startDate)
+    if (rawDay > 14) {
+      return (
+        <ReassessmentView
+          profile={profile} onUpdateProfile={onUpdateProfile} tracking={tracking}
+          onOpenHabits={onOpenHabits} onGoProgress={onGoProgress}
+        />
+      )
+    }
+    return <TrackingView profile={profile} tracking={tracking} onGoProgress={onGoProgress} onOpenHabits={onOpenHabits} />
+  }
+
+  if (!usable) {
+    return (
+      <PlateauCard
+        tone="neutral"
+        icon={<Scale size={26} strokeWidth={2} />}
+        title="Vamos avaliar seu platô"
+        subtitle="Ainda não temos histórico suficiente de peso. Responda 3 perguntas rápidas para uma primeira avaliação."
+        cta={{ label: 'Iniciar avaliação rápida', onClick: onStartNewUser }}
+      />
+    )
+  }
+
+  if (trend!.verdict === 'queda') {
+    return (
+      <PlateauCard
+        tone="positive"
+        icon={<TrendingDown size={26} strokeWidth={2} />}
+        title="Sua tendência de peso ainda é de queda"
+        subtitle="Pequenas oscilações são normais. Continue registrando seu peso para acompanharmos sua evolução."
+        cta={{ label: 'Ver minha evolução', onClick: onGoProgress }}
+      />
+    )
+  }
+
+  if (trend!.verdict === 'insuficiente') {
+    return (
+      <PlateauCard
+        tone="neutral"
+        icon={<BarChart2 size={26} strokeWidth={2} />}
+        title="Ainda precisamos de mais dados"
+        subtitle="Continue registrando seu peso para que o Minha Tize consiga analisar sua evolução com mais precisão."
+        cta={{ label: 'Registrar peso', onClick: onGoProgress }}
+      />
+    )
+  }
+
+  return (
+    <PlateauCard
+      tone="warning"
+      icon={<Search size={26} strokeWidth={2} />}
+      title="Possível estagnação identificada"
+      subtitle="Seu peso apresentou pouca variação nas últimas semanas. Vamos fazer uma avaliação rápida antes de concluir se existe um platô."
+      cta={{ label: 'Fazer avaliação rápida', onClick: onStartScreening }}
+      secondaryCta={{ label: 'Quero uma avaliação completa de hábitos', onClick: onOpenHabits }}
+    />
+  )
+}
+
+// ── Acompanhamento ativo (dia X de 14) ─────────────────────────────────────────
+
+function TrackingView({ profile, tracking, onGoProgress, onOpenHabits }: {
+  profile: UserProfile
+  tracking: PlateauTracking
+  onGoProgress: () => void
+  onOpenHabits: () => void
+}) {
+  const day = getDayNumber(tracking.startDate)
+  const entriesSinceStart = profile.weightHistory.filter(e => e.date >= tracking.startDate)
+
+  return (
+    <div className="fade-in" style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+      <div style={{
+        background: 'linear-gradient(135deg, #7C3AED 0%, #4F46E5 100%)',
+        borderRadius: '20px', padding: '20px', color: '#fff',
+        boxShadow: '0 8px 24px rgba(124,58,237,0.3)',
+      }}>
+        <p style={{ fontSize: '11px', fontWeight: 700, opacity: 0.7, textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: '6px' }}>
+          Acompanhamento de platô
+        </p>
+        <p style={{ fontSize: '26px', fontWeight: 800, margin: 0 }}>
+          Dia {day} <span style={{ fontSize: '16px', opacity: 0.7 }}>de 14</span>
+        </p>
+        <div style={{ marginTop: '12px', height: '4px', borderRadius: '99px', background: 'rgba(255,255,255,0.2)', overflow: 'hidden' }}>
+          <div style={{ height: '100%', borderRadius: '99px', background: '#fff', width: `${(day / 14) * 100}%`, transition: 'width 0.5s ease' }} />
+        </div>
+      </div>
+
+      <div className="card" style={{ padding: '16px' }}>
+        <p style={{ fontWeight: 700, fontSize: '14px', color: 'var(--text-primary)', margin: '0 0 6px' }}>
+          Continue registrando seu peso normalmente
+        </p>
+        <p style={{ fontSize: '12px', color: 'var(--text-muted)', margin: 0, lineHeight: 1.5 }}>
+          Não é preciso preencher nada aqui — seus registros feitos em Progresso alimentam automaticamente esta avaliação.
+        </p>
+      </div>
+
+      {entriesSinceStart.length > 0 && (
+        <div className="card">
+          <p className="label-base" style={{ marginBottom: '10px' }}>Pesagens neste período</p>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+            {entriesSinceStart.map((e, i) => (
+              <div key={e.date + i} style={{
+                display: 'flex', justifyContent: 'space-between', padding: '8px 12px',
+                borderRadius: '10px', background: 'var(--surface-2)',
+              }}>
+                <span style={{ fontSize: '12px', color: 'var(--text-muted)', fontWeight: 600 }}>
+                  {new Date(e.date + 'T12:00:00').toLocaleDateString('pt-BR', { day: '2-digit', month: 'short' })}
+                </span>
+                <span style={{ fontSize: '13px', fontWeight: 800, color: 'var(--text-primary)' }}>{e.weight}kg</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      <button onClick={onGoProgress} className="btn-primary" style={{ width: '100%' }}>Registrar peso</button>
+      <button onClick={onOpenHabits} className="btn-ghost" style={{ width: '100%' }}>Quero uma avaliação completa de hábitos</button>
+    </div>
+  )
+}
+
+// ── Reavaliação após 14 dias ────────────────────────────────────────────────────
+
+function ReassessmentView({ profile, onUpdateProfile, tracking, onOpenHabits, onGoProgress }: {
+  profile: UserProfile
+  onUpdateProfile: (p: UserProfile) => void
+  tracking: PlateauTracking
+  onOpenHabits: () => void
+  onGoProgress: () => void
+}) {
+  const verdict = evaluateReassessment(profile, tracking)
+
+  const config = {
+    tendencia_queda: {
+      icon: <TrendingDown size={36} strokeWidth={2} />, color: '#10B981',
+      bg: 'var(--primary-light)', border: 'rgba(16,185,129,0.3)',
+      title: 'Tendência de queda',
+      msg: 'Sua evolução mostra tendência de queda. Não há evidência suficiente de estagnação neste momento.',
+      nextStatus: 'tendencia_queda' as const,
+    },
+    oscilacao_inconclusiva: {
+      icon: <Search size={36} strokeWidth={2} />, color: '#F59E0B',
+      bg: 'rgba(245,158,11,0.08)', border: 'rgba(245,158,11,0.3)',
+      title: 'Oscilação nos dados',
+      msg: 'Sua evolução apresentou oscilações. Ainda não há dados suficientes para concluir que exista um platô. Continue registrando seu peso.',
+      nextStatus: 'possivel_estagnacao' as const,
+    },
+    estagnacao_persistente: {
+      icon: <AlertTriangle size={36} strokeWidth={2} />, color: '#EF4444',
+      bg: 'rgba(239,68,68,0.06)', border: 'rgba(239,68,68,0.2)',
+      title: 'Estabilidade persistente',
+      msg: 'A estabilidade do peso persiste. Os dados mostram uma possível estagnação. Considere discutir sua evolução com o profissional que acompanha seu tratamento.',
+      nextStatus: 'estagnacao_persistente' as const,
+    },
+  }[verdict]
+
+  function conclude() {
+    onUpdateProfile(writePlateauStatus(profile, {
+      status: config.nextStatus,
+      tracking: undefined,
+      lastCycleResult: { date: new Date().toISOString().split('T')[0], status: config.nextStatus, note: config.msg },
+    }))
+  }
+
+  return (
+    <div className="fade-in" style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+      <div style={{ padding: '22px', borderRadius: '20px', background: config.bg, border: `1.5px solid ${config.border}`, textAlign: 'center' }}>
+        <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '14px', color: config.color }}>{config.icon}</div>
+        <h3 style={{ fontSize: '18px', fontWeight: 800, color: config.color, margin: 0 }}>{config.title}</h3>
+        <p style={{ fontSize: '13px', color: 'var(--text-secondary)', marginTop: '8px', lineHeight: 1.6 }}>{config.msg}</p>
+      </div>
+
+      <button onClick={conclude} className="btn-primary" style={{ width: '100%' }}>Concluir avaliação</button>
+      {verdict === 'estagnacao_persistente'
+        ? <button onClick={onOpenHabits} className="btn-ghost" style={{ width: '100%' }}>Quero uma avaliação completa de hábitos</button>
+        : <button onClick={onGoProgress} className="btn-ghost" style={{ width: '100%' }}>Ver minha evolução</button>
+      }
+    </div>
+  )
+}
+
+// ── Triagem rápida (4 perguntas — usuário com histórico) ───────────────────────
+
+const DEFAULT_SCREENING: PlateauScreeningAnswers = {
+  fomeAumentou: null, mudouRotina: null, retencao: null, pesoEstavel: null,
+}
+
+function ScreeningFlow({ profile, onUpdateProfile, onDone, onCancel }: {
+  profile: UserProfile
+  onUpdateProfile: (p: UserProfile) => void
+  onDone: () => void
+  onCancel: () => void
+}) {
+  const [answers, setAnswers] = useState<PlateauScreeningAnswers>(DEFAULT_SCREENING)
+  const ok = answers.fomeAumentou !== null && answers.mudouRotina !== null
+    && answers.retencao !== null && answers.pesoEstavel !== null
+
+  function startTracking() {
+    const lastWeight = profile.weightHistory.at(-1)?.weight ?? profile.currentWeight ?? profile.startWeight
+    onUpdateProfile(writePlateauStatus(profile, {
+      status: 'em_acompanhamento_14dias',
+      screeningAnswers: answers,
+      tracking: { startDate: new Date().toISOString().split('T')[0], origin: 'com_historico', baselineWeight: lastWeight },
+    }))
+    onDone()
+  }
+
+  const showNote = ok && (answers.retencao !== 'nao' || answers.pesoEstavel === 'oscilando')
+
+  return (
+    <div className="fade-in" style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+      <StepHeader title="Avaliação rápida" subtitle="4 perguntas para entender melhor o momento" />
+
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+        <p style={{ fontWeight: 700, fontSize: '14px', color: 'var(--text-primary)', margin: 0 }}>A fome aumentou recentemente?</p>
+        <RadioBtn label="Sim" selected={answers.fomeAumentou === true} onClick={() => setAnswers(a => ({ ...a, fomeAumentou: true }))} />
+        <RadioBtn label="Não" selected={answers.fomeAumentou === false} onClick={() => setAnswers(a => ({ ...a, fomeAumentou: false }))} />
+      </div>
+
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+        <p style={{ fontWeight: 700, fontSize: '14px', color: 'var(--text-primary)', margin: 0 }}>Sua alimentação ou atividade física mudou recentemente?</p>
+        <RadioBtn label="Sim" selected={answers.mudouRotina === true} onClick={() => setAnswers(a => ({ ...a, mudouRotina: true }))} />
+        <RadioBtn label="Não" selected={answers.mudouRotina === false} onClick={() => setAnswers(a => ({ ...a, mudouRotina: false }))} />
+      </div>
+
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+        <p style={{ fontWeight: 700, fontSize: '14px', color: 'var(--text-primary)', margin: 0 }}>
+          Percebeu retenção, constipação ou alguma alteração que possa influenciar a balança?
+        </p>
+        <RadioBtn label="Sim"     selected={answers.retencao === 'sim'}     onClick={() => setAnswers(a => ({ ...a, retencao: 'sim' }))} />
+        <RadioBtn label="Não"     selected={answers.retencao === 'nao'}     onClick={() => setAnswers(a => ({ ...a, retencao: 'nao' }))} />
+        <RadioBtn label="Não sei" selected={answers.retencao === 'nao_sei'} onClick={() => setAnswers(a => ({ ...a, retencao: 'nao_sei' }))} />
+      </div>
+
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+        <p style={{ fontWeight: 700, fontSize: '14px', color: 'var(--text-primary)', margin: 0 }}>Seu peso está realmente estável ou está oscilando?</p>
+        <RadioBtn label="Estável"  selected={answers.pesoEstavel === 'estavel'}   onClick={() => setAnswers(a => ({ ...a, pesoEstavel: 'estavel' }))} />
+        <RadioBtn label="Oscilando" selected={answers.pesoEstavel === 'oscilando'} onClick={() => setAnswers(a => ({ ...a, pesoEstavel: 'oscilando' }))} />
+        <RadioBtn label="Não sei"  selected={answers.pesoEstavel === 'nao_sei'}   onClick={() => setAnswers(a => ({ ...a, pesoEstavel: 'nao_sei' }))} />
+      </div>
+
+      {showNote && (
+        <div className="card-warning">
+          <div style={{ display: 'flex', gap: '8px', alignItems: 'flex-start' }}>
+            <Info size={13} strokeWidth={2} style={{ flexShrink: 0, marginTop: '1px', color: 'var(--warn-text)' }} />
+            <p style={{ fontSize: '12px', color: 'var(--warn-text)', lineHeight: 1.5, margin: 0 }}>
+              {answers.retencao !== 'nao' && 'Retenção ou constipação podem mascarar a balança temporariamente. '}
+              {answers.pesoEstavel === 'oscilando' && 'Peso oscilando pode não indicar um platô real ainda.'}
+            </p>
+          </div>
+        </div>
+      )}
+
+      <NextBtn onClick={startTracking} disabled={!ok} label="Iniciar acompanhamento de 14 dias" />
+      <button onClick={onCancel} className="btn-ghost" style={{ width: '100%' }}>Cancelar</button>
+    </div>
+  )
+}
+
+// ── Avaliação inicial (3 perguntas — usuário sem histórico) ────────────────────
+
+const DEFAULT_NEWUSER: PlateauNewUserAnswers = {
+  currentWeight: '', weightThreeWeeksAgo: '', stagnantThreeWeeks: null,
+}
+
+function NewUserFlow({ profile, onUpdateProfile, onDone, onCancel, onGoProgress }: {
+  profile: UserProfile
+  onUpdateProfile: (p: UserProfile) => void
+  onDone: () => void
+  onCancel: () => void
+  onGoProgress: () => void
+}) {
+  const [answers, setAnswers] = useState<PlateauNewUserAnswers>(DEFAULT_NEWUSER)
+  const [dontRemember, setDontRemember] = useState(false)
+  const [result, setResult] = useState<'possivel_estagnacao' | 'sem_sinal' | null>(null)
+
+  const currentValid = parseFloat(answers.currentWeight) > 0
+  const pastValid = dontRemember || parseFloat(answers.weightThreeWeeksAgo) > 0
+  const ok = currentValid && pastValid && answers.stagnantThreeWeeks !== null
+
+  function submit() {
+    const verdict = evaluateNewUser(answers)
+    const w = parseFloat(answers.currentWeight)
+    const entry = { date: new Date().toISOString().split('T')[0], weight: w }
+    const alreadyToday = profile.weightHistory.some(e => e.date === entry.date)
+    const nextHistory = alreadyToday ? profile.weightHistory : [...profile.weightHistory, entry]
+
+    const patched = writePlateauStatus(
+      { ...profile, weightHistory: nextHistory, currentWeight: w },
+      {
+        status: verdict,
+        newUserAnswers: answers,
+        ...(verdict === 'possivel_estagnacao'
+          ? { tracking: { startDate: entry.date, origin: 'sem_historico' as const, baselineWeight: w } }
+          : {}),
+      }
+    )
+    onUpdateProfile(patched)
+    setResult(verdict)
+  }
+
+  if (result === 'possivel_estagnacao') {
+    return (
+      <PlateauCard
+        tone="warning"
+        icon={<Search size={26} strokeWidth={2} />}
+        title="Possível estagnação identificada"
+        subtitle="Como ainda não temos histórico suficiente do seu peso, vamos acompanhar sua evolução por 14 dias antes de tirar uma conclusão."
+        cta={{ label: 'Ok, entendi', onClick: onDone }}
+      />
+    )
+  }
+  if (result === 'sem_sinal') {
+    return (
+      <PlateauCard
+        tone="neutral"
+        icon={<CheckCircle2 size={26} strokeWidth={2} />}
+        title="Não há sinal claro de estagnação neste momento"
+        subtitle="Continue registrando seu peso para que o Minha Tize acompanhe sua evolução ao longo do tempo."
+        cta={{ label: 'Registrar peso', onClick: onGoProgress }}
+      />
+    )
+  }
+
+  return (
+    <div className="fade-in" style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+      <StepHeader title="Avaliação inicial" subtitle="3 perguntas rápidas, já que ainda não temos seu histórico" />
+
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+        <p style={{ fontWeight: 700, fontSize: '14px', color: 'var(--text-primary)', margin: 0 }}>Qual é o seu peso atual? (kg)</p>
+        <input
+          type="number" className="input-field" placeholder="Ex: 80" min={20} max={400} step={0.1} inputMode="decimal"
+          value={answers.currentWeight} onChange={e => setAnswers(a => ({ ...a, currentWeight: e.target.value }))}
+        />
+      </div>
+
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+        <p style={{ fontWeight: 700, fontSize: '14px', color: 'var(--text-primary)', margin: 0 }}>
+          Quanto você pesava aproximadamente 3 semanas atrás? (kg)
+        </p>
+        <input
+          type="number" className="input-field" placeholder="Ex: 82" min={20} max={400} step={0.1} inputMode="decimal"
+          disabled={dontRemember}
+          value={answers.weightThreeWeeksAgo}
+          onChange={e => setAnswers(a => ({ ...a, weightThreeWeeksAgo: e.target.value }))}
+          style={{ opacity: dontRemember ? 0.5 : 1 }}
+        />
+        <CheckBtn
+          label="Não lembro" checked={dontRemember}
+          onChange={() => { setDontRemember(v => !v); setAnswers(a => ({ ...a, weightThreeWeeksAgo: '' })) }}
+        />
+      </div>
+
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+        <p style={{ fontWeight: 700, fontSize: '14px', color: 'var(--text-primary)', margin: 0 }}>
+          Seu peso está praticamente estagnado há 3 semanas ou mais?
+        </p>
+        <RadioBtn label="Sim" selected={answers.stagnantThreeWeeks === 'sim'} onClick={() => setAnswers(a => ({ ...a, stagnantThreeWeeks: 'sim' }))} />
+        <RadioBtn label="Não" selected={answers.stagnantThreeWeeks === 'nao'} onClick={() => setAnswers(a => ({ ...a, stagnantThreeWeeks: 'nao' }))} />
+        <RadioBtn label="Não tenho certeza" selected={answers.stagnantThreeWeeks === 'nao_tenho_certeza'} onClick={() => setAnswers(a => ({ ...a, stagnantThreeWeeks: 'nao_tenho_certeza' }))} />
+      </div>
+
+      <NextBtn onClick={submit} disabled={!ok} label="Ver avaliação" />
+      <button onClick={onCancel} className="btn-ghost" style={{ width: '100%' }}>Cancelar</button>
+    </div>
+  )
+}
+
+// ── Avaliação completa de hábitos (opcional, wizard já existente) ─────────────
+
+function HabitsWizard({ profile, onUpdateProfile, onBack }: {
+  profile: UserProfile
+  onUpdateProfile: (p: UserProfile) => void
+  onBack: () => void
+}) {
+  const initialWeight = profile.weightHistory.at(-1)?.weight ?? profile.currentWeight ?? profile.startWeight
+
+  const [step, setStep] = useState<WizardStep>(() => {
+    const p = profile.plateau?.habitsPlan
+    if (!p) return 'step1'
+    if (p.aiReport) return 'report'
+    if (p.reevalResult) return 'reeval'
+    if (getRawDay(p.startDate) > 14) return 'reeval'
+    return 'plan'
+  })
+  const [answers, setAnswers] = useState<Answers>({
+    ...DEFAULT_ANSWERS,
+    currentWeight: initialWeight ? String(initialWeight) : '',
+  })
+  const [plan, setPlan] = useState<PlanData | null>(profile.plateau?.habitsPlan ?? null)
   const [aiLoading, setAiLoading] = useState(false)
   const [aiError, setAiError]   = useState('')
   const [confirmReset, setConfirmReset] = useState(false)
-
-  useEffect(() => {
-    const data = readJSON<PlanData | null>(PLAN_KEY, null)
-    if (!data) return
-    setPlan(data)
-    if (data.aiReport)        setStep('report')
-    else if (data.reevalResult) setStep('reeval')
-    else if (getRawDay(data.startDate) > 14) setStep('reeval')
-    else setStep('plan')
-  }, [])
 
   function updatePlan(updates: Partial<PlanData>) {
     setPlan(prev => {
       if (!prev) return prev
       const next = { ...prev, ...updates }
-      saveToStorage(next)
+      onUpdateProfile(writePlateauStatus(profile, { habitsPlan: next }))
       return next
     })
   }
 
   function resetAll() {
-    removeKey(PLAN_KEY)
+    onUpdateProfile(writePlateauStatus(profile, { habitsPlan: undefined }))
     setPlan(null)
-    setAnswers(DEFAULT_ANSWERS)
+    setAnswers({ ...DEFAULT_ANSWERS, currentWeight: initialWeight ? String(initialWeight) : '' })
     setAiError('')
     setConfirmReset(false)
-    setStep('intro')
+    setStep('step1')
   }
 
   function set<K extends keyof Answers>(key: K, val: Answers[K]) {
@@ -181,7 +663,7 @@ export default function AntiPlato() {
       stepsGoal:  ['7to10k', 'gt10k'].includes(answers.dailySteps ?? '') ? '8000' : '7000',
       priorities: computeDiagnosis(answers),
     }
-    saveToStorage(newPlan)
+    onUpdateProfile(writePlateauStatus(profile, { habitsPlan: newPlan }))
     setPlan(newPlan)
     setStep('plan')
   }
@@ -218,38 +700,7 @@ export default function AntiPlato() {
     }
   }
 
-  // ── Progress bar shown on wizard steps 1–6 ───────────────────────────────
   const stepNum = STEP_NUMS[step]
-
-  function StepHeader({ title, subtitle }: { title: string; subtitle?: string }) {
-    return (
-      <div>
-        {stepNum && (
-          <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '12px' }}>
-            <div style={{ flex: 1, height: '4px', borderRadius: '99px', background: 'var(--surface-3)', overflow: 'hidden' }}>
-              <div style={{
-                height: '100%', borderRadius: '99px', background: 'var(--primary)',
-                width: `${(stepNum / 6) * 100}%`, transition: 'width 0.4s ease',
-              }} />
-            </div>
-            <span style={{ fontSize: '11px', fontWeight: 700, color: 'var(--text-muted)', whiteSpace: 'nowrap' }}>
-              {stepNum} de 6
-            </span>
-          </div>
-        )}
-        <h3 style={{ fontSize: '18px', fontWeight: 800, color: 'var(--text-primary)', margin: 0 }}>{title}</h3>
-        {subtitle && <p style={{ fontSize: '13px', color: 'var(--text-muted)', margin: 0, marginTop: '4px' }}>{subtitle}</p>}
-      </div>
-    )
-  }
-
-  function NextBtn({ onClick, disabled = false, label = 'Continuar →' }: { onClick: () => void; disabled?: boolean; label?: string }) {
-    return (
-      <button onClick={onClick} disabled={disabled} className="btn-primary" style={{ width: '100%', marginTop: '4px' }}>
-        {label}
-      </button>
-    )
-  }
 
   function ResetBtn() {
     if (confirmReset) {
@@ -284,64 +735,17 @@ export default function AntiPlato() {
     )
   }
 
-  // ── INTRO ─────────────────────────────────────────────────────────────────
-  if (step === 'intro') return (
-    <div className="fade-in" style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
-      <div style={{
-        background: 'linear-gradient(135deg, #7C3AED 0%, #4F46E5 100%)',
-        borderRadius: '24px', padding: '28px 22px', color: '#fff',
-        boxShadow: '0 8px 32px rgba(124,58,237,0.3)',
+  function BackLink() {
+    return (
+      <button onClick={onBack} style={{
+        background: 'none', border: 'none', cursor: 'pointer', padding: 0,
+        fontSize: '13px', fontWeight: 600, color: 'var(--primary)',
+        fontFamily: "Inter, -apple-system, sans-serif", alignSelf: 'flex-start',
       }}>
-        <div style={{
-          width: '56px', height: '56px', borderRadius: '18px', margin: '0 auto 14px',
-          background: 'rgba(255,255,255,0.18)', backdropFilter: 'blur(20px)',
-          border: '1px solid rgba(255,255,255,0.2)',
-          display: 'flex', alignItems: 'center', justifyContent: 'center',
-          color: '#fff',
-        }}>
-          <Target size={28} strokeWidth={2} />
-        </div>
-        <h2 style={{ fontSize: '22px', fontWeight: 800, margin: 0, letterSpacing: '-0.3px' }}>Anti-Platô da Tize</h2>
-        <p style={{ fontSize: '14px', opacity: 0.85, marginTop: '8px', lineHeight: 1.6 }}>
-          Seu peso parou de cair?<br />
-          Descubra se é um platô verdadeiro e receba um plano prático para voltar a evoluir.
-        </p>
-      </div>
-
-      <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-        {[
-          { icon: <Search        size={18} strokeWidth={2} />, text: '6 perguntas para identificar as causas' },
-          { icon: <BarChart2     size={18} strokeWidth={2} />, text: 'Diagnóstico automático personalizado' },
-          { icon: <Calendar      size={18} strokeWidth={2} />, text: 'Plano de ação de 14 dias com checklist diário' },
-          { icon: <ClipboardList size={18} strokeWidth={2} />, text: 'Relatório educativo ao final' },
-        ].map((item, i) => (
-          <div key={i} style={{
-            display: 'flex', alignItems: 'center', gap: '12px',
-            padding: '12px 14px', borderRadius: '14px',
-            background: 'var(--surface)', border: '1px solid var(--border)',
-            boxShadow: 'var(--shadow-card)',
-          }}>
-            <div style={{
-              width: '36px', height: '36px', borderRadius: '10px', flexShrink: 0,
-              background: 'var(--primary-light)', display: 'flex',
-              alignItems: 'center', justifyContent: 'center', color: 'var(--primary)',
-            }}>
-              {item.icon}
-            </div>
-            <p style={{ fontSize: '13px', color: 'var(--text-secondary)', fontWeight: 600, margin: 0 }}>{item.text}</p>
-          </div>
-        ))}
-      </div>
-
-      <button onClick={() => setStep('step1')} className="btn-primary" style={{ width: '100%' }}>
-        Iniciar avaliação
+        ‹ Voltar
       </button>
-
-      <p style={{ fontSize: '11px', color: 'var(--text-muted)', textAlign: 'center', lineHeight: 1.5 }}>
-        Módulo educativo. Não substitui avaliação médica. Não sugere alteração de dose.
-      </p>
-    </div>
-  )
+    )
+  }
 
   // ── STEP 1 ────────────────────────────────────────────────────────────────
   if (step === 'step1') {
@@ -351,7 +755,8 @@ export default function AntiPlato() {
 
     return (
       <div className="fade-in" style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
-        <StepHeader title="É platô de verdade?" subtitle="Responda para identificar o tipo de estagnação" />
+        <BackLink />
+        <StepHeader title="É platô de verdade?" subtitle="Responda para identificar o tipo de estagnação" stepNum={stepNum} totalSteps={6} />
 
         <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
           <p style={{ fontWeight: 700, fontSize: '14px', color: 'var(--text-primary)', margin: 0 }}>Você está usando tirzepatida regularmente?</p>
@@ -450,8 +855,8 @@ export default function AntiPlato() {
           </p>
         </div>
 
-        <button onClick={() => { setAnswers(DEFAULT_ANSWERS); setStep('intro') }} className="btn-ghost" style={{ width: '100%' }}>
-          Reiniciar avaliação
+        <button onClick={onBack} className="btn-ghost" style={{ width: '100%' }}>
+          Voltar
         </button>
       </div>
     )
@@ -465,7 +870,7 @@ export default function AntiPlato() {
 
     return (
       <div className="fade-in" style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
-        <StepHeader title="Auditoria alimentar" subtitle="Selecione tudo o que aconteceu na última semana" />
+        <StepHeader title="Auditoria alimentar" subtitle="Selecione tudo o que aconteceu na última semana" stepNum={stepNum} totalSteps={6} />
 
         <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
           {FOOD_ITEMS.map(item => (
@@ -507,7 +912,7 @@ export default function AntiPlato() {
 
     return (
       <div className="fade-in" style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
-        <StepHeader title="Proteína" subtitle="Fundamental para preservar músculo durante o emagrecimento" />
+        <StepHeader title="Proteína" subtitle="Fundamental para preservar músculo durante o emagrecimento" stepNum={stepNum} totalSteps={6} />
 
         <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
           <p style={{ fontWeight: 700, fontSize: '14px', color: 'var(--text-primary)', margin: 0 }}>Peso atual (kg)</p>
@@ -556,7 +961,7 @@ export default function AntiPlato() {
 
     return (
       <div className="fade-in" style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
-        <StepHeader title="Movimento e treino" subtitle="A atividade física impacta diretamente o metabolismo" />
+        <StepHeader title="Movimento e treino" subtitle="A atividade física impacta diretamente o metabolismo" stepNum={stepNum} totalSteps={6} />
 
         <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
           <p style={{ fontWeight: 700, fontSize: '14px', color: 'var(--text-primary)', margin: 0 }}>Passos por dia (em média)</p>
@@ -608,7 +1013,7 @@ export default function AntiPlato() {
 
     return (
       <div className="fade-in" style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
-        <StepHeader title="Sono e estresse" subtitle="Fatores muitas vezes ignorados, mas fundamentais no metabolismo" />
+        <StepHeader title="Sono e estresse" subtitle="Fatores muitas vezes ignorados, mas fundamentais no metabolismo" stepNum={stepNum} totalSteps={6} />
 
         <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
           <p style={{ fontWeight: 700, fontSize: '14px', color: 'var(--text-primary)', margin: 0 }}>Horas de sono por noite (em média)</p>
@@ -652,7 +1057,7 @@ export default function AntiPlato() {
   if (step === 'step6') {
     return (
       <div className="fade-in" style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
-        <StepHeader title="Medicamentos" subtitle="Alguns remédios podem influenciar o metabolismo" />
+        <StepHeader title="Medicamentos" subtitle="Alguns remédios podem influenciar o metabolismo" stepNum={stepNum} totalSteps={6} />
 
         <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
           <p style={{ fontWeight: 700, fontSize: '14px', color: 'var(--text-primary)', margin: 0 }}>
@@ -805,7 +1210,7 @@ export default function AntiPlato() {
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
             <div>
               <p style={{ fontSize: '11px', fontWeight: 700, opacity: 0.7, textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: '4px' }}>
-                Plano Anti-Platô
+                Plano de hábitos
               </p>
               <p style={{ fontSize: '26px', fontWeight: 800, margin: 0, letterSpacing: '-0.5px' }}>
                 Dia {today} <span style={{ fontSize: '16px', opacity: 0.7 }}>de 14</span>
@@ -1116,4 +1521,53 @@ export default function AntiPlato() {
   }
 
   return null
+}
+
+// ── Componente principal ────────────────────────────────────────────────────
+
+interface Props {
+  profile: UserProfile
+  onUpdateProfile: (p: UserProfile) => void
+  onNavigate?: (tab: Tab, section?: string) => void
+}
+
+type Mode = 'auto' | 'screening' | 'newuser' | 'habits'
+
+export default function AntiPlato({ profile, onUpdateProfile, onNavigate }: Props) {
+  const [mode, setMode] = useState<Mode>('auto')
+
+  function goProgress() {
+    onNavigate?.('progress')
+  }
+
+  if (mode === 'screening') {
+    return (
+      <ScreeningFlow
+        profile={profile} onUpdateProfile={onUpdateProfile}
+        onDone={() => setMode('auto')} onCancel={() => setMode('auto')}
+      />
+    )
+  }
+  if (mode === 'newuser') {
+    return (
+      <NewUserFlow
+        profile={profile} onUpdateProfile={onUpdateProfile}
+        onDone={() => setMode('auto')} onCancel={() => setMode('auto')} onGoProgress={goProgress}
+      />
+    )
+  }
+  if (mode === 'habits') {
+    return <HabitsWizard profile={profile} onUpdateProfile={onUpdateProfile} onBack={() => setMode('auto')} />
+  }
+
+  return (
+    <AutoView
+      profile={profile}
+      onUpdateProfile={onUpdateProfile}
+      onGoProgress={goProgress}
+      onStartScreening={() => setMode('screening')}
+      onStartNewUser={() => setMode('newuser')}
+      onOpenHabits={() => setMode('habits')}
+    />
+  )
 }

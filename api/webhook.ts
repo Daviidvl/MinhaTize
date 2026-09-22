@@ -2,6 +2,12 @@ import type { VercelRequest, VercelResponse } from '@vercel/node'
 import { Resend } from 'resend'
 import { timingSafeEqual, randomUUID } from 'crypto'
 import { getSupabaseAdmin } from './_lib/supabaseAdmin.js'
+import { createRateLimiter } from './_lib/rateLimit.js'
+import { getClientIp } from './_lib/auth.js'
+
+// Limite generoso: o objetivo é conter flood/abuso, não a operação normal do
+// Wiven (que chama pouquíssimas vezes por venda). 60/min por IP.
+const checkRateLimit = createRateLimiter('webhook', 60, 60_000)
 
 // ─── Tipos do payload da Wiven ────────────────────────────────────────────────
 interface WivenPayload {
@@ -46,6 +52,16 @@ function isValidRequest(body: WivenPayload): boolean {
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   // Aceitar apenas POST
   if (req.method !== 'POST') return res.status(405).end()
+
+  // ── Rate limit por IP (defesa em profundidade) ─────────────────────────────
+  // Continua sendo o segredo timing-safe abaixo que decide se a requisição é
+  // autêntica — isto só contém volume, não substitui a autenticação.
+  const ip = getClientIp(req) || 'unknown'
+  const rl = await checkRateLimit(ip)
+  if (!rl.allowed) {
+    res.setHeader('Retry-After', String(rl.retryAfterSeconds))
+    return res.status(429).json({ error: 'Too Many Requests' })
+  }
 
   // Validar Content-Type
   const ct = (req.headers['content-type'] ?? '').toLowerCase()
@@ -131,9 +147,10 @@ async function sendEmail(token: string, email: string, name: string): Promise<bo
   try {
     const resend     = new Resend(process.env.RESEND_API_KEY)
     const appUrl     = process.env.APP_URL    ?? 'https://minhatize.vercel.app'
-    const pdfUrl     = process.env.PDF_URL    ?? ''
+    const pdfUrl     = process.env.PDF_URL    ?? `${appUrl}/guia-instalacao.pdf`
     const fromEmail  = process.env.EMAIL_FROM ?? 'noreply@minhatize.com.br'
-    const accessLink = `${appUrl}/?token=${token}`
+    // Link limpo, sem token na URL: o app sempre pede o token na tela de entrada.
+    const accessLink = appUrl
 
     await resend.emails.send({
       from:    `MinhaTize <${fromEmail}>`,
@@ -158,7 +175,18 @@ function buildEmailHtml({ name, accessLink, pdfUrl, appUrl, token }: {
 }): string {
   const firstName = (name.split(' ')[0] || 'Olá')
     .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
-  const logoUrl   = `${appUrl}/LogoPng.png`
+  const logoUrl   = `${appUrl}/logo-mark.png`
+  const divider   = '<div style="border-top:1px solid #EAEFF6;margin:28px 0;line-height:0;font-size:0;">&nbsp;</div>'
+
+  const step = (n: string, text: string) => `
+        <tr>
+          <td width="28" valign="top" style="padding-bottom:16px;">
+            <div style="width:22px;height:22px;border-radius:50%;background:#EEF4FF;color:#1A52C9;font-size:11px;font-weight:800;text-align:center;line-height:22px;">${n}</div>
+          </td>
+          <td valign="top" style="padding-bottom:16px;padding-left:12px;">
+            <p style="font-size:13.5px;color:#364C6E;line-height:1.65;margin:0;">${text}</p>
+          </td>
+        </tr>`
 
   return `<!DOCTYPE html>
 <html lang="pt-BR">
@@ -167,96 +195,111 @@ function buildEmailHtml({ name, accessLink, pdfUrl, appUrl, token }: {
   <meta name="viewport" content="width=device-width,initial-scale=1">
   <title>Seu acesso ao MinhaTize</title>
 </head>
-<body style="margin:0;padding:0;background:#060C18;font-family:Inter,-apple-system,sans-serif;">
-<table width="100%" cellpadding="0" cellspacing="0" style="background:#060C18;padding:40px 16px;">
+<body style="margin:0;padding:0;background:#F6F9FC;font-family:Inter,-apple-system,sans-serif;">
+<table width="100%" cellpadding="0" cellspacing="0" style="background:#F6F9FC;padding:48px 16px;">
   <tr><td align="center">
-  <table width="100%" cellpadding="0" cellspacing="0" style="max-width:520px;">
+  <table width="100%" cellpadding="0" cellspacing="0" style="max-width:540px;">
 
     <!-- Logo -->
     <tr><td style="padding-bottom:28px;">
       <table cellpadding="0" cellspacing="0">
         <tr>
           <td style="vertical-align:middle;">
-            <img src="${logoUrl}" alt="MinhaTize" width="72" height="48"
-              style="display:block;width:72px;height:48px;border-radius:8px;" />
+            <img src="${logoUrl}" alt="MinhaTize" width="34" height="34"
+              style="display:block;width:34px;height:34px;" />
           </td>
-          <td style="padding-left:10px;vertical-align:middle;">
-            <span style="font-size:17px;font-weight:900;color:#fff;letter-spacing:-0.5px;">MinhaTize</span>
+          <td style="padding-left:11px;vertical-align:middle;">
+            <span style="font-size:15px;font-weight:800;color:#0A1628;letter-spacing:-0.3px;">MinhaTize</span>
           </td>
         </tr>
       </table>
     </td></tr>
 
     <!-- Card principal -->
-    <tr><td style="background:#0D1425;border:1px solid rgba(255,255,255,0.08);border-radius:22px;padding:34px 30px;">
+    <tr><td style="background:#FFFFFF;border:1px solid #EAEFF6;border-radius:20px;padding:40px 36px;box-shadow:0 4px 20px rgba(10,22,40,0.06);">
 
-      <p style="font-size:11px;font-weight:700;color:#22C55E;letter-spacing:0.08em;text-transform:uppercase;margin:0 0 14px;">
-        Compra confirmada &#10003;
+      <p style="font-size:11px;font-weight:800;color:#00A882;letter-spacing:0.08em;text-transform:uppercase;margin:0 0 16px;">
+        Pagamento confirmado
       </p>
-      <h1 style="font-size:24px;font-weight:900;color:#fff;letter-spacing:-0.8px;line-height:1.2;margin:0 0 10px;">
-        Seu acesso est&#225; pronto,<br>${firstName}.
+      <h1 style="font-size:25px;font-weight:800;color:#0A1628;letter-spacing:-0.6px;line-height:1.3;margin:0 0 12px;">
+        Tudo pronto, ${firstName}.
       </h1>
-      <p style="font-size:13px;color:rgba(255,255,255,0.48);line-height:1.7;margin:0 0 28px;">
-        Abaixo est&#227;o seus acessos. Guarde este e-mail &#8212; ele &#233; o &#250;nico lugar onde esses links estar&#227;o.
+      <p style="font-size:14px;color:#637A9A;line-height:1.7;margin:0;">
+        Seu protocolo de Tirzepatida j&#225; est&#225; liberado. Veja abaixo como acessar o app de acompanhamento e baixar o material completo.
+      </p>
+
+      ${divider}
+
+      <!-- Passo a passo -->
+      <p style="font-size:11px;font-weight:800;color:#96ABCA;letter-spacing:0.06em;text-transform:uppercase;margin:0 0 18px;">
+        Como acessar o app
+      </p>
+      <table width="100%" cellpadding="0" cellspacing="0">
+        ${step('1', 'Toque no bot&#227;o <strong style="color:#0A1628;">Abrir o app</strong>, logo abaixo.')}
+        ${step('2', 'Na tela de entrada, cole o <strong style="color:#0A1628;">token de acesso</strong> que est&#225; neste e-mail.')}
+        ${step('3', 'Pronto &#8212; o acesso fica salvo no aparelho. S&#243; ser&#225; pedido de novo se voc&#234; sair da conta.')}
+      </table>
+
+      <table width="100%" cellpadding="0" cellspacing="0" style="margin-top:4px;">
+        <tr><td align="center">
+          <a href="${accessLink}" style="display:block;width:100%;box-sizing:border-box;padding:15px 20px;background:linear-gradient(135deg,#2E6FEB,#7B5CF5);border-radius:14px;color:#FFFFFF;font-size:14.5px;font-weight:700;text-decoration:none;text-align:center;letter-spacing:-0.1px;box-shadow:0 6px 20px rgba(46,111,235,0.28);">
+            Abrir o app
+          </a>
+        </td></tr>
+      </table>
+
+      <!-- Token -->
+      <table width="100%" cellpadding="0" cellspacing="0" style="margin-top:20px;background:#F7F9FC;border:1px solid #EAEFF6;border-radius:14px;">
+        <tr><td style="padding:16px 18px;">
+          <p style="font-size:10.5px;font-weight:800;color:#96ABCA;letter-spacing:0.05em;text-transform:uppercase;margin:0 0 7px;">Seu token de acesso</p>
+          <p style="font-family:'SFMono-Regular',Consolas,monospace;font-size:13.5px;font-weight:700;color:#0A1628;margin:0;word-break:break-all;">
+            ${token}
+          </p>
+        </td></tr>
+      </table>
+      <p style="font-size:11.5px;color:#96ABCA;line-height:1.6;margin:10px 0 0;">
+        C&#243;digo pessoal e intransfer&#237;vel. N&#227;o compartilhe com outras pessoas.
       </p>
 
       ${pdfUrl ? `
+      ${divider}
+
       <!-- PDF -->
-      <table width="100%" cellpadding="0" cellspacing="0" style="background:rgba(34,197,94,0.07);border:1px solid rgba(34,197,94,0.16);border-radius:14px;margin-bottom:10px;">
-        <tr><td style="padding:18px 20px;">
-          <p style="font-size:10px;font-weight:700;color:#22C55E;letter-spacing:0.08em;text-transform:uppercase;margin:0 0 5px;">PDF &middot; Guia completo</p>
-          <p style="font-size:14px;font-weight:800;color:#fff;margin:0 0 14px;letter-spacing:-0.3px;">Protocolo de Tirzepatida</p>
-          <a href="${pdfUrl}" style="display:inline-block;padding:10px 20px;background:rgba(34,197,94,0.14);border:1px solid rgba(34,197,94,0.28);border-radius:9px;color:#22C55E;font-size:13px;font-weight:700;text-decoration:none;">
-            Baixar PDF &#8594;
-          </a>
-        </td></tr>
+      <table width="100%" cellpadding="0" cellspacing="0">
+        <tr>
+          <td valign="middle">
+            <p style="font-size:14px;font-weight:700;color:#0A1628;margin:0 0 3px;">Guia de instala&#231;&#227;o</p>
+            <p style="font-size:12px;color:#637A9A;margin:0;">Passo a passo com imagens: acesso e instala&#231;&#227;o no celular</p>
+          </td>
+          <td align="right" valign="middle">
+            <a href="${pdfUrl}" style="display:inline-block;padding:10px 18px;border:1.5px solid #D3DDED;border-radius:10px;color:#1A52C9;font-size:12.5px;font-weight:700;text-decoration:none;white-space:nowrap;">
+              Baixar PDF
+            </a>
+          </td>
+        </tr>
       </table>
       ` : ''}
 
-      <!-- App -->
-      <table width="100%" cellpadding="0" cellspacing="0" style="background:rgba(59,130,246,0.07);border:1px solid rgba(59,130,246,0.16);border-radius:14px;margin-bottom:24px;">
-        <tr><td style="padding:18px 20px;">
-          <p style="font-size:10px;font-weight:700;color:#60A5FA;letter-spacing:0.08em;text-transform:uppercase;margin:0 0 5px;">App &middot; Acompanhamento</p>
-          <p style="font-size:14px;font-weight:800;color:#fff;margin:0 0 5px;letter-spacing:-0.3px;">MinhaTize</p>
-          <p style="font-size:11px;color:rgba(255,255,255,0.38);margin:0 0 16px;line-height:1.5;">
-            Este link &#233; exclusivo seu. N&#227;o compartilhe.
-          </p>
-          <a href="${accessLink}" style="display:inline-block;padding:13px 28px;background:linear-gradient(135deg,#16A34A,#22C55E);border-radius:11px;color:#fff;font-size:14px;font-weight:800;text-decoration:none;letter-spacing:-0.2px;">
-            Acessar o app &#8594;
-          </a>
-        </td></tr>
-      </table>
+      ${divider}
 
-      <!-- Token de acesso -->
-      <table width="100%" cellpadding="0" cellspacing="0" style="background:rgba(255,255,255,0.03);border-radius:10px;margin-bottom:10px;">
-        <tr><td style="padding:14px 16px;">
-          <p style="font-size:11px;font-weight:700;color:rgba(255,255,255,0.40);margin:0 0 4px;">&#128273; Seu token de acesso</p>
-          <p style="font-family:monospace;font-size:13px;font-weight:700;color:#fff;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.08);border-radius:7px;padding:8px 10px;margin:0 0 8px;word-break:break-all;">
-            ${token}
-          </p>
-          <p style="font-size:11px;color:rgba(255,255,255,0.28);margin:0;line-height:1.65;">
-            Se voc&#234; sair da conta no app, ele vai pedir esse token para entrar de novo. &#201; o seu c&#243;digo pessoal de acesso &#8212; guarde-o junto com este e-mail.
-          </p>
-        </td></tr>
-      </table>
-
-      <!-- Instrucao de instalacao -->
-      <table width="100%" cellpadding="0" cellspacing="0" style="background:rgba(255,255,255,0.03);border-radius:10px;">
-        <tr><td style="padding:14px 16px;">
-          <p style="font-size:11px;font-weight:700;color:rgba(255,255,255,0.40);margin:0 0 4px;">&#128161; Instalar no celular</p>
-          <p style="font-size:11px;color:rgba(255,255,255,0.28);margin:0;line-height:1.65;">
-            <strong style="color:rgba(255,255,255,0.38);">iPhone:</strong> abra no Safari &#8594; Compartilhar &#8594; "Adicionar &#224; tela de in&#237;cio".<br>
-            <strong style="color:rgba(255,255,255,0.38);">Android:</strong> abra no Chrome &#8594; menu &#8942; &#8594; "Adicionar &#224; tela inicial".
-          </p>
-        </td></tr>
-      </table>
+      <!-- Instalar no celular -->
+      <p style="font-size:11px;font-weight:800;color:#96ABCA;letter-spacing:0.06em;text-transform:uppercase;margin:0 0 10px;">
+        Instalar como app no celular
+      </p>
+      <p style="font-size:12.5px;color:#637A9A;margin:0;line-height:1.7;">
+        <strong style="color:#364C6E;">iPhone:</strong> abra o link no Safari, toque em Compartilhar e selecione "Adicionar &#224; Tela de In&#237;cio".<br>
+        <strong style="color:#364C6E;">Android:</strong> abra o link no Chrome, toque no menu &#8942; e selecione "Adicionar &#224; tela inicial".
+      </p>
 
     </td></tr>
 
     <!-- Footer -->
-    <tr><td style="padding:22px 0 0;text-align:center;">
-      <p style="font-size:11px;color:rgba(255,255,255,0.18);margin:0;">
-        &copy; 2026 MinhaTize &middot; Produto digital &middot; Acesso via link personalizado
+    <tr><td style="padding:26px 8px 0;text-align:center;">
+      <p style="font-size:11.5px;color:#96ABCA;margin:0 0 4px;line-height:1.6;">
+        D&#250;vidas sobre o acesso? Responda este e-mail que a gente ajuda.
+      </p>
+      <p style="font-size:11px;color:#C1CEE2;margin:0;">
+        &copy; 2026 MinhaTize
       </p>
     </td></tr>
 

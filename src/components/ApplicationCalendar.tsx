@@ -3,6 +3,7 @@ import { UserProfile, WEEK_DAYS } from '../types'
 import {
   toDateStr, getLog, fmtDateShort, getGlobalNextApp, calcStreak, calcAdherence, SITES,
 } from '../utils/applicationCalendarUtils'
+import { getDoseLabel } from '../utils/medicationUtils'
 
 interface Props {
   profile: UserProfile
@@ -235,9 +236,8 @@ export default function ApplicationCalendar({ profile, onUpdateProfile, compact 
                   <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
                     <div style={{ padding: '14px 16px', borderRadius: '16px', background: 'var(--surface-2)', border: '1px solid var(--border)' }}>
                       <p style={{ fontSize: '9px', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.09em', margin: '0 0 8px' }}>Dose</p>
-                      <p style={{ fontSize: '28px', fontWeight: 900, color: 'var(--text-primary)', margin: 0, letterSpacing: '-1px', lineHeight: 1 }}>
-                        {profile.currentDose}
-                        <span style={{ fontSize: '14px', fontWeight: 600, color: 'var(--text-muted)', marginLeft: '3px' }}>mg</span>
+                      <p style={{ fontSize: 24, fontWeight: 900, color: 'var(--text-primary)', margin: 0, letterSpacing: '-1px', lineHeight: 1 }}>
+                        {getDoseLabel(profile)}
                       </p>
                     </div>
                     <div style={{ padding: '14px 16px', borderRadius: '16px', background: selConfirmed ? 'rgba(16,185,129,0.08)' : 'var(--surface-2)', border: `1px solid ${selConfirmed ? 'rgba(16,185,129,0.22)' : 'var(--border)'}` }}>

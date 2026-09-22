@@ -107,9 +107,9 @@ export default function Exercise() {
 
         {/* Banner */}
         <div style={{
-          background: 'linear-gradient(155deg, #0C1F18 0%, #132D22 60%, #0F2219 100%)',
+          background: 'linear-gradient(150deg, #101B3F 0%, #1B2F72 100%)',
           borderRadius: '20px', padding: '18px 20px', color: '#fff',
-          boxShadow: '0 8px 24px rgba(0,0,0,0.24), 0 2px 6px rgba(0,0,0,0.15), inset 0 1px 0 rgba(255,255,255,0.06)',
+          boxShadow: '0 6px 20px rgba(20,40,120,0.28), 0 1px 3px rgba(0,0,0,0.12)',
         }}>
           <p style={{ fontSize: '11px', fontWeight: 700, opacity: 0.7, textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: '6px' }}>
             Avaliação de treino
@@ -262,9 +262,9 @@ export default function Exercise() {
 
       {/* Plan header */}
       <div style={{
-        background: 'linear-gradient(155deg, #0C1F18 0%, #132D22 60%, #0F2219 100%)',
+        background: 'linear-gradient(150deg, #101B3F 0%, #1B2F72 100%)',
         borderRadius: '20px', padding: '18px 20px', color: '#fff',
-        boxShadow: '0 8px 24px rgba(0,0,0,0.24), 0 2px 6px rgba(0,0,0,0.15), inset 0 1px 0 rgba(255,255,255,0.06)', position: 'relative', overflow: 'hidden',
+        boxShadow: '0 6px 20px rgba(20,40,120,0.28), 0 1px 3px rgba(0,0,0,0.12)', position: 'relative', overflow: 'hidden',
       }}>
         <div style={{
           position: 'absolute', top: '-20px', right: '-20px',

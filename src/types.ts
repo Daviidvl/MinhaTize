@@ -29,6 +29,42 @@ export interface WeightEntry {
   weight: number
 }
 
+export type PlateauStatus =
+  | 'sem_sinal'
+  | 'tendencia_queda'
+  | 'possivel_estagnacao'
+  | 'em_acompanhamento_14dias'
+  | 'estagnacao_persistente'
+
+export interface PlateauScreeningAnswers {
+  fomeAumentou: boolean | null
+  mudouRotina: boolean | null
+  retencao: 'sim' | 'nao' | 'nao_sei' | null
+  pesoEstavel: 'estavel' | 'oscilando' | 'nao_sei' | null
+}
+
+export interface PlateauNewUserAnswers {
+  currentWeight: string
+  weightThreeWeeksAgo: string
+  stagnantThreeWeeks: 'sim' | 'nao' | 'nao_tenho_certeza' | null
+}
+
+export interface PlateauTracking {
+  startDate: string
+  origin: 'com_historico' | 'sem_historico'
+  baselineWeight: number
+}
+
+export interface PlateauEvaluation {
+  status: PlateauStatus
+  updatedAt: string
+  screeningAnswers?: PlateauScreeningAnswers
+  newUserAnswers?: PlateauNewUserAnswers
+  tracking?: PlateauTracking
+  lastCycleResult?: { date: string; status: PlateauStatus; note: string }
+  habitsPlan?: import('./utils/antiPlatoUtils').PlanData
+}
+
 export interface DiaryEntry {
   date: string
   dose: number
@@ -48,7 +84,9 @@ export interface StockInfo {
   ampouleCount: number
 }
 
-export type Medication = 'tirzepatida' | 'semaglutida' | 'ozempic' | 'wegovy' | 'mounjaro'
+export type Medication =
+  | 'tirzepatida' | 'semaglutida' | 'ozempic' | 'wegovy' | 'mounjaro'
+  | 'retatrutida' | 'outro'
 export type Sex = 'female' | 'male' | 'other'
 
 export const MEDICATION_LABELS: Record<Medication, string> = {
@@ -57,7 +95,12 @@ export const MEDICATION_LABELS: Record<Medication, string> = {
   ozempic: 'Ozempic',
   wegovy: 'Wegovy',
   mounjaro: 'Mounjaro',
+  retatrutida: 'Retatrutida',
+  outro: 'Outro',
 }
+
+// Doses rápidas oferecidas no cadastro — fonte única (não duplicar em outras telas)
+export const DOSE_OPTIONS = [2.5, 5, 7.5, 10, 12.5, 15]
 
 export const WEEK_DAYS = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb']
 export const WEEK_DAYS_FULL = ['Domingo', 'Segunda', 'Terça', 'Quarta', 'Quinta', 'Sexta', 'Sábado']
@@ -73,12 +116,15 @@ export interface UserProfile {
   age?: number
   sex?: Sex
   medication: Medication
+  medicationName?: string
   startWeight: number
   currentWeight?: number
   goalWeight: number
   height: number
   startDate: string
-  currentDose: number
+  currentDose?: number
+  presentationMg?: number
+  presentationMl?: number
   applicationDay?: number
   weightHistory: WeightEntry[]
   diary: DiaryEntry[]
@@ -89,6 +135,7 @@ export interface UserProfile {
   applicationSites?: Record<string, string>
   stock?: StockInfo
   labResults?: LabResult[]
+  plateau?: PlateauEvaluation
 }
 
 export type Tab = 'dashboard' | 'progress' | 'health' | 'calculator' | 'profile' | 'laboratory'

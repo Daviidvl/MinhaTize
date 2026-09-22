@@ -2,6 +2,8 @@ import { useState, useRef, useEffect } from 'react'
 import { TrendingUp, TrendingDown, Minus, BarChart2, ClipboardList } from 'lucide-react'
 import { UserProfile, WeightEntry } from '../types'
 import { calcIMC, imcLabel } from '../utils/bmiUtils'
+import { getDoseLabel } from '../utils/medicationUtils'
+import { getPlateauStatus, getPlateauStatusMeta } from '../utils/plateauUtils'
 
 interface Props {
   profile: UserProfile
@@ -71,6 +73,8 @@ export default function ProgressHub({ profile, onUpdateProfile }: Props) {
   }
 
   const imc = calcIMC(lastWeight, profile.height)
+  const plateauStatus = getPlateauStatus(profile)
+  const plateauMeta = getPlateauStatusMeta(plateauStatus)
 
   return (
     <div data-tour="progress-main" className="fade-in" style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
@@ -147,6 +151,18 @@ export default function ProgressHub({ profile, onUpdateProfile }: Props) {
                 <p style={{ fontSize: '11px', color: 'var(--text-muted)', marginTop: '6px', textAlign: 'right' }}>
                   {pct.toFixed(0)}% concluído
                 </p>
+              </div>
+            )}
+
+            {/* Status de platô */}
+            {plateauStatus !== 'sem_sinal' && (
+              <div style={{
+                display: 'inline-flex', alignSelf: 'flex-start', alignItems: 'center', gap: '6px',
+                padding: '5px 12px', borderRadius: '99px',
+                background: `${plateauMeta.color}12`, border: `1px solid ${plateauMeta.color}30`,
+              }}>
+                <span style={{ width: '6px', height: '6px', borderRadius: '50%', background: plateauMeta.color, flexShrink: 0 }} />
+                <span style={{ fontSize: '11px', fontWeight: 700, color: plateauMeta.color }}>{plateauMeta.shortLabel}</span>
               </div>
             )}
 
@@ -400,7 +416,7 @@ export default function ProgressHub({ profile, onUpdateProfile }: Props) {
               <div>
                 <p className="label-base" style={{ marginBottom: '3px' }}>Dose atual</p>
                 <p style={{ fontSize: '22px', fontWeight: 800, color: 'var(--text-primary)', lineHeight: 1 }}>
-                  {profile.currentDose}mg
+                  {getDoseLabel(profile)}
                 </p>
               </div>
               <div style={{ textAlign: 'right' }}>

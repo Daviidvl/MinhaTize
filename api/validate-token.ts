@@ -4,7 +4,7 @@ import { createRateLimiter } from './_lib/rateLimit.js'
 import { getClientIp, UUID_RE } from './_lib/auth.js'
 import { getSupabaseAdmin } from './_lib/supabaseAdmin.js'
 
-const checkRateLimit = createRateLimiter(30, 60_000) // máx 30 tentativas por minuto
+const checkRateLimit = createRateLimiter('validate-token', 30, 60_000) // máx 30 tentativas por minuto
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   setCors(req, res, 'GET,OPTIONS')
@@ -13,8 +13,9 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
   // ── Rate limit ────────────────────────────────────────────────────────────
   const ip = getClientIp(req) || 'unknown'
-  if (!checkRateLimit(ip)) {
-    res.setHeader('Retry-After', '60')
+  const rl = await checkRateLimit(ip)
+  if (!rl.allowed) {
+    res.setHeader('Retry-After', String(rl.retryAfterSeconds))
     return res.status(429).json({ valid: false })
   }
 
