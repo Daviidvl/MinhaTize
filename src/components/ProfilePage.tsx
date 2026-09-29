@@ -2,7 +2,7 @@ import { useState } from 'react'
 import {
   Award, Calendar, Package, Settings, Zap, BarChart2, Scale, Flame, Dumbbell,
   Target, Lightbulb, AlertTriangle, Check, ChevronLeft, ChevronRight, Shield,
-  MessageCircle, Utensils,
+  MessageCircle, Utensils, Syringe, Pill, Sparkles, Heart,
 } from 'lucide-react'
 import { UserProfile, Medication, Sex, MEDICATION_LABELS, DOSE_OPTIONS, WEEK_DAYS_FULL } from '../types'
 import StockControl from './StockControl'
@@ -19,7 +19,7 @@ interface Props {
   initialSection?: string
 }
 
-type ProfileSection = null | 'achievements' | 'stock' | 'edit' | 'equipe' | 'suporte' | 'legal'
+type ProfileSection = null | 'achievements' | 'stock' | 'edit' | 'equipe' | 'suporte' | 'legal' | 'loja' | 'loja-categoria'
 
 const MEDS = Object.entries(MEDICATION_LABELS) as [Medication, string][]
 
@@ -61,6 +61,156 @@ function WaIcon({ size = 16 }: { size?: number }) {
   )
 }
 
+// ── Loja: categorias e produtos de exemplo ─────────────────────────────────────
+interface LojaProduct {
+  name: string; price: string; originalPrice?: string
+  discountPercent?: number; installment?: string
+}
+interface LojaCategory {
+  title: string; sub: string; gradient: string; shadowColor: string; accent: string
+  icon: (color: string, size: number) => React.ReactNode
+  products: LojaProduct[]
+}
+
+const LOJA_CATEGORIES: Record<string, LojaCategory> = {
+  aplicacao: {
+    title: 'Aplicação & Insumos',
+    sub: 'Agulhas, seringas e descarte',
+    gradient: 'linear-gradient(135deg,#007991,#004F5E)',
+    shadowColor: 'rgba(0,121,145,0.28)',
+    accent: '#007991',
+    icon: (color, size) => <Syringe size={size} strokeWidth={1.8} color={color} />,
+    products: [
+      { name: 'Agulhas para Caneta 32G (4mm)', price: 'R$ 49,90', originalPrice: 'R$ 59,90', discountPercent: 17, installment: 'R$16,63 em 3x sem juros' },
+      { name: 'Seringas de Insulina 1ml', price: 'R$ 19,90', originalPrice: 'R$ 24,90', discountPercent: 20, installment: 'R$9,95 em 2x sem juros' },
+      { name: 'Descarpack Perfurocortantes', price: 'R$ 24,90', originalPrice: 'R$ 29,90', discountPercent: 17, installment: 'R$12,45 em 2x sem juros' },
+    ],
+  },
+  suplementos: {
+    title: 'Suplementos & Vitaminas',
+    sub: 'Reposição e suporte nutricional',
+    gradient: 'linear-gradient(135deg,#60992D,#487322)',
+    shadowColor: 'rgba(96,153,45,0.28)',
+    accent: '#487322',
+    icon: (color, size) => <Pill size={size} strokeWidth={1.8} color={color} />,
+    products: [
+      { name: 'Whey Protein Isolado', price: 'R$ 129,90', originalPrice: 'R$ 159,90', discountPercent: 19, installment: 'R$21,65 em 6x sem juros' },
+      { name: 'Multivitamínico Completo', price: 'R$ 59,90', originalPrice: 'R$ 74,90', discountPercent: 20, installment: 'R$19,97 em 3x sem juros' },
+      { name: 'Colágeno Hidrolisado + Vit. C', price: 'R$ 69,90', originalPrice: 'R$ 84,90', discountPercent: 18, installment: 'R$23,30 em 3x sem juros' },
+    ],
+  },
+  treino: {
+    title: 'Treino & Bem-estar',
+    sub: 'Atividade física e mobilidade',
+    gradient: 'linear-gradient(135deg,#AAADC4,#7A7D8D)',
+    shadowColor: 'rgba(170,173,196,0.28)',
+    accent: '#7A7D8D',
+    icon: (color, size) => <Dumbbell size={size} strokeWidth={1.8} color={color} />,
+    products: [
+      { name: 'Kit de Elásticos de Resistência', price: 'R$ 39,90', originalPrice: 'R$ 49,90', discountPercent: 20, installment: 'R$19,95 em 2x sem juros' },
+      { name: 'Tapete de Yoga Premium', price: 'R$ 89,90', originalPrice: 'R$ 109,90', discountPercent: 18, installment: 'R$29,97 em 3x sem juros' },
+      { name: 'Garrafa de Água Inteligente 1L', price: 'R$ 79,90', originalPrice: 'R$ 99,90', discountPercent: 20, installment: 'R$26,63 em 3x sem juros' },
+    ],
+  },
+  pele: {
+    title: 'Pele & Corpo',
+    sub: 'Cuidados durante o emagrecimento',
+    gradient: 'linear-gradient(135deg,#FE5F55,#C64A42)',
+    shadowColor: 'rgba(254,95,85,0.28)',
+    accent: '#C64A42',
+    icon: (color, size) => <Sparkles size={size} strokeWidth={1.8} color={color} />,
+    products: [
+      { name: 'Creme Firmador Corporal', price: 'R$ 54,90', originalPrice: 'R$ 69,90', discountPercent: 21, installment: 'R$18,30 em 3x sem juros' },
+      { name: 'Óleo Corporal Hidratante', price: 'R$ 44,90', originalPrice: 'R$ 54,90', discountPercent: 18, installment: 'R$22,45 em 2x sem juros' },
+      { name: 'Escova de Massagem Anticelulite', price: 'R$ 34,90', originalPrice: 'R$ 44,90', discountPercent: 22, installment: 'R$17,45 em 2x sem juros' },
+    ],
+  },
+  monitoramento: {
+    title: 'Monitoramento',
+    sub: 'Acompanhe sua evolução',
+    gradient: 'linear-gradient(135deg,#333138,#242227)',
+    shadowColor: 'rgba(51,49,56,0.32)',
+    accent: '#333138',
+    icon: (color, size) => <Scale size={size} strokeWidth={1.8} color={color} />,
+    products: [
+      { name: 'Balança Digital de Bioimpedância', price: 'R$ 119,90', originalPrice: 'R$ 149,90', discountPercent: 20, installment: 'R$19,98 em 6x sem juros' },
+      { name: 'Fita Métrica Corporal', price: 'R$ 14,90', originalPrice: 'R$ 19,90', discountPercent: 25 },
+      { name: 'Smartwatch com Monitor de Saúde', price: 'R$ 249,90', originalPrice: 'R$ 299,90', discountPercent: 17, installment: 'R$41,65 em 6x sem juros' },
+    ],
+  },
+}
+
+const LOJA_GREEN = '#15803D'
+
+function ProductCard({ icon, accent, product, onBuy }: {
+  icon: React.ReactNode; accent: string; product: LojaProduct; onBuy: () => void
+}) {
+  const [fav, setFav] = useState(false)
+  return (
+    <div style={{
+      display: 'flex', flexDirection: 'column',
+      background: 'var(--surface)', border: '1px solid var(--border)',
+      borderRadius: '18px', overflow: 'hidden',
+    }}>
+      <div style={{
+        position: 'relative', minHeight: '84px', padding: '18px 12px',
+        background: 'var(--surface-2)', display: 'flex', alignItems: 'center', justifyContent: 'center',
+      }}>
+        {product.discountPercent && (
+          <span style={{
+            position: 'absolute', top: '8px', left: '8px',
+            fontSize: '10px', fontWeight: 800, color: '#fff', background: '#E53935',
+            padding: '3px 7px', borderRadius: '7px', letterSpacing: '-0.2px',
+          }}>-{product.discountPercent}%</span>
+        )}
+        <button
+          onClick={() => setFav(f => !f)}
+          aria-label="Favoritar"
+          style={{
+            position: 'absolute', top: '6px', right: '6px', width: '26px', height: '26px',
+            borderRadius: '50%', background: 'var(--surface)', border: '1px solid var(--border)',
+            display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', padding: 0,
+          }}
+        >
+          <Heart size={13} strokeWidth={2} color={fav ? '#EF4444' : 'var(--text-faint)'} fill={fav ? '#EF4444' : 'none'} />
+        </button>
+        <div style={{
+          width: '44px', height: '44px', borderRadius: '12px', flexShrink: 0,
+          background: `${accent}1A`, display: 'flex', alignItems: 'center', justifyContent: 'center',
+        }}>{icon}</div>
+      </div>
+
+      <div style={{ padding: '10px 12px 12px', display: 'flex', flexDirection: 'column', gap: '4px' }}>
+        <p style={{
+          fontSize: '11.5px', fontWeight: 700, color: 'var(--text-primary)', margin: 0,
+          letterSpacing: '-0.1px', lineHeight: 1.3, minHeight: '28px',
+          display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden',
+        }}>{product.name}</p>
+
+        {product.originalPrice && (
+          <span style={{ fontSize: '10px', color: 'var(--text-faint)', textDecoration: 'line-through', fontWeight: 500 }}>
+            {product.originalPrice}
+          </span>
+        )}
+        <span style={{ fontSize: '15px', fontWeight: 800, color: LOJA_GREEN, letterSpacing: '-0.3px' }}>
+          {product.price}
+        </span>
+        {product.installment && (
+          <span style={{ fontSize: '9px', color: 'var(--text-muted)', fontWeight: 500, marginBottom: '2px' }}>
+            {product.installment}
+          </span>
+        )}
+
+        <button onClick={onBuy} style={{
+          marginTop: '4px', width: '100%', fontSize: '11px', fontWeight: 800, color: '#fff',
+          background: LOJA_GREEN, border: 'none', borderRadius: '9px', padding: '9px 0', cursor: 'pointer',
+          fontFamily: 'Inter, -apple-system, sans-serif', letterSpacing: '0.02em', textTransform: 'uppercase',
+        }}>Comprar</button>
+      </div>
+    </div>
+  )
+}
+
 // ── Shared atoms ──────────────────────────────────────────────────────────────
 function SLabel({ children }: { children: React.ReactNode }) {
   return (
@@ -81,6 +231,69 @@ function LGroup({ children }: { children: React.ReactNode }) {
 
 function LDivider() {
   return <div style={{ height: '1px', background: 'var(--border)', margin: '0 16px 0 62px' }} />
+}
+
+function CategoryBanner({ iconBg, icon, label, sub, onClick }: {
+  iconBg: string; icon: React.ReactNode; label: string; sub: string; onClick: () => void
+}) {
+  return (
+    <button onClick={onClick} style={{
+      gridColumn: '1 / -1', display: 'flex', alignItems: 'center', gap: '14px',
+      padding: '18px 20px', borderRadius: '22px', textAlign: 'left', cursor: 'pointer',
+      background: iconBg, border: 'none', position: 'relative', overflow: 'hidden',
+      boxShadow: '0 8px 24px rgba(0,0,0,0.18), 0 2px 6px rgba(0,0,0,0.14)',
+      fontFamily: 'Inter, -apple-system, sans-serif',
+    }}>
+      <div style={{ position: 'absolute', top: '-28px', right: '-28px', width: '100px', height: '100px', borderRadius: '50%', background: 'rgba(255,255,255,0.08)', pointerEvents: 'none' }} />
+      <div style={{ position: 'absolute', bottom: '-24px', left: '30%', width: '70px', height: '70px', borderRadius: '50%', background: 'rgba(255,255,255,0.04)', pointerEvents: 'none' }} />
+      <div style={{
+        width: '48px', height: '48px', borderRadius: '14px', flexShrink: 0, position: 'relative',
+        background: 'rgba(255,255,255,0.16)', display: 'flex', alignItems: 'center', justifyContent: 'center',
+      }}>{icon}</div>
+      <div style={{ flex: 1, minWidth: 0, position: 'relative' }}>
+        <p style={{ fontSize: '15px', fontWeight: 800, color: '#fff', margin: '0 0 2px', letterSpacing: '-0.3px' }}>{label}</p>
+        <p style={{ fontSize: '11px', color: 'rgba(255,255,255,0.65)', fontWeight: 600, margin: 0 }}>{sub}</p>
+      </div>
+      <ChevronRight size={18} strokeWidth={2.5} style={{ color: 'rgba(255,255,255,0.65)', flexShrink: 0, position: 'relative' }} />
+    </button>
+  )
+}
+
+function CategoryTile({ gradient, shadowColor, icon, label, onClick, span = 2, minHeight = '118px', dark = false }: {
+  gradient: string; shadowColor: string; icon: React.ReactNode; label: string; onClick: () => void
+  span?: number; minHeight?: string; dark?: boolean
+}) {
+  const big       = span >= 4
+  const textColor = dark ? '#2A2A2A' : '#fff'
+  const badgeBg   = dark ? 'rgba(0,0,0,0.08)' : 'rgba(255,255,255,0.18)'
+  const circleBg  = dark ? 'rgba(0,0,0,0.05)' : 'rgba(255,255,255,0.10)'
+  return (
+    <button onClick={onClick} style={{
+      gridColumn: `span ${span}`,
+      display: 'flex', flexDirection: 'column', justifyContent: 'space-between', gap: '14px',
+      minHeight, padding: big ? '18px' : '14px', borderRadius: big ? '22px' : '20px', textAlign: 'left', cursor: 'pointer',
+      background: gradient, border: 'none', position: 'relative', overflow: 'hidden',
+      boxShadow: `0 8px 22px ${shadowColor}, 0 2px 6px rgba(0,0,0,0.14)`,
+      fontFamily: 'Inter, -apple-system, sans-serif', transition: 'transform 0.15s, box-shadow 0.2s',
+    }}>
+      <div style={{
+        position: 'absolute', top: big ? '-26px' : '-20px', right: big ? '-26px' : '-20px',
+        width: big ? '90px' : '64px', height: big ? '90px' : '64px', borderRadius: '50%',
+        background: circleBg, pointerEvents: 'none',
+      }} />
+
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', position: 'relative' }}>
+        <div style={{
+          width: big ? '44px' : '34px', height: big ? '44px' : '34px', borderRadius: big ? '13px' : '10px', flexShrink: 0,
+          background: badgeBg, display: 'flex', alignItems: 'center', justifyContent: 'center',
+        }}>{icon}</div>
+      </div>
+
+      <p style={{ fontSize: big ? '14px' : '12px', fontWeight: 800, color: textColor, margin: 0, letterSpacing: '-0.2px', lineHeight: 1.22, position: 'relative' }}>
+        {label}
+      </p>
+    </button>
+  )
 }
 
 function LRow({ iconBg, icon, label, badge, value, onClick }: {
@@ -129,6 +342,7 @@ function SubHeader({ title, onBack }: { title: string; onBack: () => void }) {
 // ── Main ──────────────────────────────────────────────────────────────────────
 export default function ProfilePage({ profile, onUpdateProfile, onBack, initialSection }: Props) {
   const [section, setSection] = useState<ProfileSection>((initialSection as ProfileSection) ?? null)
+  const [lojaCategoria, setLojaCategoria] = useState<string | null>(null)
   const initialDose = resolveDoseMode(profile)
   const [form, setForm] = useState({
     name:            profile.name,
@@ -595,6 +809,89 @@ export default function ProfilePage({ profile, onUpdateProfile, onBack, initialS
       </div>
     </div>
   )
+
+  if (section === 'loja') return (
+    <div className="fade-in" style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+      <SubHeader title="Loja" onBack={onBack} />
+
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+        <SLabel>Categorias</SLabel>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(6, 1fr)', gap: '10px' }}>
+          <CategoryBanner
+            iconBg="linear-gradient(135deg,#007991,#004F5E)"
+            icon={<Syringe size={22} strokeWidth={1.8} color="#fff" />}
+            label="Aplicação & Insumos"
+            sub="Agulhas, seringas e descarte"
+            onClick={() => { setLojaCategoria('aplicacao'); setSection('loja-categoria') }}
+          />
+          <CategoryTile
+            span={4} minHeight="150px"
+            gradient="linear-gradient(135deg,#60992D,#487322)" shadowColor="rgba(96,153,45,0.28)"
+            icon={<Pill size={22} strokeWidth={1.8} color="#fff" />} label="Suplementos & Vitaminas"
+            onClick={() => { setLojaCategoria('suplementos'); setSection('loja-categoria') }}
+          />
+          <CategoryTile
+            span={2} minHeight="150px"
+            gradient="linear-gradient(135deg,#AAADC4,#7A7D8D)" shadowColor="rgba(170,173,196,0.28)"
+            icon={<Dumbbell size={17} strokeWidth={1.8} color="#fff" />} label="Treino & Bem-estar"
+            onClick={() => { setLojaCategoria('treino'); setSection('loja-categoria') }}
+          />
+          <CategoryTile
+            span={3} minHeight="132px"
+            gradient="linear-gradient(135deg,#FE5F55,#C64A42)" shadowColor="rgba(254,95,85,0.28)"
+            icon={<Sparkles size={19} strokeWidth={1.8} color="#fff" />} label="Pele & Corpo"
+            onClick={() => { setLojaCategoria('pele'); setSection('loja-categoria') }}
+          />
+          <CategoryTile
+            span={3} minHeight="132px"
+            gradient="linear-gradient(135deg,#333138,#242227)" shadowColor="rgba(51,49,56,0.32)"
+            icon={<Scale size={19} strokeWidth={1.8} color="#fff" />} label="Monitoramento"
+            onClick={() => { setLojaCategoria('monitoramento'); setSection('loja-categoria') }}
+          />
+        </div>
+      </div>
+    </div>
+  )
+
+  if (section === 'loja-categoria' && lojaCategoria) {
+    const cat = LOJA_CATEGORIES[lojaCategoria]
+    return (
+      <div className="fade-in" style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+        <SubHeader title={cat.title} onBack={() => setSection('loja')} />
+
+        <div style={{
+          borderRadius: '22px', padding: '18px 20px', background: cat.gradient,
+          boxShadow: `0 8px 24px ${cat.shadowColor}, 0 2px 6px rgba(0,0,0,0.14)`,
+          display: 'flex', alignItems: 'center', gap: '14px', position: 'relative', overflow: 'hidden',
+        }}>
+          <div style={{ position: 'absolute', top: '-28px', right: '-28px', width: '100px', height: '100px', borderRadius: '50%', background: 'rgba(255,255,255,0.08)', pointerEvents: 'none' }} />
+          <div style={{
+            width: '48px', height: '48px', borderRadius: '14px', flexShrink: 0, position: 'relative',
+            background: 'rgba(255,255,255,0.16)', display: 'flex', alignItems: 'center', justifyContent: 'center',
+          }}>{cat.icon('#fff', 22)}</div>
+          <div style={{ position: 'relative', minWidth: 0 }}>
+            <p style={{ fontSize: '15px', fontWeight: 800, color: '#fff', margin: '0 0 2px', letterSpacing: '-0.3px' }}>{cat.title}</p>
+            <p style={{ fontSize: '11px', color: 'rgba(255,255,255,0.65)', fontWeight: 600, margin: 0 }}>{cat.sub}</p>
+          </div>
+        </div>
+
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+          <SLabel>Produtos selecionados</SLabel>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
+            {cat.products.map(p => (
+              <ProductCard
+                key={p.name}
+                icon={cat.icon(cat.accent, 22)}
+                accent={cat.accent}
+                product={p}
+                onBuy={() => openWA(`Olá! Tenho interesse no produto: ${p.name}`)}
+              />
+            ))}
+          </div>
+        </div>
+      </div>
+    )
+  }
 
   // ── Vista principal (lista estilo iOS Settings) ───────────────────────────
   return (
