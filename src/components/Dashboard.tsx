@@ -1,5 +1,5 @@
-import type { ReactNode } from 'react'
-import { Package, AlertTriangle, ChevronRight, Moon, Zap, Search } from 'lucide-react'
+import type { ReactNode, CSSProperties } from 'react'
+import { Package, AlertTriangle, ChevronRight, Moon, Zap, Search, ShoppingBag } from 'lucide-react'
 import { UserProfile, Tab } from '../types'
 import ApplicationCalendar from './ApplicationCalendar'
 import { calcIMC, imcLabel } from '../utils/bmiUtils'
@@ -64,8 +64,8 @@ function WorkoutWidget({ onNavigate }: { onNavigate: (t: Tab, s?: string) => voi
   }
 
   const bgGradient = isRest
-    ? 'linear-gradient(150deg, #1C2438 0%, #12182A 100%)'
-    : 'linear-gradient(150deg, #101B3F 0%, #1B2F72 100%)'
+    ? 'linear-gradient(135deg, #1C2438 0%, #12182A 100%)'
+    : 'linear-gradient(135deg, #101B3F 0%, #1B2F72 100%)'
 
   return (
     <button
@@ -79,62 +79,68 @@ function WorkoutWidget({ onNavigate }: { onNavigate: (t: Tab, s?: string) => voi
           : '0 6px 20px rgba(20,40,120,0.28), 0 1px 3px rgba(0,0,0,0.12)',
         fontFamily: 'Inter, -apple-system, sans-serif',
         color: '#fff', transition: 'transform 0.15s ease, box-shadow 0.2s ease',
+        position: 'relative', overflow: 'hidden',
       }}
     >
-      {/* Cabeçalho */}
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-        <p style={{ fontSize: '9px', fontWeight: 700, opacity: 0.45, textTransform: 'uppercase', letterSpacing: '0.12em', margin: 0 }}>
-          Treino Hoje
-        </p>
-        <ChevronRight size={11} strokeWidth={2.5} color="rgba(255,255,255,0.30)" />
-      </div>
+      <div style={{ position: 'absolute', top: '-24px', right: '-24px', width: '90px', height: '90px', borderRadius: '50%', background: 'rgba(255,255,255,0.06)', pointerEvents: 'none' }} />
+      <div style={{ position: 'absolute', bottom: '-16px', left: '-8px', width: '64px', height: '64px', borderRadius: '50%', background: 'rgba(255,255,255,0.03)', pointerEvents: 'none' }} />
 
-      {/* Badge + nome */}
-      <div style={{ display: 'flex', alignItems: 'flex-start', gap: '10px' }}>
-        <div style={{
-          width: '36px', height: '36px', borderRadius: '10px', flexShrink: 0,
-          background: isRest ? 'rgba(255,255,255,0.07)' : `${accent}22`,
-          border: `1px solid ${isRest ? 'rgba(255,255,255,0.10)' : accent + '40'}`,
-          display: 'flex', alignItems: 'center', justifyContent: 'center',
-        }}>
-          {isRest
-            ? <Moon size={15} strokeWidth={1.5} color="rgba(255,255,255,0.50)" />
-            : <span style={{ fontSize: '16px', fontWeight: 900, color: accent, lineHeight: 1 }}>{workout!.label}</span>
-          }
-        </div>
-        <div style={{ flex: 1, minWidth: 0 }}>
-          <p style={{ fontSize: '13px', fontWeight: 800, color: '#fff', margin: '0 0 2px', letterSpacing: '-0.3px', lineHeight: 1.2 }}>
-            {isRest ? 'Descanso' : workout!.name.includes(' + ') ? workout!.name.split(' + ')[0] : workout!.name}
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', position: 'relative' }}>
+        {/* Cabeçalho */}
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+          <p style={{ fontSize: '9px', fontWeight: 700, opacity: 0.45, textTransform: 'uppercase', letterSpacing: '0.12em', margin: 0 }}>
+            Treino Hoje
           </p>
-          {!isRest && workout!.name.includes(' + ') && (
-            <p style={{ fontSize: '10px', fontWeight: 600, color: `${accent}aa`, margin: '0 0 1px', lineHeight: 1.2 }}>
-              + {workout!.name.split(' + ').slice(1).join(' + ')}
+          <ChevronRight size={11} strokeWidth={2.5} color="rgba(255,255,255,0.30)" />
+        </div>
+
+        {/* Badge + nome */}
+        <div style={{ display: 'flex', alignItems: 'flex-start', gap: '10px' }}>
+          <div style={{
+            width: '36px', height: '36px', borderRadius: '10px', flexShrink: 0,
+            background: isRest ? 'rgba(255,255,255,0.07)' : `${accent}22`,
+            border: `1px solid ${isRest ? 'rgba(255,255,255,0.10)' : accent + '40'}`,
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+          }}>
+            {isRest
+              ? <Moon size={15} strokeWidth={1.5} color="rgba(255,255,255,0.50)" />
+              : <span style={{ fontSize: '16px', fontWeight: 900, color: accent, lineHeight: 1 }}>{workout!.label}</span>
+            }
+          </div>
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <p style={{ fontSize: '13px', fontWeight: 800, color: '#fff', margin: '0 0 2px', letterSpacing: '-0.3px', lineHeight: 1.2 }}>
+              {isRest ? 'Descanso' : workout!.name.includes(' + ') ? workout!.name.split(' + ')[0] : workout!.name}
             </p>
-          )}
-          <p style={{ fontSize: '9px', opacity: 0.38, margin: 0 }}>
-            {isRest ? 'Recuperação ativa' : `${wp!.days}×/sem · ${LEVEL_LABEL[wp!.level] ?? wp!.level}`}
+            {!isRest && workout!.name.includes(' + ') && (
+              <p style={{ fontSize: '10px', fontWeight: 600, color: `${accent}aa`, margin: '0 0 1px', lineHeight: 1.2 }}>
+                + {workout!.name.split(' + ').slice(1).join(' + ')}
+              </p>
+            )}
+            <p style={{ fontSize: '9px', opacity: 0.38, margin: 0 }}>
+              {isRest ? 'Recuperação ativa' : `${wp!.days}×/sem · ${LEVEL_LABEL[wp!.level] ?? wp!.level}`}
+            </p>
+          </div>
+        </div>
+
+        {/* Barra semanal */}
+        <div>
+          <div style={{ display: 'flex', gap: '3px', marginBottom: '5px' }}>
+            {weekDots.map((d, i) => (
+              <div key={i} style={{
+                flex: 1, height: '3px', borderRadius: '99px',
+                background: d.done
+                  ? '#fff'
+                  : d.isToday ? 'rgba(255,255,255,0.22)' : 'rgba(255,255,255,0.07)',
+                outline: d.isToday ? '1.5px solid rgba(255,255,255,0.35)' : 'none',
+                outlineOffset: '1.5px',
+                transition: 'background 0.3s',
+              }} />
+            ))}
+          </div>
+          <p style={{ fontSize: '9px', opacity: 0.38, margin: 0, fontWeight: 600 }}>
+            {weekDone}/{wp!.days} treinos esta semana
           </p>
         </div>
-      </div>
-
-      {/* Barra semanal */}
-      <div>
-        <div style={{ display: 'flex', gap: '3px', marginBottom: '5px' }}>
-          {weekDots.map((d, i) => (
-            <div key={i} style={{
-              flex: 1, height: '3px', borderRadius: '99px',
-              background: d.done
-                ? '#fff'
-                : d.isToday ? 'rgba(255,255,255,0.22)' : 'rgba(255,255,255,0.07)',
-              outline: d.isToday ? '1.5px solid rgba(255,255,255,0.35)' : 'none',
-              outlineOffset: '1.5px',
-              transition: 'background 0.3s',
-            }} />
-          ))}
-        </div>
-        <p style={{ fontSize: '9px', opacity: 0.38, margin: 0, fontWeight: 600 }}>
-          {weekDone}/{wp!.days} treinos esta semana
-        </p>
       </div>
     </button>
   )
@@ -183,58 +189,64 @@ function MealWidget({ profile, onNavigate }: { profile: UserProfile; onNavigate:
       style={{
         display: 'flex', flexDirection: 'column', gap: '12px',
         padding: '16px', borderRadius: '20px', textAlign: 'left', cursor: 'pointer',
-        background: 'linear-gradient(150deg, #1E1245 0%, #33207A 100%)',
+        background: 'linear-gradient(135deg, #1E1245 0%, #33207A 100%)',
         border: 'none',
         boxShadow: '0 6px 20px rgba(51,32,122,0.28), 0 1px 3px rgba(0,0,0,0.12)',
         fontFamily: 'Inter, -apple-system, sans-serif',
         color: '#fff', transition: 'transform 0.15s ease, box-shadow 0.2s ease',
+        position: 'relative', overflow: 'hidden',
       }}
     >
-      {/* Cabeçalho */}
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-        <p style={{ fontSize: '9px', fontWeight: 700, opacity: 0.45, textTransform: 'uppercase', letterSpacing: '0.12em', margin: 0 }}>
-          {isCurrent ? 'Agora' : 'Próxima refeição'}
-        </p>
-        <ChevronRight size={11} strokeWidth={2.5} color="rgba(255,255,255,0.30)" />
-      </div>
+      <div style={{ position: 'absolute', top: '-24px', right: '-24px', width: '90px', height: '90px', borderRadius: '50%', background: 'rgba(255,255,255,0.06)', pointerEvents: 'none' }} />
+      <div style={{ position: 'absolute', bottom: '-16px', left: '-8px', width: '64px', height: '64px', borderRadius: '50%', background: 'rgba(255,255,255,0.03)', pointerEvents: 'none' }} />
 
-      {/* Refeição + arco */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-        <div style={{ flex: 1, minWidth: 0 }}>
-          <p style={{ fontSize: '13px', fontWeight: 800, color: '#fff', margin: '0 0 2px', letterSpacing: '-0.3px', lineHeight: 1.2 }}>
-            {slot.label}
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', position: 'relative' }}>
+        {/* Cabeçalho */}
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+          <p style={{ fontSize: '9px', fontWeight: 700, opacity: 0.45, textTransform: 'uppercase', letterSpacing: '0.12em', margin: 0 }}>
+            {isCurrent ? 'Agora' : 'Próxima refeição'}
           </p>
-          <p style={{ fontSize: '10px', opacity: 0.50, margin: 0, fontWeight: 500 }}>{sub}</p>
+          <ChevronRight size={11} strokeWidth={2.5} color="rgba(255,255,255,0.30)" />
         </div>
-        <div style={{ position: 'relative', flexShrink: 0, width: '44px', height: '44px' }}>
-          <svg width="44" height="44" viewBox="0 0 44 44">
-            <circle cx="22" cy="22" r={arcR} fill="none" stroke="rgba(255,255,255,0.10)" strokeWidth="4" />
-            <circle cx="22" cy="22" r={arcR} fill="none" stroke={arcClr} strokeWidth="4"
-              strokeLinecap="round"
-              strokeDasharray={arcCirc}
-              strokeDashoffset={arcOff}
-              transform="rotate(-90 22 22)"
-              style={{ transition: 'stroke-dashoffset 0.9s cubic-bezier(0.22,1,0.36,1)' }}
-            />
-          </svg>
-          <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-            <p style={{ fontSize: '9px', fontWeight: 800, margin: 0, lineHeight: 1, opacity: 0.92 }}>{pct}%</p>
+
+        {/* Refeição + arco */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <p style={{ fontSize: '13px', fontWeight: 800, color: '#fff', margin: '0 0 2px', letterSpacing: '-0.3px', lineHeight: 1.2 }}>
+              {slot.label}
+            </p>
+            <p style={{ fontSize: '10px', opacity: 0.50, margin: 0, fontWeight: 500 }}>{sub}</p>
+          </div>
+          <div style={{ position: 'relative', flexShrink: 0, width: '44px', height: '44px' }}>
+            <svg width="44" height="44" viewBox="0 0 44 44">
+              <circle cx="22" cy="22" r={arcR} fill="none" stroke="rgba(255,255,255,0.10)" strokeWidth="4" />
+              <circle cx="22" cy="22" r={arcR} fill="none" stroke={arcClr} strokeWidth="4"
+                strokeLinecap="round"
+                strokeDasharray={arcCirc}
+                strokeDashoffset={arcOff}
+                transform="rotate(-90 22 22)"
+                style={{ transition: 'stroke-dashoffset 0.9s cubic-bezier(0.22,1,0.36,1)' }}
+              />
+            </svg>
+            <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              <p style={{ fontSize: '9px', fontWeight: 800, margin: 0, lineHeight: 1, opacity: 0.92 }}>{pct}%</p>
+            </div>
           </div>
         </div>
-      </div>
 
-      {/* Progresso kcal */}
-      <div>
-        <div style={{ background: 'rgba(255,255,255,0.10)', borderRadius: '99px', height: '3px', overflow: 'hidden', marginBottom: '5px' }}>
-          <div style={{
-            width: `${pct}%`, height: '100%',
-            background: '#fff',
-            borderRadius: '99px', transition: 'width 0.9s cubic-bezier(0.22,1,0.36,1)',
-          }} />
+        {/* Progresso kcal */}
+        <div>
+          <div style={{ background: 'rgba(255,255,255,0.10)', borderRadius: '99px', height: '3px', overflow: 'hidden', marginBottom: '5px' }}>
+            <div style={{
+              width: `${pct}%`, height: '100%',
+              background: '#fff',
+              borderRadius: '99px', transition: 'width 0.9s cubic-bezier(0.22,1,0.36,1)',
+            }} />
+          </div>
+          <p style={{ fontSize: '9px', opacity: 0.38, margin: 0, fontWeight: 600 }}>
+            {consumed} / {target} kcal hoje
+          </p>
         </div>
-        <p style={{ fontSize: '9px', opacity: 0.38, margin: 0, fontWeight: 600 }}>
-          {consumed} / {target} kcal hoje
-        </p>
       </div>
     </button>
   )
@@ -242,7 +254,7 @@ function MealWidget({ profile, onNavigate }: { profile: UserProfile; onNavigate:
 
 // ── Tile de Stat ──────────────────────────────────────────────────────────────
 function StatTile({
-  label, value, unit, sub, subColor, icon,
+  label, value, unit, sub, subColor, icon, style,
 }: {
   label: string
   value: string | number
@@ -250,9 +262,10 @@ function StatTile({
   sub?: string
   subColor?: string
   icon?: ReactNode
+  style?: CSSProperties
 }) {
   return (
-    <div className="stat-card" style={{ position: 'relative', overflow: 'hidden' }}>
+    <div className="stat-card" style={{ position: 'relative', overflow: 'hidden', ...style }}>
       {icon && (
         <div style={{ position: 'absolute', top: '14px', right: '14px', opacity: 0.12 }}>
           {icon}
@@ -343,7 +356,7 @@ export default function Dashboard({ profile, onNavigate, onUpdateProfile }: Prop
         aria-label="Ver evolução de peso"
       >
         <div style={{
-          background: 'linear-gradient(140deg, #1A40BE 0%, #1D4ED8 40%, #2563EB 75%, #2F77F2 100%)',
+          background: 'linear-gradient(135deg, #1A40BE 0%, #1D4ED8 40%, #2563EB 75%, #2F77F2 100%)',
           borderRadius: '26px', padding: '22px 22px 20px',
           boxShadow: '0 10px 40px rgba(29,78,216,0.32), 0 2px 8px rgba(29,78,216,0.18)',
           color: '#fff', position: 'relative', overflow: 'hidden',
@@ -481,15 +494,10 @@ export default function Dashboard({ profile, onNavigate, onUpdateProfile }: Prop
         </button>
       )}
 
-      {/* ── Widgets diários ── */}
-      <div data-tour="dash-widgets" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
-        <WorkoutWidget onNavigate={onNavigate} />
-        <MealWidget profile={profile} onNavigate={onNavigate} />
-      </div>
-
       {/* ── Stats ── */}
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '10px' }}>
         <StatTile
+          style={{ gridColumn: 'span 2' }}
           label="IMC"
           value={imc ? imc.toFixed(1) : '—'}
           sub={imcInfo?.label}
@@ -498,7 +506,7 @@ export default function Dashboard({ profile, onNavigate, onUpdateProfile }: Prop
         />
 
         {/* Tile de Dose */}
-        <div className="stat-card" style={{ position: 'relative', overflow: 'hidden' }}>
+        <div className="stat-card" style={{ position: 'relative', overflow: 'hidden', aspectRatio: '1', gridColumn: 'span 1' }}>
           <div style={{ position: 'absolute', top: '14px', right: '14px', opacity: 0.10 }}>
             <Zap size={36} strokeWidth={1.5} />
           </div>
@@ -530,6 +538,79 @@ export default function Dashboard({ profile, onNavigate, onUpdateProfile }: Prop
             </p>
           )}
         </div>
+      </div>
+
+      {/* ── Widgets diários ── */}
+      <div data-tour="dash-widgets" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
+        <WorkoutWidget onNavigate={onNavigate} />
+        <MealWidget profile={profile} onNavigate={onNavigate} />
+      </div>
+
+      {/* ── Loja de parceiros ── */}
+      <button
+        onClick={() => onNavigate('profile', 'loja')}
+        style={{ background: 'none', border: 'none', padding: 0, cursor: 'pointer', textAlign: 'left', width: '100%' }}
+        aria-label="Loja de produtos recomendados"
+      >
+        <div style={{
+          borderRadius: '26px', padding: '18px 20px',
+          background: 'linear-gradient(135deg, #007991 0%, #004F5E 100%)',
+          boxShadow: '0 8px 28px rgba(0,121,145,0.28), 0 2px 6px rgba(0,0,0,0.16)',
+          position: 'relative', overflow: 'hidden',
+          transition: 'transform 0.15s, box-shadow 0.2s',
+        }}>
+          <div style={{ position: 'absolute', top: '-32px', right: '-32px', width: '120px', height: '120px', borderRadius: '50%', background: 'rgba(255,255,255,0.08)', pointerEvents: 'none' }} />
+          <div style={{ position: 'absolute', bottom: '-20px', left: '-10px', width: '80px', height: '80px', borderRadius: '50%', background: 'rgba(255,255,255,0.04)', pointerEvents: 'none' }} />
+
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '12px', position: 'relative' }}>
+            <div style={{ minWidth: 0 }}>
+              <p style={{
+                fontSize: '9px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.10em',
+                margin: '0 0 8px', color: 'rgba(255,255,255,0.65)', fontFamily: 'Inter, sans-serif',
+              }}>
+                Loja
+              </p>
+              <p style={{ fontSize: '16px', fontWeight: 800, color: '#fff', margin: '0 0 4px', letterSpacing: '-0.3px' }}>
+                Produtos recomendados
+              </p>
+              <p style={{ fontSize: '11px', color: 'rgba(255,255,255,0.65)', fontWeight: 600, margin: 0, fontFamily: 'Inter, sans-serif' }}>
+                Selecionados para o seu tratamento
+              </p>
+            </div>
+            <div style={{
+              width: '48px', height: '48px', borderRadius: '14px', flexShrink: 0,
+              background: 'rgba(255,255,255,0.14)', border: '1px solid rgba(255,255,255,0.16)',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+            }}>
+              <ShoppingBag size={22} strokeWidth={1.8} color="rgba(255,255,255,0.90)" />
+            </div>
+          </div>
+        </div>
+      </button>
+
+      {/* ── Calendário de aplicações ── */}
+      <div data-tour="dash-calendar" className="card" style={{ padding: '1rem' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '12px' }}>
+          <div style={{
+            width: '32px', height: '32px', borderRadius: '9px',
+            background: 'var(--primary-light)',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+          }}>
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none"
+              stroke="var(--primary)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <rect x="3" y="4" width="18" height="18" rx="2" ry="2"/>
+              <line x1="16" y1="2" x2="16" y2="6"/>
+              <line x1="8" y1="2" x2="8" y2="6"/>
+              <line x1="3" y1="10" x2="21" y2="10"/>
+            </svg>
+          </div>
+          <div style={{ flex: 1 }}>
+            <p style={{ fontWeight: 700, fontSize: '13px', color: 'var(--text-primary)', margin: 0, fontFamily: 'Inter, sans-serif' }}>
+              Calendário de aplicações
+            </p>
+          </div>
+        </div>
+        <ApplicationCalendar profile={profile} onUpdateProfile={onUpdateProfile} compact />
       </div>
 
       {/* ── Indicador de estoque ── */}
@@ -605,31 +686,6 @@ export default function Dashboard({ profile, onNavigate, onUpdateProfile }: Prop
           </div>
         </div>
       </button>
-
-      {/* ── Calendário de aplicações ── */}
-      <div data-tour="dash-calendar" className="card" style={{ padding: '1.25rem' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '16px' }}>
-          <div style={{
-            width: '32px', height: '32px', borderRadius: '9px',
-            background: 'var(--primary-light)',
-            display: 'flex', alignItems: 'center', justifyContent: 'center',
-          }}>
-            <svg width="15" height="15" viewBox="0 0 24 24" fill="none"
-              stroke="var(--primary)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <rect x="3" y="4" width="18" height="18" rx="2" ry="2"/>
-              <line x1="16" y1="2" x2="16" y2="6"/>
-              <line x1="8" y1="2" x2="8" y2="6"/>
-              <line x1="3" y1="10" x2="21" y2="10"/>
-            </svg>
-          </div>
-          <div style={{ flex: 1 }}>
-            <p style={{ fontWeight: 700, fontSize: '13px', color: 'var(--text-primary)', margin: 0, fontFamily: 'Inter, sans-serif' }}>
-              Calendário de aplicações
-            </p>
-          </div>
-        </div>
-        <ApplicationCalendar profile={profile} onUpdateProfile={onUpdateProfile} compact />
-      </div>
 
     </div>
   )

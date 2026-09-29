@@ -163,7 +163,7 @@ export default function ApplicationCalendar({ profile, onUpdateProfile, compact 
   const fontSize  = compact ? '11px' : '11px'
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: compact ? '10px' : '14px' }}>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: compact ? '8px' : '14px' }}>
 
       {/* ═══════════════════════════════════════════════════════════════
           BOTTOM SHEET
@@ -471,7 +471,7 @@ export default function ApplicationCalendar({ profile, onUpdateProfile, compact 
               textAlign: 'center', fontSize: compact ? '9px' : '10px',
               fontWeight: isAppDayCol ? 800 : 700,
               color: isAppDayCol ? 'var(--primary)' : 'var(--text-muted)',
-              paddingBottom: compact ? '4px' : '6px',
+              paddingBottom: compact ? '2px' : '6px',
             }}>{d}</div>
           )
         })}
@@ -482,7 +482,7 @@ export default function ApplicationCalendar({ profile, onUpdateProfile, compact 
       ════════════════════════════════════════════════════════════════ */}
       <div style={{ display: 'grid', gridTemplateColumns: compact ? 'repeat(7, 1fr)' : 'repeat(7, 34px)', gap, marginTop: '-4px', padding: '0', justifyContent: 'center' }}>
         {cells.map((day, idx) => {
-          if (day === null) return <div key={`e-${idx}`} style={{ aspectRatio: '1' }} />
+          if (day === null) return <div key={`e-${idx}`} style={{ aspectRatio: compact ? '1.4' : '1' }} />
 
           const dateStr    = toDateStr(new Date(view.year, view.month, day))
           const isToday    = dateStr === todayStr
@@ -521,7 +521,7 @@ export default function ApplicationCalendar({ profile, onUpdateProfile, compact 
               key={dateStr}
               onClick={() => handleDayClick(dateStr, isFuture)}
               style={{
-                aspectRatio: '1', borderRadius: '8px',
+                aspectRatio: compact ? '1.4' : '1', borderRadius: '8px',
                 background: bg, border, color, fontWeight: fw, fontSize,
                 cursor: clickable ? 'pointer' : 'default',
                 display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
