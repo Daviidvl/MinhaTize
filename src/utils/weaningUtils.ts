@@ -53,23 +53,23 @@ export const TAPER_DOSES: Record<string, string[]> = {
 // ── Profile config ────────────────────────────────────────────────────────────
 export const PROFILE_CONFIG = {
   green: {
-    dot: '#059669',
-    bg: 'rgba(5,150,105,0.08)',
-    border: 'rgba(5,150,105,0.25)',
+    dot: 'var(--teal)',
+    bg: 'var(--teal-l)',
+    border: 'var(--teal)',
     label: 'Boa prontidão para discutir o desmame',
     message: 'Você apresenta sinais favoráveis para discutir o desmame com seu médico.\n\nUma das estratégias mais utilizadas na prática clínica consiste em reduzir gradualmente a dose e, posteriormente, aumentar o intervalo entre as aplicações.',
   },
   yellow: {
-    dot: '#D97706',
-    bg: 'rgba(217,119,6,0.08)',
-    border: 'rgba(217,119,6,0.25)',
+    dot: 'var(--amber-fill)',
+    bg: 'var(--amber-bg)',
+    border: 'var(--amber-line)',
     label: 'Ainda não é o momento ideal',
     message: 'Neste momento, pode ser mais interessante consolidar os hábitos, estabilizar os resultados e fortalecer a rotina alimentar e de exercícios antes de iniciar o desmame.',
   },
   blue: {
-    dot: '#2563EB',
-    bg: 'rgba(37,99,235,0.08)',
-    border: 'rgba(37,99,235,0.25)',
+    dot: 'var(--cobalt)',
+    bg: 'var(--ice)',
+    border: 'var(--sky)',
     label: 'Situações que merecem avaliação individual',
     message: 'Algumas situações exigem uma avaliação individualizada. Por isso, recomenda-se discutir os próximos passos diretamente com o médico responsável pelo acompanhamento.',
   },

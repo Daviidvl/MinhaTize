@@ -7,67 +7,104 @@
 /* ─── Design Tokens ─────────────────────────────────────────────── */
 @layer base {
   :root {
-    /* ─ Surfaces (Light) */
-    --bg:         #F6F9FC;
-    --surface:    #FFFFFF;
-    --surface-2:  #EFF3F9;
-    --surface-3:  #E2EAF4;
-    --surface-4:  #D3DDED;
+    /* ═ PALETA AZUL — única fonte de cor do app ═══════════════════════ */
 
-    /* ─ Brand Green (Saúde / Tirzepatida) */
-    --green:       #00C79A;
-    --green-mid:   #00D9A9;
-    --green-dark:  #00A882;
-    --green-light: rgba(0,199,154,0.09);
-    --green-glow:  rgba(0,199,154,0.22);
+    /* ─ Azul da marca */
+    --navy:   #0B2545; /* texto principal, hero, ícone ativo */
+    --cobalt: #1E5BB8; /* ação principal, links, seleção */
+    --azure:  #3A86E0; /* barras e traços (não usar para texto pequeno) */
+    --sky:    #8FBDF0; /* detalhes sobre fundo escuro */
+    --ice:    #DCE9F9; /* fundo de ícones e selos azuis */
+    --mist:   #EEF4FC; /* superfície suave, trilhas de barras */
 
-    /* ─ Brand Blue (Confiança / Médico) */
-    --primary:      #2E6FEB;
-    --primary-mid:  #4D89F5;
-    --primary-dark: #1A52C9;
-    --primary-light: rgba(46,111,235,0.08);
-    --primary-glow:  rgba(46,111,235,0.20);
+    /* ─ Azul profundo: só como fundo de destaque (texto sempre branco) */
+    --midnight: #162558;
+    --indigo:   #28195D;
 
-    /* ─ Accent (Roxo) */
-    --accent:       #7B5CF5;
-    --accent-light: rgba(123,92,245,0.08);
+    /* ─ Acento de saúde: só progresso e resultado positivo */
+    --teal:   #19B5A5;
+    --aqua:   #2BD4C0; /* só sobre fundo escuro */
+    --teal-d: #0B6F6A; /* texto sobre fundo claro */
+    --teal-l: #D7F3EF; /* fundo de selo positivo */
 
-    /* ─ Semântico */
-    --success: #10B981;
-    --warning: #F59E0B;
-    --error:   #EF4444;
-    --info:    #0EA5E9;
+    /* ─ Neutros com viés azul */
+    --bg:      #F6F9FD;
+    --surface: #FFFFFF;
+    --line:    #DDE6F1;
+    --ink:     #0B2545;
+    --ink-2:   #51657F; /* texto secundário */
 
-    /* ─ Tipografia */
-    --text-primary:   #0A1628;
-    --text-secondary: #364C6E;
-    --text-muted:     #637A9A;
-    --text-faint:     #96ABCA;
+    /* ─ Alerta: única exceção ao azul */
+    --amber:      #B45309; /* texto */
+    --amber-bg:   #FDF1DF;
+    --amber-fill: #E08A12; /* barra */
+    --red:        #B42318; /* texto */
+    --red-bg:     #FDECEA;
+    --red-line:   #F1B0A9;
 
-    /* ─ Bordas */
-    --border:        rgba(10,22,40,0.08);
-    --border-strong: rgba(10,22,40,0.14);
-    --border-focus:  rgba(46,111,235,0.50);
+    /* ─ Degradês (sempre 135°, exceto barras de progresso a 90°) */
+    --g-hero:     linear-gradient(135deg, #0B2545 0%, #1E5BB8 100%);
+    --g-midnight: linear-gradient(135deg, #162558 0%, #28195D 100%); /* Loja e destaques premium */
+    --g-cta:      linear-gradient(135deg, #17458F 0%, #1E5BB8 100%);
+    --g-progress: linear-gradient(90deg,  #3A86E0 0%, #19B5A5 100%);
+    --g-ring:     linear-gradient(135deg, #8FBDF0 0%, #2BD4C0 100%);
 
-    /* ─ Warning / Danger / Info semântico */
-    --warn-bg:     rgba(245,158,11,0.07);
-    --warn-border: rgba(245,158,11,0.22);
-    --warn-text:   #92400E;
-    --danger-text: #DC2626;
-    --info-text:   #1D4ED8;
+    /* ─ Derivados: sempre calculados a partir dos tokens acima */
+    --line-strong:   color-mix(in srgb, var(--ink-2) 32%, var(--surface)); /* borda tracejada e contorno de botão fantasma */
+    --amber-line:    color-mix(in srgb, var(--amber-fill) 40%, var(--surface)); /* borda de alerta */
+    --shadow-rgb:    11, 37, 69; /* navy das sombras: usar como rgba(var(--shadow-rgb), alpha) */
+    --scrim:         rgba(var(--shadow-rgb), 0.55); /* véu atrás de modais */
+    --track-on-dark: rgba(255,255,255,0.22); /* trilha de barra/anel sobre fundo escuro */
 
-    /* ─ Sombras */
-    --shadow-xs:   0 1px 2px rgba(10,22,40,0.04);
-    --shadow-sm:   0 2px 8px rgba(10,22,40,0.06), 0 1px 2px rgba(10,22,40,0.04);
-    --shadow-md:   0 4px 20px rgba(10,22,40,0.08), 0 2px 6px rgba(10,22,40,0.05);
-    --shadow-lg:   0 8px 40px rgba(10,22,40,0.12), 0 2px 8px rgba(10,22,40,0.06);
-    --shadow-card: 0 2px 12px rgba(10,22,40,0.05), 0 1px 3px rgba(10,22,40,0.04);
-    --shadow-green: 0 6px 28px rgba(0,199,154,0.22);
-    --shadow-blue:  0 6px 28px rgba(46,111,235,0.24);
+    /* ─ Aliases de compatibilidade (nomes antigos apontando para a paleta) */
+    --surface-2:  var(--mist);
+    --surface-3:  var(--line);
+
+    --green:       var(--teal);
+    --green-mid:   var(--aqua);
+    --green-dark:  var(--teal-d);
+    --green-light: var(--teal-l);
+
+    --primary:       var(--cobalt);
+    --primary-mid:   var(--azure);
+    --primary-dark:  var(--navy);
+    --primary-light: var(--ice);
+    --primary-glow:  var(--sky);
+
+    --accent:       var(--cobalt);
+    --accent-light: var(--ice);
+
+    --success: var(--teal-d);
+    --warning: var(--amber);
+    --error:   var(--red);
+    --info:    var(--cobalt);
+
+    --text-primary:   var(--ink);
+    --text-secondary: var(--ink-2);
+    --text-muted:     var(--ink-2);
+    --text-faint:     var(--ink-2);
+
+    --border:        var(--line);
+    --border-strong: var(--line-strong);
+
+    --warn-bg:     var(--amber-bg);
+    --warn-border: var(--amber-line);
+    --warn-text:   var(--amber);
+    --danger-text: var(--red);
+    --info-text:   var(--cobalt);
+
+    /* ─ Sombras (mesmo offset/blur de antes, cor navy) */
+    --shadow-xs:   0 1px 2px rgba(var(--shadow-rgb),0.04);
+    --shadow-sm:   0 2px 8px rgba(var(--shadow-rgb),0.06), 0 1px 2px rgba(var(--shadow-rgb),0.04);
+    --shadow-md:   0 4px 20px rgba(var(--shadow-rgb),0.08), 0 2px 6px rgba(var(--shadow-rgb),0.05);
+    --shadow-lg:   0 8px 40px rgba(var(--shadow-rgb),0.12), 0 2px 8px rgba(var(--shadow-rgb),0.06);
+    --shadow-card: 0 2px 12px rgba(var(--shadow-rgb),0.05), 0 1px 3px rgba(var(--shadow-rgb),0.04);
+    --shadow-green: 0 6px 28px rgba(var(--shadow-rgb),0.22);
+    --shadow-blue:  0 6px 28px rgba(var(--shadow-rgb),0.24);
 
     /* ─ Navegação */
-    --nav-bg:     rgba(250,252,255,0.96);
-    --nav-border: rgba(10,22,40,0.07);
+    --nav-bg:     color-mix(in srgb, var(--surface) 96%, transparent);
+    --nav-border: var(--line);
 
     /* ─ Raio de borda */
     --radius-xs: 8px;
@@ -77,8 +114,7 @@
     --radius-xl: 34px;
 
     /* ─ Estrutural */
-    --header-bg:   rgba(246,249,252,0.97);
-    --result-bg:   #1D4ED8;
+    --header-bg:   color-mix(in srgb, var(--bg) 97%, transparent);
 
     /* ─ Transições */
     --ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
@@ -149,6 +185,28 @@
     /* ─ Estrutural */
     --header-bg:   rgba(6,13,27,0.97);
     --result-bg:   #1E3A8A;
+
+    /* ─ Equivalentes da paleta azul no tema escuro
+         (apenas adições: os valores acima continuam como estavam) */
+    --navy:   #93B8FF;
+    --cobalt: #4F85F5;
+    --azure:  #6B9BF8;
+    --ice:    rgba(79,133,245,0.14);
+    --mist:   #111F38;
+    --teal:   #2BD4C0;
+    --teal-d: #2BD4C0;
+    --teal-l: rgba(43,212,192,0.12);
+    --line:   rgba(200,220,255,0.10);
+    --ink:    #EDF2FF;
+    --ink-2:  #7A96BC;
+    --amber:      #FCD34D;
+    --amber-bg:   rgba(224,138,18,0.12);
+    --red:        #FCA5A5;
+    --red-bg:     rgba(239,68,68,0.10);
+    --red-line:   rgba(239,68,68,0.30);
+    --line-strong: rgba(200,220,255,0.12);
+    --amber-line:  rgba(224,138,18,0.30);
+    --shadow-rgb:  0, 0, 0;
   }
 
   * { box-sizing: border-box; }
@@ -319,7 +377,7 @@
     align-items: center;
     justify-content: center;
     gap: 8px;
-    background: linear-gradient(135deg, #2E6FEB 0%, #4D89F5 100%);
+    background: var(--g-cta);
     color: #fff;
     font-weight: 700;
     font-size: 15px;
@@ -329,11 +387,11 @@
     border: none;
     min-height: 52px;
     font-family: 'Inter', -apple-system, sans-serif;
-    box-shadow: 0 4px 20px rgba(46,111,235,0.30);
+    box-shadow: 0 4px 20px rgba(var(--shadow-rgb),0.28);
     transition: opacity var(--t-fast), transform var(--t-fast), box-shadow var(--t-base);
   }
 
-  .btn-primary:hover  { opacity: 0.92; box-shadow: 0 8px 32px rgba(46,111,235,0.42); }
+  .btn-primary:hover  { opacity: 0.92; box-shadow: 0 8px 32px rgba(var(--shadow-rgb),0.28); }
   .btn-primary:active { transform: scale(0.97); opacity: 0.88; }
   .btn-primary:disabled { opacity: 0.35; box-shadow: none; cursor: not-allowed; }
 
@@ -374,7 +432,7 @@
   .inner-tab.active {
     background: var(--primary);
     color: #fff;
-    box-shadow: 0 2px 12px rgba(46,111,235,0.30);
+    box-shadow: 0 2px 12px rgba(var(--shadow-rgb),0.28);
   }
 
   .inner-tab:not(.active):hover {
@@ -384,7 +442,7 @@
 
   /* ── Barra de progresso ── */
   .progress-track {
-    background: var(--surface-3);
+    background: var(--mist);
     border-radius: 99px;
     overflow: hidden;
   }
@@ -392,7 +450,7 @@
   .progress-fill {
     height: 100%;
     border-radius: 99px;
-    background: linear-gradient(90deg, var(--primary), var(--accent));
+    background: var(--g-progress);
     transition: width 0.9s var(--ease-smooth);
   }
 
@@ -409,10 +467,10 @@
     letter-spacing: 0.02em;
   }
 
-  .badge-green  { background: rgba(0,199,154,0.10); color: var(--green-dark); }
+  .badge-green  { background: var(--teal-l); color: var(--teal-d); }
   .badge-blue   { background: var(--primary-light);  color: var(--primary); }
   .badge-accent { background: var(--accent-light);   color: var(--accent); }
-  .badge-warm   { background: rgba(245,158,11,0.10); color: #D97706; }
+  .badge-warm   { background: var(--amber-bg); color: var(--amber); }
 
   :root.dark .badge-green { color: var(--green); }
   :root.dark .badge-warm  { color: #FBBF24; }
@@ -485,7 +543,7 @@
   -webkit-backdrop-filter: blur(40px);
   border-radius: 99px;
   padding: 5px;
-  box-shadow: 0 8px 40px rgba(6,13,27,0.16), 0 2px 8px rgba(6,13,27,0.10), 0 0 0 0.5px rgba(6,13,27,0.06);
+  box-shadow: 0 8px 40px rgba(var(--shadow-rgb),0.16), 0 2px 8px rgba(var(--shadow-rgb),0.10), 0 0 0 0.5px rgba(var(--shadow-rgb),0.06);
   max-width: 420px;
   width: 100%;
   pointer-events: all;
@@ -516,7 +574,7 @@
 .nav-tab:active { transform: scale(0.86); }
 
 .nav-tab.active {
-  background: var(--primary-light);
+  background: var(--ice);
 }
 
 :root.dark .nav-tab.active {
@@ -534,7 +592,7 @@
 }
 
 .nav-tab.active .nav-tab-icon {
-  color: var(--primary);
+  color: var(--cobalt);
   transform: translateY(-1px) scale(1.08);
 }
 
@@ -548,7 +606,7 @@
 }
 
 .nav-tab.active .nav-tab-label {
-  color: var(--primary);
+  color: var(--cobalt);
   font-weight: 700;
 }
 
@@ -563,7 +621,7 @@
   border-bottom: 1px solid var(--border);
   backdrop-filter: blur(24px);
   -webkit-backdrop-filter: blur(24px);
-  box-shadow: 0 1px 0 var(--border), 0 4px 20px rgba(6,13,27,0.03);
+  box-shadow: 0 1px 0 var(--border), 0 4px 20px rgba(var(--shadow-rgb),0.03);
   padding-top: max(14px, env(safe-area-inset-top));
   padding-bottom: 14px;
   padding-left: max(20px, env(safe-area-inset-left));
@@ -606,8 +664,8 @@
 }
 
 @keyframes pulse-ring {
-  0%, 100% { box-shadow: 0 0 0 0px rgba(0,212,168,0.4); }
-  50%       { box-shadow: 0 0 0 6px rgba(0,212,168,0); }
+  0%, 100% { box-shadow: 0 0 0 0px color-mix(in srgb, var(--teal) 40%, transparent); }
+  50%       { box-shadow: 0 0 0 6px color-mix(in srgb, var(--teal) 0%, transparent); }
 }
 
 @keyframes check-pop {
@@ -657,14 +715,14 @@
 
 /* ─── Utilitários de texto ───────────────────────────────────────── */
 .gradient-text {
-  background: linear-gradient(135deg, var(--primary), var(--accent));
+  background: var(--g-hero);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
 }
 
 .gradient-text-green {
-  background: linear-gradient(135deg, var(--green-dark), var(--green));
+  background: linear-gradient(135deg, var(--teal-d), var(--teal));
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;

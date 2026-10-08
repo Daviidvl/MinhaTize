@@ -15,13 +15,13 @@ export interface Category {
 }
 
 export const CATEGORY_ICON: Record<CategoryId, React.ReactNode> = {
-  metabolic:    <Zap          size={18} strokeWidth={2} />,
-  lipid:        <Heart        size={18} strokeWidth={2} />,
-  liver:        <Activity     size={18} strokeWidth={2} />,
-  renal:        <Droplets     size={18} strokeWidth={2} />,
-  vitamins:     <Sun          size={18} strokeWidth={2} />,
-  hormonal:     <FlaskConical size={18} strokeWidth={2} />,
-  inflammation: <Thermometer  size={18} strokeWidth={2} />,
+  metabolic:    <Zap          size={18} strokeWidth={1.75} />,
+  lipid:        <Heart        size={18} strokeWidth={1.75} />,
+  liver:        <Activity     size={18} strokeWidth={1.75} />,
+  renal:        <Droplets     size={18} strokeWidth={1.75} />,
+  vitamins:     <Sun          size={18} strokeWidth={1.75} />,
+  hormonal:     <FlaskConical size={18} strokeWidth={1.75} />,
+  inflammation: <Thermometer  size={18} strokeWidth={1.75} />,
 }
 
 export const CATEGORY_ICON_SM: Record<CategoryId, React.ReactNode> = {
@@ -431,19 +431,19 @@ export const EXAMS: ExamDef[] = [
 export const STATUS_LABEL: Record<ExamStatus, string> = { normal: 'Normal', low: 'Baixo', high: 'Alto' }
 
 export const STATUS_COLOR: Record<ExamStatus, string> = {
-  normal: 'var(--primary)',
-  low:    '#B45309',
-  high:   '#DC2626',
+  normal: 'var(--teal-d)',
+  low:    'var(--amber)',
+  high:   'var(--red)',
 }
 
 export const STATUS_BG: Record<ExamStatus, string> = {
-  normal: 'var(--primary-light)',
-  low:    'rgba(245,158,11,0.1)',
-  high:   'rgba(239,68,68,0.08)',
+  normal: 'var(--teal-l)',
+  low:    'var(--amber-bg)',
+  high:   'var(--red-bg)',
 }
 
 export const STATUS_BORDER: Record<ExamStatus, string> = {
-  normal: 'rgba(16,185,129,0.2)',
-  low:    'rgba(245,158,11,0.2)',
-  high:   'rgba(239,68,68,0.2)',
+  normal: 'var(--teal)',
+  low:    'var(--amber-line)',
+  high:   'var(--red-line)',
 }

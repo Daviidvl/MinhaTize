@@ -12,6 +12,7 @@ import {
   DIET_KCAL, MEAL_SHARES, MEAL_PROTEIN, MEAL_COLOR, MEAL_ICON,
   DIET_F, INFO_F, DIET_M, INFO_M,
 } from '../data/foodPlans'
+import { alpha } from '../utils/color'
 
 interface Props {
   profile: UserProfile
@@ -110,25 +111,21 @@ export default function FoodGuide({ profile }: Props) {
         </div>
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
           {(['F', 'M'] as DietSex[]).map(s => {
-            const bg = s === 'F'
-              ? 'linear-gradient(150deg, #2D1B69 0%, #1E1145 100%)'
-              : 'linear-gradient(150deg, #1E3A8A 0%, #172554 100%)'
-            const accent = s === 'F' ? '#A78BFA' : '#60A5FA'
+            const bg = 'var(--g-hero)'
+            const accent = 'var(--sky)'
             return (
               <button key={s} onClick={() => selectSex(s)} style={{
                 padding: '24px 16px', borderRadius: '20px', border: 'none', cursor: 'pointer',
                 background: bg, color: '#fff', textAlign: 'center',
-                boxShadow: s === 'F'
-                  ? '0 8px 28px rgba(45,27,105,0.45), inset 0 1px 0 rgba(255,255,255,0.08)'
-                  : '0 8px 28px rgba(30,58,138,0.45), inset 0 1px 0 rgba(255,255,255,0.08)',
+                boxShadow: '0 8px 28px rgba(var(--shadow-rgb),0.28), inset 0 1px 0 rgba(255,255,255,0.08)',
                 transition: 'transform 0.15s', fontFamily: 'Inter, -apple-system, sans-serif',
               }}>
                 <div style={{
                   width: '44px', height: '44px', borderRadius: '14px', margin: '0 auto 14px',
-                  background: `${accent}20`, border: `1px solid ${accent}40`,
+                  background: alpha(accent, 13), border: `1px solid ${alpha(accent, 25)}`,
                   display: 'flex', alignItems: 'center', justifyContent: 'center',
                 }}>
-                  <User size={20} strokeWidth={1.8} color={accent} />
+                  <User size={20} strokeWidth={1.75} color={accent} />
                 </div>
                 <p style={{ fontSize: '16px', fontWeight: 800, margin: '0 0 5px', letterSpacing: '-0.3px' }}>
                   Plano {s === 'F' ? 'Feminino' : 'Masculino'}
@@ -148,7 +145,7 @@ export default function FoodGuide({ profile }: Props) {
   const TABS: { id: ActiveTab; label: string }[] = [
     { id: 'hoje', label: 'Hoje' }, { id: 'plano', label: 'Cardápio' }, { id: 'pouca-fome', label: 'Pouca Fome' },
   ]
-  const accentColor = sex === 'F' ? '#A78BFA' : '#60A5FA'
+  const accentColor = 'var(--cobalt)'
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
@@ -220,12 +217,12 @@ export default function FoodGuide({ profile }: Props) {
                 <span style={{ fontSize: '22px', fontWeight: 800, letterSpacing: '-0.5px', fontFamily: 'Inter, sans-serif' }}>{consumed}</span>
                 <span style={{ fontSize: '12px', color: 'var(--text-muted)', marginLeft: '4px' }}>kcal consumidas</span>
               </p>
-              <span style={{ fontSize: '12px', fontWeight: 700, color: pct >= 100 ? '#F59E0B' : 'var(--primary)' }}>{pct}%</span>
+              <span style={{ fontSize: '12px', fontWeight: 700, color: pct >= 100 ? 'var(--amber)' : 'var(--primary)' }}>{pct}%</span>
             </div>
             <div style={{ background: 'var(--surface-2)', borderRadius: '99px', height: '5px', overflow: 'hidden', marginBottom: '8px' }}>
               <div style={{
                 width: `${pct}%`, height: '100%',
-                background: pct >= 100 ? 'linear-gradient(90deg, #F59E0B, #FBBF24)' : 'var(--primary)',
+                background: pct >= 100 ? 'var(--amber-fill)' : 'var(--g-progress)',
                 borderRadius: '99px', transition: 'width 0.6s cubic-bezier(0.22,1,0.36,1)',
               }} />
             </div>
@@ -250,7 +247,7 @@ export default function FoodGuide({ profile }: Props) {
             {diet.map(meal => {
               const checked = dayLog.meals.includes(meal.id)
               const MealIcon = MEAL_ICON[meal.id] ?? Utensils
-              const mealColor = MEAL_COLOR[meal.id] ?? '#10B981'
+              const mealColor = MEAL_COLOR[meal.id] ?? 'var(--teal-d)'
               return (
                 <button key={meal.id} onClick={() => toggleMeal(meal.id)} style={{
                   display: 'flex', alignItems: 'center', gap: '12px',
@@ -277,11 +274,11 @@ export default function FoodGuide({ profile }: Props) {
                   {/* Ícone colorido */}
                   <div style={{
                     width: '32px', height: '32px', borderRadius: '9px', flexShrink: 0,
-                    background: `${mealColor}18`,
-                    border: `1px solid ${mealColor}35`,
+                    background: alpha(mealColor, 9),
+                    border: `1px solid ${alpha(mealColor, 21)}`,
                     display: 'flex', alignItems: 'center', justifyContent: 'center',
                   }}>
-                    <MealIcon size={15} strokeWidth={1.8} color={mealColor} />
+                    <MealIcon size={15} strokeWidth={2} color={mealColor} />
                   </div>
                   {/* Texto */}
                   <div style={{ flex: 1, minWidth: 0 }}>
@@ -340,7 +337,7 @@ export default function FoodGuide({ profile }: Props) {
                 background: 'var(--primary)', color: '#fff', cursor: 'pointer',
                 display: 'flex', alignItems: 'center', justifyContent: 'center',
               }}>
-                <Plus size={16} strokeWidth={2.5} />
+                <Plus size={16} strokeWidth={1.75} />
               </button>
             </div>
             {dayLog.manual.map(m => (
@@ -366,7 +363,7 @@ export default function FoodGuide({ profile }: Props) {
       {activeTab === 'plano' && (
         <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
 
-          <ExpandCard id="principios" Icon={Activity} iconColor="#7C3AED" label="Princípios do Plano" expanded={expanded} onToggle={toggleExpanded}>
+          <ExpandCard id="principios" Icon={Activity} iconColor="var(--cobalt)" label="Princípios do Plano" expanded={expanded} onToggle={toggleExpanded}>
             <ul style={{ margin: 0, padding: '0 0 0 16px', display: 'flex', flexDirection: 'column', gap: '4px' }}>
               {(sex === 'F' ? [
                 'Preservação de massa muscular',
@@ -389,7 +386,7 @@ export default function FoodGuide({ profile }: Props) {
             </ul>
           </ExpandCard>
 
-          <ExpandCard id="meta-prot" Icon={Target} iconColor="#10B981" label="Meta de Proteína" expanded={expanded} onToggle={toggleExpanded}>
+          <ExpandCard id="meta-prot" Icon={Target} iconColor="var(--teal-d)" label="Meta de Proteína" expanded={expanded} onToggle={toggleExpanded}>
             <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
               <p style={{ fontSize: '13px', color: 'var(--text-secondary)', margin: 0, lineHeight: 1.5 }}>
                 <strong>1,6–2,0 g de proteína por kg do peso-alvo</strong> por dia.
@@ -406,13 +403,13 @@ export default function FoodGuide({ profile }: Props) {
             </div>
           </ExpandCard>
 
-          <ExpandCard id="hidratacao" Icon={Droplets} iconColor="#0EA5E9" label="Hidratação" expanded={expanded} onToggle={toggleExpanded}>
+          <ExpandCard id="hidratacao" Icon={Droplets} iconColor="var(--cobalt)" label="Hidratação" expanded={expanded} onToggle={toggleExpanded}>
             <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
               <p style={{ fontSize: '13px', color: 'var(--text-secondary)', margin: 0, lineHeight: 1.5 }}>
                 <strong>Meta: 35–40 ml de água por kg de peso corporal.</strong>
               </p>
-              <div style={{ padding: '10px 14px', borderRadius: '12px', background: 'rgba(14,165,233,0.08)', border: '1px solid rgba(14,165,233,0.20)' }}>
-                <p style={{ fontSize: '12px', fontWeight: 700, color: '#0EA5E9', margin: 0 }}>
+              <div style={{ padding: '10px 14px', borderRadius: '12px', background: 'var(--ice)', border: '1px solid var(--sky)' }}>
+                <p style={{ fontSize: '12px', fontWeight: 700, color: 'var(--cobalt)', margin: 0 }}>
                   Seu peso: {currentW} kg → {waterGoal} por dia
                 </p>
               </div>
@@ -447,8 +444,8 @@ export default function FoodGuide({ profile }: Props) {
           {/* Banner */}
           <div style={{
             padding: '14px 16px', borderRadius: '16px',
-            background: 'linear-gradient(150deg, #1E1245 0%, #33207A 100%)',
-            boxShadow: '0 6px 20px rgba(51,32,122,0.28)',
+            background: 'var(--g-hero)',
+            boxShadow: '0 6px 20px rgba(var(--shadow-rgb),0.28)',
           }}>
             <p style={{ fontSize: '9px', fontWeight: 700, color: 'rgba(255,255,255,0.55)', textTransform: 'uppercase', letterSpacing: '0.10em', margin: '0 0 6px' }}>
               Módulo
@@ -459,23 +456,23 @@ export default function FoodGuide({ profile }: Props) {
             </p>
           </div>
 
-          <ExpandCard id="sinais" Icon={AlertCircle} iconColor="#F59E0B" label="Sinais de Pouca Fome" expanded={expanded} onToggle={toggleExpanded} defaultOpen>
+          <ExpandCard id="sinais" Icon={AlertCircle} iconColor="var(--amber)" label="Sinais de Pouca Fome" expanded={expanded} onToggle={toggleExpanded} defaultOpen>
             <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
               {['Saciedade com poucas colheradas', 'Náusea', 'Empachamento', 'Sensação de comida parada no estômago', 'Refluxo', 'Falta de vontade de comer', 'Pular refeições sem perceber'].map((s, i) => (
                 <div key={i} style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '5px 0' }}>
-                  <div style={{ width: '5px', height: '5px', borderRadius: '50%', background: '#F59E0B', flexShrink: 0 }} />
+                  <div style={{ width: '5px', height: '5px', borderRadius: '50%', background: 'var(--amber-fill)', flexShrink: 0 }} />
                   <p style={{ fontSize: '13px', color: 'var(--text-secondary)', margin: 0 }}>{s}</p>
                 </div>
               ))}
-              <div style={{ marginTop: '8px', padding: '8px 12px', borderRadius: '10px', background: 'rgba(245,158,11,0.08)', border: '1px solid rgba(245,158,11,0.18)' }}>
-                <p style={{ fontSize: '11px', color: '#B45309', margin: 0, lineHeight: 1.4 }}>
+              <div style={{ marginTop: '8px', padding: '8px 12px', borderRadius: '10px', background: 'var(--amber-bg)', border: '1px solid var(--amber-line)' }}>
+                <p style={{ fontSize: '11px', color: 'var(--amber)', margin: 0, lineHeight: 1.4 }}>
                   Nessas semanas, o cardápio tradicional pode ser substituído por refeições menores.
                 </p>
               </div>
             </div>
           </ExpandCard>
 
-          <ExpandCard id="lh-cafe" Icon={Sun} iconColor="#D97706" label="Café da Manhã" expanded={expanded} onToggle={toggleExpanded}>
+          <ExpandCard id="lh-cafe" Icon={Sun} iconColor="var(--amber)" label="Café da Manhã" expanded={expanded} onToggle={toggleExpanded}>
             <OptionsBlock accentColor={accentColor} options={[
               { label: 'Opção 1', protein: '35–40 g', items: ['170 g de iogurte grego', '1 scoop de whey', 'Morangos ou banana'] },
               { label: 'Opção 2 — Vitamina', protein: '30–35 g', items: ['200 ml de leite semidesnatado', '1 scoop de whey', '20 g de aveia', '1 banana'] },
@@ -483,7 +480,7 @@ export default function FoodGuide({ profile }: Props) {
             ]} />
           </ExpandCard>
 
-          <ExpandCard id="lh-almoco" Icon={Utensils} iconColor="#059669" label="Almoço" expanded={expanded} onToggle={toggleExpanded}>
+          <ExpandCard id="lh-almoco" Icon={Utensils} iconColor="var(--teal-d)" label="Almoço" expanded={expanded} onToggle={toggleExpanded}>
             <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
               <div style={{ padding: '10px 14px', borderRadius: '12px', background: 'var(--surface-2)', border: '1px solid var(--border)' }}>
                 <p style={{ fontSize: '12px', fontWeight: 800, color: 'var(--text-primary)', margin: '0 0 8px' }}>Prato pequeno (ao invés de prato cheio)</p>
@@ -500,7 +497,7 @@ export default function FoodGuide({ profile }: Props) {
             </div>
           </ExpandCard>
 
-          <ExpandCard id="lh-lanches" Icon={Droplets} iconColor="#0891B2" label="Lanches" expanded={expanded} onToggle={toggleExpanded}>
+          <ExpandCard id="lh-lanches" Icon={Droplets} iconColor="var(--cobalt)" label="Lanches" expanded={expanded} onToggle={toggleExpanded}>
             <OptionsBlock accentColor={accentColor} options={[
               { label: 'Opção 1', items: ['Whey com água'] },
               { label: 'Opção 2', items: ['Iogurte proteico'] },
@@ -508,7 +505,7 @@ export default function FoodGuide({ profile }: Props) {
             ]} />
           </ExpandCard>
 
-          <ExpandCard id="lh-jantar" Icon={Moon} iconColor="#7C3AED" label="Jantar" expanded={expanded} onToggle={toggleExpanded}>
+          <ExpandCard id="lh-jantar" Icon={Moon} iconColor="var(--cobalt)" label="Jantar" expanded={expanded} onToggle={toggleExpanded}>
             <OptionsBlock accentColor={accentColor} options={[
               { label: 'Opção 1 — Omelete', items: ['3 ovos', '3 claras', 'Pequena porção de arroz'] },
               { label: 'Opção 2 — Sanduíche', items: ['1 pão francês', '150 g de frango desfiado', '30 g de queijo branco'] },
@@ -516,10 +513,10 @@ export default function FoodGuide({ profile }: Props) {
             ]} />
           </ExpandCard>
 
-          <ExpandCard id="lh-extremos" Icon={AlertTriangle} iconColor="#DC2626" label="Dias Extremos — Quase Sem Fome" expanded={expanded} onToggle={toggleExpanded}>
+          <ExpandCard id="lh-extremos" Icon={AlertTriangle} iconColor="var(--red)" label="Dias Extremos — Quase Sem Fome" expanded={expanded} onToggle={toggleExpanded}>
             <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-              <div style={{ padding: '10px 14px', borderRadius: '12px', background: 'rgba(239,68,68,0.06)', border: '1px solid rgba(239,68,68,0.15)' }}>
-                <p style={{ fontSize: '12px', fontWeight: 700, color: '#DC2626', margin: 0 }}>Objetivo: não tentar "comer normal". Foque em bater proteína.</p>
+              <div style={{ padding: '10px 14px', borderRadius: '12px', background: 'var(--red-bg)', border: '1px solid var(--red-line)' }}>
+                <p style={{ fontSize: '12px', fontWeight: 700, color: 'var(--red)', margin: 0 }}>Objetivo: não tentar "comer normal". Foque em bater proteína.</p>
               </div>
               {[
                 { refeicao: 'Café',   items: ['Iogurte grego', 'Whey'],           protein: '40 g' },
@@ -529,7 +526,7 @@ export default function FoodGuide({ profile }: Props) {
                 <div key={i} style={{ padding: '10px 14px', borderRadius: '12px', background: 'var(--surface-2)', border: '1px solid var(--border)' }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px' }}>
                     <p style={{ fontSize: '12px', fontWeight: 800, color: 'var(--text-primary)', margin: 0 }}>{r.refeicao}</p>
-                    <span style={{ fontSize: '10px', fontWeight: 700, padding: '2px 8px', borderRadius: '99px', background: 'rgba(16,185,129,0.10)', color: '#10B981', border: '1px solid rgba(16,185,129,0.20)' }}>
+                    <span style={{ fontSize: '10px', fontWeight: 700, padding: '2px 8px', borderRadius: '99px', background: 'var(--teal-l)', color: 'var(--teal-d)', border: '1px solid var(--teal)' }}>
                       {r.protein} prot.
                     </span>
                   </div>
@@ -547,7 +544,7 @@ export default function FoodGuide({ profile }: Props) {
             </div>
           </ExpandCard>
 
-          <ExpandCard id="lh-tolerados" Icon={Shield} iconColor="#10B981" label="Alimentos Melhor Tolerados" expanded={expanded} onToggle={toggleExpanded}>
+          <ExpandCard id="lh-tolerados" Icon={Shield} iconColor="var(--teal-d)" label="Alimentos Melhor Tolerados" expanded={expanded} onToggle={toggleExpanded}>
             <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
               {[
                 { label: 'Proteínas',     items: ['Frango desfiado', 'Peixe', 'Atum em água', 'Ovos', 'Iogurte grego', 'Cottage', 'Whey'] },
@@ -567,26 +564,26 @@ export default function FoodGuide({ profile }: Props) {
             </div>
           </ExpandCard>
 
-          <ExpandCard id="lh-hidra" Icon={Droplets} iconColor="#0EA5E9" label="Hidratação" expanded={expanded} onToggle={toggleExpanded}>
+          <ExpandCard id="lh-hidra" Icon={Droplets} iconColor="var(--cobalt)" label="Hidratação" expanded={expanded} onToggle={toggleExpanded}>
             <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
               <p style={{ fontSize: '13px', color: 'var(--text-secondary)', margin: 0, lineHeight: 1.5 }}>
                 Mesmo sem fome, a água continua sendo obrigatória. Meta: <strong>35–40 ml por kg de peso corporal.</strong>
               </p>
-              <div style={{ padding: '10px 14px', borderRadius: '12px', background: 'rgba(245,158,11,0.08)', border: '1px solid rgba(245,158,11,0.18)' }}>
-                <p style={{ fontSize: '12px', fontWeight: 700, color: '#B45309', margin: '0 0 2px' }}>Se houver tontura, dor de cabeça ou fadiga:</p>
-                <p style={{ fontSize: '12px', color: '#B45309', margin: 0, lineHeight: 1.4 }}>Muitas vezes o problema é desidratação, não falta de comida.</p>
+              <div style={{ padding: '10px 14px', borderRadius: '12px', background: 'var(--amber-bg)', border: '1px solid var(--amber-line)' }}>
+                <p style={{ fontSize: '12px', fontWeight: 700, color: 'var(--amber)', margin: '0 0 2px' }}>Se houver tontura, dor de cabeça ou fadiga:</p>
+                <p style={{ fontSize: '12px', color: 'var(--amber)', margin: 0, lineHeight: 1.4 }}>Muitas vezes o problema é desidratação, não falta de comida.</p>
               </div>
             </div>
           </ExpandCard>
 
-          <ExpandCard id="lh-intestino" Icon={Leaf} iconColor="#16A34A" label="Intestino" expanded={expanded} onToggle={toggleExpanded}>
+          <ExpandCard id="lh-intestino" Icon={Leaf} iconColor="var(--teal-d)" label="Intestino" expanded={expanded} onToggle={toggleExpanded}>
             <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
               <p style={{ fontSize: '13px', color: 'var(--text-secondary)', margin: 0, lineHeight: 1.5 }}>
                 Nas semanas de pouca fome costuma haver menos ingestão de fibras. Priorize diariamente:
               </p>
               <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
                 {['Mamão', 'Kiwi', 'Feijão', 'Legumes', 'Água'].map((item, i) => (
-                  <span key={i} style={{ padding: '4px 10px', borderRadius: '99px', fontSize: '12px', fontWeight: 600, background: 'rgba(16,185,129,0.08)', color: '#059669', border: '1px solid rgba(16,185,129,0.20)' }}>
+                  <span key={i} style={{ padding: '4px 10px', borderRadius: '99px', fontSize: '12px', fontWeight: 600, background: 'var(--teal-l)', color: 'var(--teal-d)', border: '1px solid var(--teal)' }}>
                     {item}
                   </span>
                 ))}
@@ -597,7 +594,7 @@ export default function FoodGuide({ profile }: Props) {
 
           {/* Resumo */}
           <div style={{ borderRadius: '20px', overflow: 'hidden', border: '1px solid var(--border)', boxShadow: 'var(--shadow-card)' }}>
-            <div style={{ padding: '12px 16px', background: 'linear-gradient(150deg, #1E1245 0%, #33207A 100%)' }}>
+            <div style={{ padding: '12px 16px', background: 'var(--g-hero)' }}>
               <p style={{ fontSize: '9px', fontWeight: 700, color: 'rgba(255,255,255,0.55)', textTransform: 'uppercase', letterSpacing: '0.10em', margin: '0 0 2px' }}>Estratégia</p>
               <p style={{ fontSize: '14px', fontWeight: 800, color: '#fff', margin: 0, letterSpacing: '-0.3px' }}>Resumo</p>
             </div>
@@ -619,9 +616,9 @@ export default function FoodGuide({ profile }: Props) {
             </div>
           </div>
 
-          <div style={{ padding: '14px 16px', borderRadius: '16px', background: 'rgba(239,68,68,0.05)', border: '1.5px solid rgba(239,68,68,0.15)' }}>
-            <p style={{ fontSize: '9px', fontWeight: 700, color: '#DC2626', textTransform: 'uppercase', letterSpacing: '0.10em', margin: '0 0 6px' }}>Regra Mais Importante</p>
-            <p style={{ fontSize: '12px', color: '#DC2626', margin: 0, lineHeight: 1.55 }}>
+          <div style={{ padding: '14px 16px', borderRadius: '16px', background: 'var(--red-bg)', border: '1.5px solid var(--red-line)' }}>
+            <p style={{ fontSize: '9px', fontWeight: 700, color: 'var(--red)', textTransform: 'uppercase', letterSpacing: '0.10em', margin: '0 0 6px' }}>Regra Mais Importante</p>
+            <p style={{ fontSize: '12px', color: 'var(--red)', margin: 0, lineHeight: 1.55 }}>
               Em semanas de pouca fome por causa da Tirzepatida, não tente comer como antes. Adapte o volume das refeições. Proteína, água e constância são mais importantes do que quantidade de comida.
             </p>
           </div>
@@ -653,10 +650,10 @@ function ExpandCard({
       >
         <div style={{
           width: '32px', height: '32px', borderRadius: '9px', flexShrink: 0,
-          background: `${iconColor}18`, border: `1px solid ${iconColor}35`,
+          background: alpha(iconColor, 9), border: `1px solid ${alpha(iconColor, 21)}`,
           display: 'flex', alignItems: 'center', justifyContent: 'center',
         }}>
-          <Icon size={15} strokeWidth={1.8} color={iconColor} />
+          <Icon size={15} strokeWidth={2} color={iconColor} />
         </div>
         <div style={{ flex: 1, minWidth: 0 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
@@ -680,9 +677,9 @@ function ExpandCard({
         <div style={{ padding: '0 14px 14px', borderTop: '1px solid var(--border)' }}>
           <div style={{ paddingTop: '14px' }}>
             {note && (
-              <div style={{ display: 'flex', gap: '6px', marginBottom: '12px', padding: '8px 10px', borderRadius: '10px', background: 'rgba(245,158,11,0.07)', border: '1px solid rgba(245,158,11,0.18)' }}>
-                <Info size={12} strokeWidth={2} style={{ flexShrink: 0, color: '#B45309', marginTop: '1px' }} />
-                <p style={{ fontSize: '11px', color: '#B45309', margin: 0, lineHeight: 1.4 }}>{note}</p>
+              <div style={{ display: 'flex', gap: '6px', marginBottom: '12px', padding: '8px 10px', borderRadius: '10px', background: 'var(--amber-bg)', border: '1px solid var(--amber-line)' }}>
+                <Info size={12} strokeWidth={2} style={{ flexShrink: 0, color: 'var(--amber)', marginTop: '1px' }} />
+                <p style={{ fontSize: '11px', color: 'var(--amber)', margin: 0, lineHeight: 1.4 }}>{note}</p>
               </div>
             )}
             {children}
@@ -702,7 +699,7 @@ function OptionsBlock({ options, accentColor }: { options: MealOption[]; accentC
           <div style={{ padding: '7px 12px', background: 'var(--surface-3)', borderBottom: '1px solid var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '8px' }}>
             <p style={{ fontSize: '11px', fontWeight: 800, color: 'var(--text-primary)', margin: 0 }}>{opt.label}</p>
             {opt.protein && (
-              <span style={{ fontSize: '10px', fontWeight: 700, padding: '2px 8px', borderRadius: '99px', background: 'rgba(16,185,129,0.10)', color: '#10B981', border: '1px solid rgba(16,185,129,0.20)', flexShrink: 0 }}>
+              <span style={{ fontSize: '10px', fontWeight: 700, padding: '2px 8px', borderRadius: '99px', background: 'var(--teal-l)', color: 'var(--teal-d)', border: '1px solid var(--teal)', flexShrink: 0 }}>
                 {opt.protein} prot.
               </span>
             )}
@@ -715,9 +712,9 @@ function OptionsBlock({ options, accentColor }: { options: MealOption[]; accentC
               </div>
             ))}
             {opt.note && (
-              <div style={{ display: 'flex', gap: '6px', marginTop: '4px', padding: '6px 10px', borderRadius: '8px', background: 'rgba(245,158,11,0.07)', border: '1px solid rgba(245,158,11,0.18)' }}>
-                <Info size={11} strokeWidth={2} style={{ flexShrink: 0, color: '#B45309', marginTop: '2px' }} />
-                <p style={{ fontSize: '11px', color: '#B45309', margin: 0, lineHeight: 1.4 }}>{opt.note}</p>
+              <div style={{ display: 'flex', gap: '6px', marginTop: '4px', padding: '6px 10px', borderRadius: '8px', background: 'var(--amber-bg)', border: '1px solid var(--amber-line)' }}>
+                <Info size={11} strokeWidth={2.5} style={{ flexShrink: 0, color: 'var(--amber)', marginTop: '2px' }} />
+                <p style={{ fontSize: '11px', color: 'var(--amber)', margin: 0, lineHeight: 1.4 }}>{opt.note}</p>
               </div>
             )}
           </div>

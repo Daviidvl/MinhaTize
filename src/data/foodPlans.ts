@@ -27,8 +27,8 @@ export const MEAL_PROTEIN: Record<DietSex, Record<string, number>> = {
 
 // Cores de cada refeição — mesmas do Dashboard (MEAL_SLOTS)
 export const MEAL_COLOR: Record<string, string> = {
-  'cafe': '#D97706', 'lanche-m': '#F59E0B', 'almoco': '#059669',
-  'lanche-t': '#0891B2', 'jantar': '#7C3AED', 'ceia': '#1E40AF',
+  'cafe': 'var(--cobalt)', 'lanche-m': 'var(--ink-2)', 'almoco': 'var(--teal-d)',
+  'lanche-t': 'var(--ink-2)', 'jantar': 'var(--cobalt)', 'ceia': 'var(--navy)',
 }
 export const MEAL_ICON: Record<string, IconComp> = {
   'cafe': Sun, 'lanche-m': Droplets, 'almoco': Utensils,
@@ -38,7 +38,7 @@ export const MEAL_ICON: Record<string, IconComp> = {
 // ── Dieta Feminina ────────────────────────────────────────────────────────────
 export const DIET_F: MealSection[] = [
   {
-    id: 'cafe', label: 'Café da Manhã', Icon: Sun, color: '#D97706', required: true, kcalShare: 0.25,
+    id: 'cafe', label: 'Café da Manhã', Icon: Sun, color: 'var(--cobalt)', required: true, kcalShare: 0.25,
     options: [
       { label: 'Opção 1', protein: '25–30 g', items: ['1 pão francês', '2 ovos inteiros', '30 g de queijo branco', '1 fruta — mamão (120 g), banana (50 g), kiwi (90 g) ou melão'] },
       { label: 'Opção 2', protein: '28–30 g', items: ['1 pão francês', '1 ovo inteiro + 3 claras', '20 g de queijo branco ou requeijão light', '1 fruta'] },
@@ -48,7 +48,7 @@ export const DIET_F: MealSection[] = [
     ],
   },
   {
-    id: 'lanche-m', label: 'Lanche da Manhã', Icon: Droplets, color: '#F59E0B', required: false, kcalShare: 0.10,
+    id: 'lanche-m', label: 'Lanche da Manhã', Icon: Droplets, color: 'var(--ink-2)', required: false, kcalShare: 0.10,
     note: 'Opcional — complementa proteína do dia',
     options: [
       { label: 'Opção 1', items: ['1 scoop de whey com água'] },
@@ -58,7 +58,7 @@ export const DIET_F: MealSection[] = [
     ],
   },
   {
-    id: 'almoco', label: 'Almoço', Icon: Utensils, color: '#059669', required: true, kcalShare: 0.30,
+    id: 'almoco', label: 'Almoço', Icon: Utensils, color: 'var(--teal-d)', required: true, kcalShare: 0.30,
     options: [
       { label: 'Opção 1', protein: '35–45 g', items: ['Arroz branco cozido (90–120 g)', 'Feijão (70–100 g)', 'Frango grelhado (120–150 g)', 'Legumes cozidos', 'Pequena porção de salada'] },
       { label: 'Opção 2', items: ['Arroz branco (100–120 g)', 'Frango (120–150 g)', 'Legumes'], note: 'Chocolate ao leite (15 g) eventualmente, apenas para aderência' },
@@ -68,7 +68,7 @@ export const DIET_F: MealSection[] = [
     ],
   },
   {
-    id: 'lanche-t', label: 'Lanche da Tarde', Icon: Droplets, color: '#0891B2', required: false, kcalShare: 0.10,
+    id: 'lanche-t', label: 'Lanche da Tarde', Icon: Droplets, color: 'var(--ink-2)', required: false, kcalShare: 0.10,
     note: 'Opcional — complementa proteína do dia',
     options: [
       { label: 'Opção 1', items: ['1 scoop de whey', '1 fruta'] },
@@ -79,7 +79,7 @@ export const DIET_F: MealSection[] = [
     ],
   },
   {
-    id: 'jantar', label: 'Jantar', Icon: Moon, color: '#7C3AED', required: true, kcalShare: 0.20,
+    id: 'jantar', label: 'Jantar', Icon: Moon, color: 'var(--cobalt)', required: true, kcalShare: 0.20,
     options: [
       { label: 'Opção 1', protein: '30–40 g', items: ['Arroz branco (100–120 g)', 'Carne magra ou frango (100–140 g)', 'Legumes cozidos'] },
       { label: 'Opção 2 — Sanduíche', items: ['1 pão francês', 'Frango desfiado (100–120 g)', '20 g de queijo branco', 'Pequena porção de salada'] },
@@ -90,7 +90,7 @@ export const DIET_F: MealSection[] = [
     ],
   },
   {
-    id: 'ceia', label: 'Ceia', Icon: Moon, color: '#1E40AF', required: false, kcalShare: 0.05,
+    id: 'ceia', label: 'Ceia', Icon: Moon, color: 'var(--navy)', required: false, kcalShare: 0.05,
     note: 'Somente se necessário',
     options: [
       { label: 'Opção 1', items: ['1 scoop de whey com água'] },
@@ -102,17 +102,17 @@ export const DIET_F: MealSection[] = [
 ]
 
 export const INFO_F: InfoSection[] = [
-  { id: 'prot-subs',  Icon: Zap,     color: '#DC2626', label: 'Substituições das Proteínas',   items: ['Frango desfiado', 'Carne magra', 'Patinho moído', 'Peixe', 'Sardinha', 'Atum', 'Fígado (1× por semana)', '3 ovos', 'Iogurte grego', 'Whey protein'] },
-  { id: 'carb-subs',  Icon: Package,  color: '#D97706', label: 'Substituições dos Carboidratos', items: ['Arroz branco', 'Macarrão', 'Cuscuz', 'Tapioca', 'Batata inglesa', 'Batata doce', 'Mandioca', 'Baião de dois'] },
-  { id: 'frutas',     Icon: Leaf,     color: '#059669', label: 'Frutas Prioritárias',            items: ['Mamão', 'Kiwi', 'Banana', 'Morango', 'Melão', 'Maçã', 'Pera'] },
-  { id: 'fibras',     Icon: Leaf,     color: '#16A34A', label: 'Fibras e Constipação',           items: ['Feijão', 'Frutas', 'Legumes', 'Vegetais', 'Água'], note: 'Se necessário: Psyllium 5 g inicialmente, podendo chegar a 10 g por dia. Sempre com boa hidratação.' },
-  { id: 'peixes',     Icon: Fish,     color: '#0EA5E9', label: 'Peixes e Ômega-3',              items: ['Sardinha', 'Atum', 'Salmão', 'Cavalinha'],           note: 'Idealmente 2 vezes por semana.' },
+  { id: 'prot-subs',  Icon: Zap,     color: 'var(--navy)', label: 'Substituições das Proteínas',   items: ['Frango desfiado', 'Carne magra', 'Patinho moído', 'Peixe', 'Sardinha', 'Atum', 'Fígado (1× por semana)', '3 ovos', 'Iogurte grego', 'Whey protein'] },
+  { id: 'carb-subs',  Icon: Package,  color: 'var(--ink-2)', label: 'Substituições dos Carboidratos', items: ['Arroz branco', 'Macarrão', 'Cuscuz', 'Tapioca', 'Batata inglesa', 'Batata doce', 'Mandioca', 'Baião de dois'] },
+  { id: 'frutas',     Icon: Leaf,     color: 'var(--teal-d)', label: 'Frutas Prioritárias',            items: ['Mamão', 'Kiwi', 'Banana', 'Morango', 'Melão', 'Maçã', 'Pera'] },
+  { id: 'fibras',     Icon: Leaf,     color: 'var(--teal-d)', label: 'Fibras e Constipação',           items: ['Feijão', 'Frutas', 'Legumes', 'Vegetais', 'Água'], note: 'Se necessário: Psyllium 5 g inicialmente, podendo chegar a 10 g por dia. Sempre com boa hidratação.' },
+  { id: 'peixes',     Icon: Fish,     color: 'var(--cobalt)', label: 'Peixes e Ômega-3',              items: ['Sardinha', 'Atum', 'Salmão', 'Cavalinha'],           note: 'Idealmente 2 vezes por semana.' },
 ]
 
 // ── Dieta Masculina ───────────────────────────────────────────────────────────
 export const DIET_M: MealSection[] = [
   {
-    id: 'cafe', label: 'Café da Manhã', Icon: Sun, color: '#D97706', required: true, kcalShare: 0.25,
+    id: 'cafe', label: 'Café da Manhã', Icon: Sun, color: 'var(--cobalt)', required: true, kcalShare: 0.25,
     options: [
       { label: 'Opção 1', protein: '30 g',    items: ['1 pão francês', '3 ovos', '30 g de queijo branco', '1 fruta — mamão (180 g), banana (70 g), kiwi (130 g) ou melão'] },
       { label: 'Opção 2', protein: '30–35 g', items: ['2 fatias de pão integral', '120 g de frango desfiado (ou 2 ovos + 3 claras)', '1 fruta'] },
@@ -121,7 +121,7 @@ export const DIET_M: MealSection[] = [
     ],
   },
   {
-    id: 'lanche-m', label: 'Lanche da Manhã', Icon: Droplets, color: '#F59E0B', required: false, kcalShare: 0.10,
+    id: 'lanche-m', label: 'Lanche da Manhã', Icon: Droplets, color: 'var(--ink-2)', required: false, kcalShare: 0.10,
     note: 'Opcional — complementa proteína do dia',
     options: [
       { label: 'Opção 1', items: ['1 scoop de whey com água'] },
@@ -131,7 +131,7 @@ export const DIET_M: MealSection[] = [
     ],
   },
   {
-    id: 'almoco', label: 'Almoço', Icon: Utensils, color: '#059669', required: true, kcalShare: 0.30,
+    id: 'almoco', label: 'Almoço', Icon: Utensils, color: 'var(--teal-d)', required: true, kcalShare: 0.30,
     options: [
       { label: 'Opção 1', protein: '40–50 g', items: ['Arroz branco cozido (130–180 g)', 'Feijão (100 g)', 'Frango grelhado (150–200 g)', 'Legumes cozidos', 'Pequena porção de salada'] },
       { label: 'Opção 2', items: ['Macarrão cozido (150–180 g)', 'Patinho moído ou carne magra (150–180 g)', 'Legumes cozidos'] },
@@ -141,7 +141,7 @@ export const DIET_M: MealSection[] = [
     ],
   },
   {
-    id: 'lanche-t', label: 'Lanche da Tarde', Icon: Droplets, color: '#0891B2', required: false, kcalShare: 0.10,
+    id: 'lanche-t', label: 'Lanche da Tarde', Icon: Droplets, color: 'var(--ink-2)', required: false, kcalShare: 0.10,
     note: 'Opcional — complementa proteína do dia',
     options: [
       { label: 'Opção 1', items: ['1 scoop de whey', '1 fruta'] },
@@ -151,7 +151,7 @@ export const DIET_M: MealSection[] = [
     ],
   },
   {
-    id: 'jantar', label: 'Jantar', Icon: Moon, color: '#7C3AED', required: true, kcalShare: 0.20,
+    id: 'jantar', label: 'Jantar', Icon: Moon, color: 'var(--cobalt)', required: true, kcalShare: 0.20,
     options: [
       { label: 'Opção 1', protein: '40–45 g', items: ['Arroz (120–160 g)', 'Carne magra ou frango (150–180 g)', 'Legumes cozidos'] },
       { label: 'Opção 2', items: ['1 pão francês', 'Frango desfiado (150 g)', '30 g de queijo branco', 'Legumes ou pequena salada'] },
@@ -161,7 +161,7 @@ export const DIET_M: MealSection[] = [
     ],
   },
   {
-    id: 'ceia', label: 'Ceia', Icon: Moon, color: '#1E40AF', required: false, kcalShare: 0.05,
+    id: 'ceia', label: 'Ceia', Icon: Moon, color: 'var(--navy)', required: false, kcalShare: 0.05,
     note: 'Somente se necessário',
     options: [
       { label: 'Opção 1', items: ['1 scoop de whey com água'] },
@@ -173,9 +173,9 @@ export const DIET_M: MealSection[] = [
 ]
 
 export const INFO_M: InfoSection[] = [
-  { id: 'prot-fontes', Icon: Zap,     color: '#DC2626', label: 'Fontes de Proteína para Rodízio', items: ['Frango', 'Patinho', 'Coxão mole', 'Peixes', 'Atum em água', 'Sardinha', 'Ovos', 'Iogurte grego', 'Cottage', 'Ricota', 'Whey protein'] },
-  { id: 'carbs',       Icon: Package,  color: '#D97706', label: 'Carboidratos',                    items: ['Arroz', 'Feijão', 'Batata inglesa', 'Batata doce', 'Mandioca', 'Macarrão', 'Pão francês', 'Pão integral', 'Aveia', 'Cuscuz', 'Tapioca'] },
-  { id: 'frutas',      Icon: Leaf,     color: '#059669', label: 'Frutas Prioritárias',             items: ['Mamão', 'Kiwi', 'Pera', 'Maçã', 'Morango', 'Banana', 'Melão'], note: 'Para o intestino e melhor tolerância.' },
-  { id: 'fibras',      Icon: Leaf,     color: '#16A34A', label: 'Fibras e Constipação',            items: ['Feijão', 'Frutas', 'Legumes', 'Vegetais'], note: 'Se necessário: Psyllium 5 g inicialmente, podendo evoluir para 10 g por dia. Sempre associado ao aumento da ingestão de água.' },
-  { id: 'peixes',      Icon: Fish,     color: '#0EA5E9', label: 'Peixes e Ômega-3',               items: ['Sardinha', 'Atum', 'Salmão', 'Cavalinha'], note: 'Idealmente duas vezes por semana.' },
+  { id: 'prot-fontes', Icon: Zap,     color: 'var(--navy)', label: 'Fontes de Proteína para Rodízio', items: ['Frango', 'Patinho', 'Coxão mole', 'Peixes', 'Atum em água', 'Sardinha', 'Ovos', 'Iogurte grego', 'Cottage', 'Ricota', 'Whey protein'] },
+  { id: 'carbs',       Icon: Package,  color: 'var(--ink-2)', label: 'Carboidratos',                    items: ['Arroz', 'Feijão', 'Batata inglesa', 'Batata doce', 'Mandioca', 'Macarrão', 'Pão francês', 'Pão integral', 'Aveia', 'Cuscuz', 'Tapioca'] },
+  { id: 'frutas',      Icon: Leaf,     color: 'var(--teal-d)', label: 'Frutas Prioritárias',             items: ['Mamão', 'Kiwi', 'Pera', 'Maçã', 'Morango', 'Banana', 'Melão'], note: 'Para o intestino e melhor tolerância.' },
+  { id: 'fibras',      Icon: Leaf,     color: 'var(--teal-d)', label: 'Fibras e Constipação',            items: ['Feijão', 'Frutas', 'Legumes', 'Vegetais'], note: 'Se necessário: Psyllium 5 g inicialmente, podendo evoluir para 10 g por dia. Sempre associado ao aumento da ingestão de água.' },
+  { id: 'peixes',      Icon: Fish,     color: 'var(--cobalt)', label: 'Peixes e Ômega-3',               items: ['Sardinha', 'Atum', 'Salmão', 'Cavalinha'], note: 'Idealmente duas vezes por semana.' },
 ]

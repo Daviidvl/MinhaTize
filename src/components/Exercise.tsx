@@ -12,6 +12,7 @@ import {
 import {
   DAY_INITIALS, DAY_NAMES, DAY_FULL, toDateStr, getWeekDays, calcStreak, getMotivation,
 } from '../utils/exerciseUtils'
+import { alpha } from '../utils/color'
 
 const STORAGE_KEY = STORAGE_KEYS.workoutProfile
 const LOG_KEY     = STORAGE_KEYS.workoutLog
@@ -27,9 +28,9 @@ function Pill({
       style={{
         flex: 1, padding: '10px 8px', borderRadius: '12px', cursor: 'pointer',
         fontFamily: "Inter, -apple-system, sans-serif", fontWeight: 700, fontSize: '13px',
-        border: active ? '2px solid #22C55E' : '1.5px solid var(--border)',
-        background: active ? 'rgba(34,197,94,0.12)' : 'var(--surface-2)',
-        color: active ? '#22C55E' : 'var(--text-secondary)',
+        border: active ? '2px solid var(--cobalt)' : '1.5px solid var(--border)',
+        background: active ? 'var(--ice)' : 'var(--surface-2)',
+        color: active ? 'var(--cobalt)' : 'var(--text-secondary)',
         transition: 'all 0.15s',
       }}
     >
@@ -107,9 +108,9 @@ export default function Exercise() {
 
         {/* Banner */}
         <div style={{
-          background: 'linear-gradient(150deg, #101B3F 0%, #1B2F72 100%)',
+          background: 'var(--g-hero)',
           borderRadius: '20px', padding: '18px 20px', color: '#fff',
-          boxShadow: '0 6px 20px rgba(20,40,120,0.28), 0 1px 3px rgba(0,0,0,0.12)',
+          boxShadow: '0 6px 20px rgba(var(--shadow-rgb),0.28), 0 1px 3px rgba(var(--shadow-rgb),0.12)',
         }}>
           <p style={{ fontSize: '11px', fontWeight: 700, opacity: 0.7, textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: '6px' }}>
             Avaliação de treino
@@ -203,9 +204,9 @@ export default function Exercise() {
                         borderRadius: '10px', cursor: full ? 'not-allowed' : 'pointer',
                         fontFamily: "Inter, -apple-system, sans-serif",
                         fontWeight: 700, fontSize: '11px',
-                        border: sel ? '2px solid #22C55E' : '1.5px solid var(--border)',
-                        background: sel ? 'rgba(34,197,94,0.12)' : 'var(--surface-2)',
-                        color: sel ? '#22C55E' : full ? 'var(--text-muted)' : 'var(--text-secondary)',
+                        border: sel ? '2px solid var(--cobalt)' : '1.5px solid var(--border)',
+                        background: sel ? 'var(--ice)' : 'var(--surface-2)',
+                        color: sel ? 'var(--cobalt)' : full ? 'var(--text-muted)' : 'var(--text-secondary)',
                         opacity: full ? 0.45 : 1,
                         transition: 'all 0.15s',
                       }}
@@ -216,7 +217,7 @@ export default function Exercise() {
                 })}
               </div>
               {(form.preferredDays?.length ?? 0) > 0 && (form.preferredDays?.length ?? 0) < form.days && (
-                <p style={{ fontSize: '11px', color: '#22C55E', marginTop: '7px' }}>
+                <p style={{ fontSize: '11px', color: 'var(--cobalt)', marginTop: '7px' }}>
                   {form.days - (form.preferredDays?.length ?? 0)} dia{form.days - (form.preferredDays?.length ?? 0) > 1 ? 's' : ''} restante{form.days - (form.preferredDays?.length ?? 0) > 1 ? 's' : ''}
                 </p>
               )}
@@ -231,7 +232,7 @@ export default function Exercise() {
               width: '100%', padding: '14px', borderRadius: '14px', border: 'none',
               fontFamily: "Inter, -apple-system, sans-serif", fontWeight: 800, fontSize: '15px',
               cursor: formComplete ? 'pointer' : 'not-allowed',
-              background: formComplete ? 'linear-gradient(135deg, #16A34A 0%, #22C55E 100%)' : 'var(--surface-3)',
+              background: formComplete ? 'var(--g-cta)' : 'var(--surface-3)',
               color: formComplete ? '#fff' : 'var(--text-muted)',
               opacity: formComplete ? 1 : 0.6,
               transition: 'all 0.2s',
@@ -239,7 +240,7 @@ export default function Exercise() {
               display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px',
             }}
           >
-            <Dumbbell size={16} strokeWidth={2.5} />
+            <Dumbbell size={16} strokeWidth={1.75} />
             Gerar Meu Plano
           </button>
         </div>
@@ -262,9 +263,9 @@ export default function Exercise() {
 
       {/* Plan header */}
       <div style={{
-        background: 'linear-gradient(150deg, #101B3F 0%, #1B2F72 100%)',
+        background: 'var(--g-hero)',
         borderRadius: '20px', padding: '18px 20px', color: '#fff',
-        boxShadow: '0 6px 20px rgba(20,40,120,0.28), 0 1px 3px rgba(0,0,0,0.12)', position: 'relative', overflow: 'hidden',
+        boxShadow: '0 6px 20px rgba(var(--shadow-rgb),0.28), 0 1px 3px rgba(var(--shadow-rgb),0.12)', position: 'relative', overflow: 'hidden',
       }}>
         <div style={{
           position: 'absolute', top: '-20px', right: '-20px',
@@ -304,7 +305,7 @@ export default function Exercise() {
         return (
           <div className="card" style={{ padding: '14px 16px' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '7px', marginBottom: '12px' }}>
-              <Flame size={14} strokeWidth={2} style={{ color: '#22C55E', flexShrink: 0 }} />
+              <Flame size={14} strokeWidth={2} style={{ color: 'var(--teal-d)', flexShrink: 0 }} />
               <p style={{ fontSize: '12px', fontWeight: 700, color: 'var(--text-primary)', margin: 0 }}>
                 Semana de treino
               </p>
@@ -324,10 +325,10 @@ export default function Exercise() {
                 let pulsing   = false
 
                 if (isDone) {
-                  bg = '#22C55E'; border = '1.5px solid #22C55E'
-                  color = '#fff'; showCheck = true
+                  bg = 'var(--teal-d)'; border = '1.5px solid var(--teal-d)'
+                  color = 'var(--surface)'; showCheck = true
                 } else if (isToday) {
-                  border = '2px solid #22C55E'; color = '#22C55E'
+                  border = '2px solid var(--teal)'; color = 'var(--teal-d)'
                   bg = 'transparent'; pulsing = true
                 }
 
@@ -346,13 +347,13 @@ export default function Exercise() {
                       }}
                     >
                       {showCheck
-                        ? <Check size={16} strokeWidth={3} />
+                        ? <Check size={16} strokeWidth={2.5} />
                         : <span style={{ fontSize: '12px', fontWeight: 700 }}>{DAY_INITIALS[i]}</span>
                       }
                     </button>
                     <span style={{
                       width: '4px', height: '4px', borderRadius: '50%', display: 'block',
-                      background: isPref ? '#22C55E' : 'transparent',
+                      background: isPref ? 'var(--teal)' : 'transparent',
                       opacity: isDone ? 0 : 0.6,
                     }} />
                   </div>
@@ -367,7 +368,7 @@ export default function Exercise() {
               {streak > 0 && (
                 <>
                   {' · '}
-                  <span style={{ fontWeight: 700, color: '#22C55E' }}>{streak}</span>
+                  <span style={{ fontWeight: 700, color: 'var(--teal-d)' }}>{streak}</span>
                   {streak === 1 ? ' semana consecutiva' : ' semanas consecutivas'}
                 </>
               )}
@@ -389,7 +390,7 @@ export default function Exercise() {
       {/* Volume info */}
       <div className="card" style={{ padding: '12px 16px' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '7px', marginBottom: '8px' }}>
-          <BarChart2 size={14} strokeWidth={2} style={{ color: '#22C55E', flexShrink: 0 }} />
+          <BarChart2 size={14} strokeWidth={2} style={{ color: 'var(--teal-d)', flexShrink: 0 }} />
           <p style={{ fontSize: '12px', fontWeight: 700, color: 'var(--text-primary)', margin: 0 }}>Volume recomendado</p>
         </div>
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '8px' }}>
@@ -402,7 +403,7 @@ export default function Exercise() {
               background: 'var(--surface-2)', borderRadius: '10px', padding: '8px',
               textAlign: 'center', border: '1px solid var(--border)',
             }}>
-              <p style={{ fontSize: '15px', fontWeight: 800, color: '#22C55E', margin: 0 }}>{item.value}</p>
+              <p style={{ fontSize: '15px', fontWeight: 800, color: 'var(--teal-d)', margin: 0 }}>{item.value}</p>
               <p style={{ fontSize: '10px', color: 'var(--text-muted)', marginTop: '2px' }}>{item.label}</p>
             </div>
           ))}
@@ -419,8 +420,8 @@ export default function Exercise() {
         return (
           <div key={day.label} style={{
             borderRadius: '16px', overflow: 'hidden',
-            border: `1.5px solid ${isOpen ? `${day.color}30` : 'var(--border)'}`,
-            background: isOpen ? `${day.color}06` : 'var(--surface)',
+            border: `1.5px solid ${isOpen ? alpha(day.color, 19) : 'var(--border)'}`,
+            background: isOpen ? alpha(day.color, 2) : 'var(--surface)',
             transition: 'all 0.2s', boxShadow: 'var(--shadow-card)',
           }}>
             <button
@@ -433,11 +434,11 @@ export default function Exercise() {
             >
               <div style={{
                 width: '44px', height: '44px', borderRadius: '12px', flexShrink: 0,
-                background: `${day.color}18`, border: `1px solid ${day.color}30`,
+                background: alpha(day.color, 9), border: `1px solid ${alpha(day.color, 19)}`,
                 display: 'flex', alignItems: 'center', justifyContent: 'center',
                 flexDirection: 'column', gap: '2px', color: day.color,
               }}>
-                {DAY_ICON_MAP[day.label] ?? <Dumbbell size={18} strokeWidth={2} />}
+                {DAY_ICON_MAP[day.label] ?? <Dumbbell size={18} strokeWidth={1.75} />}
                 <span style={{ fontSize: '9px', fontWeight: 900, color: day.color, letterSpacing: '0.05em' }}>
                   {day.label}
                 </span>
@@ -455,13 +456,13 @@ export default function Exercise() {
                 flexShrink: 0, color: 'var(--text-muted)',
                 transition: 'transform 0.2s', display: 'inline-flex',
                 transform: isOpen ? 'rotate(180deg)' : 'none',
-              }}><ChevronDown size={16} strokeWidth={2} /></span>
+              }}><ChevronDown size={16} strokeWidth={1.75} /></span>
             </button>
 
             {isOpen && (
               <div style={{
                 padding: '0 14px 14px',
-                borderTop: `1px solid ${day.color}20`,
+                borderTop: `1px solid ${alpha(day.color, 13)}`,
                 display: 'flex', flexDirection: 'column', gap: '7px',
               }}>
                 {exercises.map((ex, i) => (
@@ -472,7 +473,7 @@ export default function Exercise() {
                   }}>
                     <span style={{
                       minWidth: '20px', height: '20px', borderRadius: '6px', flexShrink: 0,
-                      background: `${day.color}20`, display: 'flex', alignItems: 'center',
+                      background: alpha(day.color, 13), display: 'flex', alignItems: 'center',
                       justifyContent: 'center', fontSize: '10px', fontWeight: 900,
                       color: day.color, marginTop: '1px',
                     }}>
@@ -484,14 +485,14 @@ export default function Exercise() {
                       </p>
                       {ex.tip && (
                         <div style={{ display: 'flex', gap: '5px', alignItems: 'flex-start', marginTop: '3px' }}>
-                          <Lightbulb size={11} strokeWidth={2} style={{ flexShrink: 0, marginTop: '1px', color: 'var(--text-muted)' }} />
+                          <Lightbulb size={11} strokeWidth={2.5} style={{ flexShrink: 0, marginTop: '1px', color: 'var(--text-muted)' }} />
                           <p style={{ fontSize: '11px', color: 'var(--text-muted)', lineHeight: 1.4, margin: 0 }}>{ex.tip}</p>
                         </div>
                       )}
                     </div>
                     <span style={{
                       fontSize: '10px', fontWeight: 700, color: day.color,
-                      background: `${day.color}15`, padding: '2px 7px', borderRadius: '99px',
+                      background: alpha(day.color, 8), padding: '2px 7px', borderRadius: '99px',
                       flexShrink: 0, whiteSpace: 'nowrap',
                     }}>
                       {vol!.sets}×{vol!.reps.split('–')[0]}
@@ -509,7 +510,7 @@ export default function Exercise() {
       {/* Tips */}
       <div className="card" style={{ padding: '14px 16px', display: 'flex', flexDirection: 'column', gap: '10px' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '7px' }}>
-          <Lightbulb size={14} strokeWidth={2} style={{ color: '#22C55E', flexShrink: 0 }} />
+          <Lightbulb size={14} strokeWidth={2} style={{ color: 'var(--teal-d)', flexShrink: 0 }} />
           <p style={{ fontWeight: 700, fontSize: '13px', color: 'var(--text-primary)', margin: 0 }}>Dicas práticas</p>
         </div>
         {[

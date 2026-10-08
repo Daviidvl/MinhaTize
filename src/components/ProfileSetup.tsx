@@ -9,13 +9,13 @@ interface Props {
 }
 
 const MEDICATION_ICONS: Record<Medication, React.ReactNode> = {
-  tirzepatida: <Pill         size={18} strokeWidth={2} />,
-  semaglutida: <Syringe      size={18} strokeWidth={2} />,
-  ozempic:     <Syringe      size={18} strokeWidth={2} />,
-  wegovy:      <Syringe      size={18} strokeWidth={2} />,
-  mounjaro:    <Pill         size={18} strokeWidth={2} />,
-  retatrutida: <FlaskConical size={18} strokeWidth={2} />,
-  outro:       <PenLine      size={18} strokeWidth={2} />,
+  tirzepatida: <Pill         size={18} strokeWidth={1.75} />,
+  semaglutida: <Syringe      size={18} strokeWidth={1.75} />,
+  ozempic:     <Syringe      size={18} strokeWidth={1.75} />,
+  wegovy:      <Syringe      size={18} strokeWidth={1.75} />,
+  mounjaro:    <Pill         size={18} strokeWidth={1.75} />,
+  retatrutida: <FlaskConical size={18} strokeWidth={1.75} />,
+  outro:       <PenLine      size={18} strokeWidth={1.75} />,
 }
 
 const MEDICATIONS = (Object.keys(MEDICATION_LABELS) as Medication[]).map(value => ({
@@ -104,10 +104,10 @@ function BlockMsg({ msg }: { msg: string }) {
     <div style={{
       display: 'flex', alignItems: 'flex-start', gap: '7px',
       padding: '9px 12px', borderRadius: '10px', marginTop: '6px',
-      background: 'rgba(239,68,68,0.08)', border: '1px solid rgba(239,68,68,0.22)',
+      background: 'var(--red-bg)', border: '1px solid var(--red-line)',
     }}>
-      <AlertTriangle size={13} strokeWidth={2} style={{ color: '#EF4444', flexShrink: 0, marginTop: '1px' }} />
-      <p style={{ fontSize: '12px', color: '#B91C1C', margin: 0, lineHeight: 1.4, fontWeight: 600 }}>{msg}</p>
+      <AlertTriangle size={13} strokeWidth={2} style={{ color: 'var(--red)', flexShrink: 0, marginTop: '1px' }} />
+      <p style={{ fontSize: '12px', color: 'var(--red)', margin: 0, lineHeight: 1.4, fontWeight: 600 }}>{msg}</p>
     </div>
   )
 }
@@ -117,10 +117,10 @@ function WarnMsg({ msg }: { msg: string }) {
     <div style={{
       display: 'flex', alignItems: 'flex-start', gap: '7px',
       padding: '9px 12px', borderRadius: '10px', marginTop: '6px',
-      background: 'rgba(245,158,11,0.08)', border: '1px solid rgba(245,158,11,0.25)',
+      background: 'var(--amber-bg)', border: '1px solid var(--amber-line)',
     }}>
-      <AlertTriangle size={13} strokeWidth={2} style={{ color: '#D97706', flexShrink: 0, marginTop: '1px' }} />
-      <p style={{ fontSize: '12px', color: '#92400E', margin: 0, lineHeight: 1.4 }}>{msg}</p>
+      <AlertTriangle size={13} strokeWidth={2} style={{ color: 'var(--amber)', flexShrink: 0, marginTop: '1px' }} />
+      <p style={{ fontSize: '12px', color: 'var(--amber)', margin: 0, lineHeight: 1.4 }}>{msg}</p>
     </div>
   )
 }
@@ -223,9 +223,9 @@ export default function ProfileSetup({ onComplete }: Props) {
 
   const progress = ((step - 1) / (STEPS.length - 1)) * 100
 
-  const selBtn = (active: boolean, color = 'var(--primary)') => ({
+  const selBtn = (active: boolean) => ({
     padding: '12px 8px', borderRadius: '11px', border: 'none', cursor: 'pointer',
-    background: active ? `linear-gradient(135deg, ${color}, #0D9488)` : 'var(--surface-2)',
+    background: active ? 'var(--g-cta)' : 'var(--surface-2)',
     color: active ? '#fff' : 'var(--text-primary)',
     fontWeight: 700, fontSize: '13px', transition: 'all 0.15s',
     fontFamily: 'Inter, -apple-system, sans-serif',
@@ -242,7 +242,7 @@ export default function ProfileSetup({ onComplete }: Props) {
       <div style={{ height: '3px', background: 'var(--surface-2)' }}>
         <div style={{
           height: '100%', width: `${progress}%`,
-          background: 'linear-gradient(90deg, var(--primary), var(--accent))',
+          background: 'var(--g-progress)',
           transition: 'width 0.4s ease',
         }} />
       </div>
@@ -314,7 +314,7 @@ export default function ProfileSetup({ onComplete }: Props) {
                 {aWarn && <WarnMsg msg={aWarn} />}
               </div>
 
-              <div style={{ padding: '12px 14px', background: 'var(--primary-light)', borderRadius: '11px', border: '1px solid rgba(37,99,235,0.15)' }}>
+              <div style={{ padding: '12px 14px', background: 'var(--primary-light)', borderRadius: '11px', border: '1px solid var(--sky)' }}>
                 <p style={{ fontSize: '12px', color: 'var(--primary)', fontWeight: 600, lineHeight: 1.5, display: 'flex', alignItems: 'center', gap: '6px' }}>
                   <Lock size={12} strokeWidth={2} style={{ flexShrink: 0 }} />
                   Seus dados ficam salvos apenas neste dispositivo.
@@ -386,10 +386,10 @@ export default function ProfileSetup({ onComplete }: Props) {
                 <div style={{
                   display: 'flex', alignItems: 'flex-start', gap: '7px',
                   padding: '10px 13px', borderRadius: '11px',
-                  background: 'rgba(245,158,11,0.08)', border: '1px solid rgba(245,158,11,0.25)',
+                  background: 'var(--amber-bg)', border: '1px solid var(--amber-line)',
                 }}>
-                  <AlertTriangle size={13} strokeWidth={2} style={{ color: '#D97706', flexShrink: 0, marginTop: '1px' }} />
-                  <p style={{ fontSize: '12px', color: '#92400E', margin: 0, lineHeight: 1.4 }}>{gWarn}</p>
+                  <AlertTriangle size={13} strokeWidth={2} style={{ color: 'var(--amber)', flexShrink: 0, marginTop: '1px' }} />
+                  <p style={{ fontSize: '12px', color: 'var(--amber)', margin: 0, lineHeight: 1.4 }}>{gWarn}</p>
                 </div>
               )}
 
@@ -397,7 +397,7 @@ export default function ProfileSetup({ onComplete }: Props) {
                 && parseFloat(form.goalWeight) > 0
                 && parseFloat(form.goalWeight) < parseFloat(refWeight)
                 && !gWarn && (
-                <div style={{ padding: '14px', background: 'var(--primary-light)', borderRadius: '12px', border: '1px solid rgba(37,99,235,0.2)' }}>
+                <div style={{ padding: '14px', background: 'var(--primary-light)', borderRadius: '12px', border: '1px solid var(--sky)' }}>
                   <p style={{ fontSize: '15px', fontWeight: 800, color: 'var(--primary)' }}>
                     Meta: perder {(parseFloat(refWeight) - parseFloat(form.goalWeight)).toFixed(1)}kg
                   </p>
@@ -513,7 +513,7 @@ export default function ProfileSetup({ onComplete }: Props) {
                 </div>
               </div>
               {form.applicationDay !== undefined && (
-                <div style={{ padding: '12px 14px', background: 'var(--primary-light)', borderRadius: '11px', border: '1px solid rgba(37,99,235,0.15)' }}>
+                <div style={{ padding: '12px 14px', background: 'var(--primary-light)', borderRadius: '11px', border: '1px solid var(--sky)' }}>
                   <p style={{ fontSize: '13px', color: 'var(--primary)', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '6px' }}>
                     <Check size={13} strokeWidth={2.5} style={{ flexShrink: 0 }} />
                     Você aplica toda {WEEK_DAYS_FULL[form.applicationDay]}. O Minha Tize vai acompanhar isso pra você.

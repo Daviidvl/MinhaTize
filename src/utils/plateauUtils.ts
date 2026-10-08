@@ -116,13 +116,13 @@ export function getPlateauStatus(profile: UserProfile): PlateauStatus {
 export function getPlateauStatusMeta(status: PlateauStatus): { label: string; shortLabel: string; color: string } {
   switch (status) {
     case 'tendencia_queda':
-      return { label: 'Tendência de queda', shortLabel: 'Em queda', color: '#10B981' }
+      return { label: 'Tendência de queda', shortLabel: 'Em queda', color: 'var(--teal-d)' }
     case 'possivel_estagnacao':
-      return { label: 'Possível estagnação identificada', shortLabel: 'Possível estagnação', color: '#F59E0B' }
+      return { label: 'Possível estagnação identificada', shortLabel: 'Possível estagnação', color: 'var(--amber)' }
     case 'em_acompanhamento_14dias':
-      return { label: 'Em acompanhamento de 14 dias', shortLabel: 'Acompanhamento', color: '#F59E0B' }
+      return { label: 'Em acompanhamento de 14 dias', shortLabel: 'Acompanhamento', color: 'var(--amber)' }
     case 'estagnacao_persistente':
-      return { label: 'Possível estagnação persistente', shortLabel: 'Estagnação persistente', color: '#EF4444' }
+      return { label: 'Possível estagnação persistente', shortLabel: 'Estagnação persistente', color: 'var(--red)' }
     default:
       return { label: 'Sem sinal de estagnação', shortLabel: 'Sem sinal', color: 'var(--text-muted)' }
   }

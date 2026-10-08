@@ -137,7 +137,7 @@ export default function Weaning({ profile }: Props) {
         fontSize: '13px', fontWeight: 600, marginTop: '4px',
       }}
     >
-      <ChevronLeft size={14} strokeWidth={2.5} /> Voltar
+      <ChevronLeft size={14} strokeWidth={2} /> Voltar
     </button>
   )
 
@@ -146,9 +146,9 @@ export default function Weaning({ profile }: Props) {
 
       {/* Progress bar */}
       {step !== 'intro' && (
-        <div style={{ background: 'var(--border)', borderRadius: '99px', height: '4px', overflow: 'hidden' }}>
+        <div style={{ background: 'var(--mist)', borderRadius: '99px', height: '4px', overflow: 'hidden' }}>
           <div style={{
-            height: '100%', borderRadius: '99px', background: 'var(--primary)',
+            height: '100%', borderRadius: '99px', background: 'var(--g-progress)',
             width: `${progress}%`, transition: 'width 0.4s cubic-bezier(0.22,1,0.36,1)',
           }} />
         </div>
@@ -182,10 +182,10 @@ export default function Weaning({ profile }: Props) {
 
           <div style={{
             padding: '14px 16px', borderRadius: '14px',
-            background: 'rgba(245,158,11,0.07)', border: '1px solid rgba(245,158,11,0.22)',
+            background: 'var(--amber-bg)', border: '1px solid var(--amber-line)',
             display: 'flex', gap: '10px', alignItems: 'flex-start',
           }}>
-            <Info size={14} strokeWidth={2} color="#D97706" style={{ flexShrink: 0, marginTop: '1px' }} />
+            <Info size={14} strokeWidth={2} color="var(--amber)" style={{ flexShrink: 0, marginTop: '1px' }} />
             <p style={{ fontSize: '12px', color: 'var(--text-primary)', lineHeight: 1.6, margin: 0, fontFamily: 'Inter, sans-serif' }}>
               Qualquer ajuste de dose deve ser realizado com orientação do médico responsável.
             </p>
@@ -195,10 +195,10 @@ export default function Weaning({ profile }: Props) {
             onClick={() => go('1')}
             style={{
               padding: '15px', borderRadius: '14px', border: 'none',
-              background: 'linear-gradient(135deg, #1D4ED8 0%, #3B82F6 100%)',
+              background: 'var(--g-cta)',
               color: '#fff', fontWeight: 700, fontSize: '15px',
               cursor: 'pointer', fontFamily: 'Inter, sans-serif',
-              boxShadow: '0 4px 14px rgba(37,99,235,0.35)',
+              boxShadow: '0 4px 14px rgba(var(--shadow-rgb),0.28)',
             }}
           >
             Iniciar avaliação →
@@ -442,10 +442,10 @@ export default function Weaning({ profile }: Props) {
                         padding: isFirst ? '10px 24px' : '9px 20px',
                         borderRadius: '99px',
                         background: isFirst
-                          ? 'linear-gradient(135deg, #1D4ED8 0%, #3B82F6 100%)'
+                          ? 'var(--g-cta)'
                           : 'var(--surface-2)',
                         border: isFirst ? 'none' : '1.5px solid var(--border)',
-                        boxShadow: isFirst ? '0 4px 12px rgba(37,99,235,0.28)' : 'none',
+                        boxShadow: isFirst ? '0 4px 12px rgba(var(--shadow-rgb),0.28)' : 'none',
                         color: isFirst ? '#fff' : 'var(--text-primary)',
                         fontWeight: isFirst ? 800 : 700,
                         fontSize: isFirst ? '15px' : '14px',
@@ -465,7 +465,7 @@ export default function Weaning({ profile }: Props) {
                           <div style={{ width: '1.5px', height: '10px', background: 'var(--border)' }} />
                           <div style={{
                             padding: '3px 12px', borderRadius: '99px',
-                            background: 'rgba(37,99,235,0.07)', border: '1px solid rgba(37,99,235,0.18)',
+                            background: 'var(--ice)', border: '1px solid var(--sky)',
                             fontSize: '10px', fontWeight: 700, color: 'var(--primary)',
                             fontFamily: 'Inter, sans-serif', letterSpacing: '0.02em',
                           }}>
@@ -497,8 +497,8 @@ export default function Weaning({ profile }: Props) {
                   </div>
                   <div style={{
                     padding: '10px 20px', borderRadius: '99px',
-                    background: 'rgba(5,150,105,0.1)', border: '1.5px solid rgba(5,150,105,0.3)',
-                    color: '#059669', fontWeight: 800, fontSize: '13px',
+                    background: 'var(--teal-l)', border: '1.5px solid var(--teal)',
+                    color: 'var(--teal-d)', fontWeight: 800, fontSize: '13px',
                     fontFamily: 'Inter, sans-serif', textAlign: 'center',
                   }}>
                     Reavaliar com o médico
@@ -561,12 +561,12 @@ export default function Weaning({ profile }: Props) {
               {/* Alert signs */}
               <div style={{
                 padding: '16px', borderRadius: '14px',
-                background: 'rgba(245,158,11,0.07)', border: '1.5px solid rgba(245,158,11,0.25)',
+                background: 'var(--amber-bg)', border: '1.5px solid var(--amber-line)',
               }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '10px' }}>
-                  <AlertTriangle size={15} strokeWidth={2} color="#D97706" style={{ flexShrink: 0 }} />
+                  <AlertTriangle size={15} strokeWidth={2} color="var(--amber)" style={{ flexShrink: 0 }} />
                   <p style={{
-                    fontSize: '12px', fontWeight: 800, color: '#D97706',
+                    fontSize: '12px', fontWeight: 800, color: 'var(--amber)',
                     textTransform: 'uppercase', letterSpacing: '0.06em', margin: 0,
                     fontFamily: 'Inter, sans-serif',
                   }}>

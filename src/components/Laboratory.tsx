@@ -10,6 +10,15 @@ import {
   CATEGORY_ICON, CATEGORY_ICON_SM, CATEGORIES, EXAMS,
   STATUS_LABEL, STATUS_COLOR, STATUS_BG, STATUS_BORDER,
 } from '../data/labExams'
+import { alpha } from '../utils/color'
+
+// Paleta dos PDFs: a janela de impressão é outro documento e não enxerga as variáveis CSS,
+// então os valores de src/index.css (tema claro) são repetidos aqui, e só aqui.
+const PRINT = {
+  ink: '#0B2545', ink2: '#51657F', cobalt: '#1E5BB8',
+  line: '#DDE6F1', mist: '#EEF4FC', bg: '#F6F9FD',
+  tealD: '#0B6F6A', amber: '#B45309', red: '#B42318',
+}
 
 interface Props {
   profile: UserProfile
@@ -127,17 +136,17 @@ export default function Laboratory({ profile, onUpdateProfile }: Props) {
   <title>Solicitação de Exames – Minha Tize</title>
   <style>
     *{box-sizing:border-box}
-    body{font-family:'Segoe UI',Arial,sans-serif;max-width:820px;margin:0 auto;padding:24px;color:#111;line-height:1.5}
-    h1{color:#059669;font-size:22px;margin-bottom:2px}
-    .sub{color:#6b7280;font-size:12px;margin-bottom:28px}
-    h2{color:#374151;font-size:15px;border-bottom:2px solid #e5e7eb;padding-bottom:5px;margin-top:24px;margin-bottom:10px}
+    body{font-family:'Segoe UI',Arial,sans-serif;max-width:820px;margin:0 auto;padding:24px;color:${PRINT.ink};line-height:1.5}
+    h1{color:${PRINT.cobalt};font-size:22px;margin-bottom:2px}
+    .sub{color:${PRINT.ink2};font-size:12px;margin-bottom:28px}
+    h2{color:${PRINT.ink};font-size:15px;border-bottom:2px solid ${PRINT.line};padding-bottom:5px;margin-top:24px;margin-bottom:10px}
     table{width:100%;border-collapse:collapse;margin-bottom:4px;font-size:12px}
-    thead tr{background:#f0fdf4}
-    th{text-align:left;padding:7px 10px;font-size:10px;color:#374151;text-transform:uppercase;letter-spacing:.05em;font-weight:700}
-    td{padding:8px 10px;border-bottom:1px solid #f3f4f6;vertical-align:middle}
-    td:last-child{min-width:90px;border-left:1px solid #e5e7eb}
+    thead tr{background:${PRINT.mist}}
+    th{text-align:left;padding:7px 10px;font-size:10px;color:${PRINT.ink};text-transform:uppercase;letter-spacing:.05em;font-weight:700}
+    td{padding:8px 10px;border-bottom:1px solid ${PRINT.mist};vertical-align:middle}
+    td:last-child{min-width:90px;border-left:1px solid ${PRINT.line}}
     tr:last-child td{border-bottom:none}
-    .disc{font-size:11px;color:#6b7280;border-top:2px solid #e5e7eb;padding-top:14px;margin-top:28px;line-height:1.6}
+    .disc{font-size:11px;color:${PRINT.ink2};border-top:2px solid ${PRINT.line};padding-top:14px;margin-top:28px;line-height:1.6}
     @media print{body{padding:12px}h2{page-break-before:auto}table{page-break-inside:avoid}}
   </style>
 </head>
@@ -162,7 +171,7 @@ export default function Laboratory({ profile, onUpdateProfile }: Props) {
   function downloadResults() {
     const today = new Date().toLocaleDateString('pt-BR', { day: '2-digit', month: 'long', year: 'numeric' })
 
-    const statusColor: Record<ExamStatus, string> = { normal: '#059669', low: '#B45309', high: '#DC2626' }
+    const statusColor: Record<ExamStatus, string> = { normal: PRINT.tealD, low: PRINT.amber, high: PRINT.red }
     const statusLabel: Record<ExamStatus, string> = { normal: 'Normal', low: 'Baixo', high: 'Alto' }
 
     const sections = CATEGORIES.map(cat => {
@@ -178,10 +187,10 @@ export default function Laboratory({ profile, onUpdateProfile }: Props) {
         const status = value !== null ? exam.getStatus(value, sex) : null
         const valueCell  = value !== null
           ? `<span style="font-weight:700;color:${statusColor[status!]}">${escapeHtml(raw)} ${exam.unit}</span>`
-          : `<span style="color:#9ca3af">–</span>`
+          : `<span style="color:${PRINT.ink2}">–</span>`
         const statusCell = status !== null
           ? `<span style="font-weight:700;color:${statusColor[status]}">${statusLabel[status]}</span>`
-          : `<span style="color:#d1d5db">–</span>`
+          : `<span style="color:${PRINT.line}">–</span>`
         return `<tr>
           <td>${exam.name}</td>
           <td>${valueCell}</td>
@@ -207,17 +216,17 @@ export default function Laboratory({ profile, onUpdateProfile }: Props) {
   <title>Resultados de Exames – Minha Tize</title>
   <style>
     *{box-sizing:border-box}
-    body{font-family:'Segoe UI',Arial,sans-serif;max-width:820px;margin:0 auto;padding:24px;color:#111;line-height:1.5}
-    h1{color:#059669;font-size:22px;margin-bottom:2px}
-    .sub{color:#6b7280;font-size:12px;margin-bottom:28px}
-    h2{color:#374151;font-size:15px;border-bottom:2px solid #e5e7eb;padding-bottom:5px;margin-top:24px;margin-bottom:10px}
+    body{font-family:'Segoe UI',Arial,sans-serif;max-width:820px;margin:0 auto;padding:24px;color:${PRINT.ink};line-height:1.5}
+    h1{color:${PRINT.cobalt};font-size:22px;margin-bottom:2px}
+    .sub{color:${PRINT.ink2};font-size:12px;margin-bottom:28px}
+    h2{color:${PRINT.ink};font-size:15px;border-bottom:2px solid ${PRINT.line};padding-bottom:5px;margin-top:24px;margin-bottom:10px}
     table{width:100%;border-collapse:collapse;margin-bottom:4px;font-size:12px}
-    thead tr{background:#f0fdf4}
-    th{text-align:left;padding:7px 10px;font-size:10px;color:#374151;text-transform:uppercase;letter-spacing:.05em;font-weight:700}
-    td{padding:7px 10px;border-bottom:1px solid #f3f4f6;vertical-align:middle}
+    thead tr{background:${PRINT.mist}}
+    th{text-align:left;padding:7px 10px;font-size:10px;color:${PRINT.ink};text-transform:uppercase;letter-spacing:.05em;font-weight:700}
+    td{padding:7px 10px;border-bottom:1px solid ${PRINT.mist};vertical-align:middle}
     tr:last-child td{border-bottom:none}
-    tr:hover td{background:#fafafa}
-    .disc{font-size:11px;color:#6b7280;border-top:2px solid #e5e7eb;padding-top:14px;margin-top:28px;line-height:1.6}
+    tr:hover td{background:${PRINT.bg}}
+    .disc{font-size:11px;color:${PRINT.ink2};border-top:2px solid ${PRINT.line};padding-top:14px;margin-top:28px;line-height:1.6}
     @media print{body{padding:12px}h2{page-break-before:auto}table{page-break-inside:avoid}}
   </style>
 </head>
@@ -263,16 +272,16 @@ export default function Laboratory({ profile, onUpdateProfile }: Props) {
         {priority !== 'none' && (
           <div style={{
             flexShrink: 0, width: '44px', height: '44px', borderRadius: '50%',
-            background: priority === 'green' ? 'var(--primary-light)' : priority === 'yellow' ? 'rgba(245,158,11,0.1)' : 'rgba(239,68,68,0.08)',
-            border: `2px solid ${priority === 'green' ? 'var(--primary)' : priority === 'yellow' ? '#F59E0B' : '#EF4444'}`,
+            background: priority === 'green' ? 'var(--primary-light)' : priority === 'yellow' ? 'var(--amber-bg)' : 'var(--red-bg)',
+            border: `2px solid ${priority === 'green' ? 'var(--primary)' : priority === 'yellow' ? 'var(--amber-fill)' : 'var(--red)'}`,
             display: 'flex', alignItems: 'center', justifyContent: 'center',
-            color: priority === 'green' ? 'var(--primary)' : priority === 'yellow' ? '#F59E0B' : '#EF4444',
+            color: priority === 'green' ? 'var(--primary)' : priority === 'yellow' ? 'var(--amber)' : 'var(--red)',
           }}>
             {priority === 'green'
               ? <Check          size={20} strokeWidth={2.5} />
               : priority === 'yellow'
-              ? <AlertTriangle  size={20} strokeWidth={2.5} />
-              : <XCircle        size={20} strokeWidth={2.5} />}
+              ? <AlertTriangle  size={20} strokeWidth={1.75} />
+              : <XCircle        size={20} strokeWidth={1.75} />}
           </div>
         )}
       </div>
@@ -281,9 +290,9 @@ export default function Laboratory({ profile, onUpdateProfile }: Props) {
       {priority !== 'none' && (
         <div style={{
           padding: '10px 14px', borderRadius: '11px', fontWeight: 700, fontSize: '13px',
-          background: priority === 'green' ? 'var(--primary-light)' : priority === 'yellow' ? 'rgba(245,158,11,0.07)' : 'rgba(239,68,68,0.06)',
-          border: `1px solid ${priority === 'green' ? 'rgba(16,185,129,0.2)' : priority === 'yellow' ? 'rgba(245,158,11,0.25)' : 'rgba(239,68,68,0.25)'}`,
-          color: priority === 'green' ? 'var(--primary)' : priority === 'yellow' ? '#B45309' : '#DC2626',
+          background: priority === 'green' ? 'var(--primary-light)' : priority === 'yellow' ? 'var(--amber-bg)' : 'var(--red-bg)',
+          border: `1px solid ${priority === 'green' ? 'var(--teal)' : priority === 'yellow' ? 'var(--amber-line)' : 'var(--red-line)'}`,
+          color: priority === 'green' ? 'var(--primary)' : priority === 'yellow' ? 'var(--amber)' : 'var(--red)',
         }}>
           {priority === 'green' && 'Todos os exames analisados dentro da referência'}
           {priority === 'yellow' && `${abnormal.length} alteração${abnormal.length > 1 ? 'ões' : ''} identificada${abnormal.length > 1 ? 's' : ''} – veja a análise`}
@@ -321,7 +330,7 @@ export default function Laboratory({ profile, onUpdateProfile }: Props) {
               color: innerTab === t.id ? '#fff' : 'var(--text-muted)',
               fontWeight: 700, fontSize: '13px', cursor: 'pointer',
               transition: 'all 0.2s', fontFamily: "Inter, -apple-system, sans-serif",
-              boxShadow: innerTab === t.id ? '0 2px 8px rgba(16,185,129,0.3)' : 'none',
+              boxShadow: innerTab === t.id ? '0 2px 8px rgba(var(--shadow-rgb),0.28)' : 'none',
             }}
           >
             <span style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '5px' }}>
@@ -345,7 +354,7 @@ export default function Laboratory({ profile, onUpdateProfile }: Props) {
                 display: 'flex', alignItems: 'center', justifyContent: 'center',
               color: 'var(--primary)',
               }}>
-                <FileText size={20} strokeWidth={2} />
+                <FileText size={20} strokeWidth={1.75} />
               </div>
               <div style={{ minWidth: 0 }}>
                 <p style={{ fontWeight: 800, fontSize: '14px', color: 'var(--text-primary)', margin: 0 }}>
@@ -357,7 +366,7 @@ export default function Laboratory({ profile, onUpdateProfile }: Props) {
               </div>
             </div>
             <button onClick={downloadRequest} className="btn-primary" style={{ width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}>
-              <Download size={15} strokeWidth={2.5} />
+              <Download size={15} strokeWidth={2} />
               Baixar PDF
             </button>
           </div>
@@ -379,7 +388,7 @@ export default function Laboratory({ profile, onUpdateProfile }: Props) {
                       background: 'var(--primary-light)', display: 'flex',
                       alignItems: 'center', justifyContent: 'center', color: 'var(--primary)',
                     }}>
-                      <FlaskConical size={16} strokeWidth={2} />
+                      <FlaskConical size={16} strokeWidth={1.75} />
                     </div>
                     <p style={{ fontWeight: 700, fontSize: '13px', color: 'var(--text-primary)', margin: 0 }}>
                       Resultados Laboratoriais
@@ -389,9 +398,9 @@ export default function Laboratory({ profile, onUpdateProfile }: Props) {
                     {filled}/{total}
                   </span>
                 </div>
-                <div style={{ height: '6px', borderRadius: '99px', background: 'var(--surface-3)', overflow: 'hidden' }}>
+                <div style={{ height: '6px', borderRadius: '99px', background: 'var(--mist)', overflow: 'hidden' }}>
                   <div style={{
-                    height: '100%', borderRadius: '99px', background: 'var(--primary)',
+                    height: '100%', borderRadius: '99px', background: 'var(--g-progress)',
                     width: `${(filled / total) * 100}%`, transition: 'width 0.3s ease',
                   }} />
                 </div>
@@ -458,7 +467,7 @@ export default function Laboratory({ profile, onUpdateProfile }: Props) {
                     color: 'var(--text-muted)',
                     transition: 'transform 0.2s', transform: isOpen ? 'rotate(180deg)' : 'none',
                     display: 'inline-flex',
-                  }}><ChevronDown size={16} strokeWidth={2} /></span>
+                  }}><ChevronDown size={16} strokeWidth={1.75} /></span>
                 </button>
 
                 {/* Exam fields */}
@@ -544,7 +553,7 @@ export default function Laboratory({ profile, onUpdateProfile }: Props) {
                 background: 'var(--primary-light)', display: 'flex', alignItems: 'center',
                 justifyContent: 'center', color: 'var(--primary)',
               }}>
-                <FlaskConical size={26} strokeWidth={2} />
+                <FlaskConical size={26} strokeWidth={1.75} />
               </div>
               <p style={{ fontWeight: 700, fontSize: '15px', color: 'var(--text-primary)' }}>
                 Nenhum exame preenchido
@@ -578,7 +587,7 @@ export default function Laboratory({ profile, onUpdateProfile }: Props) {
                     {catResults.map(({ exam, value, status }) => (
                       <div key={exam.id} style={{
                         padding: '12px 14px', borderRadius: '13px',
-                        background: status === 'normal' ? 'var(--surface)' : STATUS_BG[status] + '4d',
+                        background: status === 'normal' ? 'var(--surface)' : alpha(STATUS_BG[status], 30),
                         border: `1px solid ${STATUS_BORDER[status]}`,
                         boxShadow: 'var(--shadow-card)',
                       }}>
@@ -614,7 +623,7 @@ export default function Laboratory({ profile, onUpdateProfile }: Props) {
                 boxShadow: 'var(--shadow-card)',
               }}>
                 <p style={{ fontWeight: 800, fontSize: '16px', color: 'var(--text-primary)', marginBottom: '14px', display: 'flex', alignItems: 'center', gap: '7px' }}>
-                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--primary)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg>
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--primary)" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg>
                   Seu Checkup Minha Tize
                 </p>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '7px' }}>
@@ -622,17 +631,17 @@ export default function Laboratory({ profile, onUpdateProfile }: Props) {
                     <div key={i} style={{
                       display: 'flex', alignItems: 'flex-start', gap: '10px',
                       padding: '8px 11px', borderRadius: '10px',
-                      background: item.ok ? 'var(--primary-light)' : 'rgba(245,158,11,0.07)',
+                      background: item.ok ? 'var(--primary-light)' : 'var(--amber-bg)',
                     }}>
-                      <span style={{ lineHeight: 1.4, flexShrink: 0, display: 'flex', color: item.ok ? 'var(--primary)' : '#92400E' }}>
+                      <span style={{ lineHeight: 1.4, flexShrink: 0, display: 'flex', color: item.ok ? 'var(--primary)' : 'var(--amber)' }}>
                         {item.ok
-                          ? <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+                          ? <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
                           : <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
                         }
                       </span>
                       <p style={{
                         fontSize: '13px', fontWeight: 600, margin: 0,
-                        color: item.ok ? 'var(--primary)' : '#92400E',
+                        color: item.ok ? 'var(--primary)' : 'var(--amber)',
                         lineHeight: 1.4,
                       }}>
                         {item.text}
@@ -647,7 +656,7 @@ export default function Laboratory({ profile, onUpdateProfile }: Props) {
 
               {/* Download resultados */}
               <button onClick={downloadResults} className="btn-primary" style={{ width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}>
-                <Download size={15} strokeWidth={2.5} />
+                <Download size={15} strokeWidth={2} />
                 Baixar PDF com Resultados
               </button>
 

@@ -59,9 +59,9 @@ export default function Header({ isDark, onToggle, profile, onProfileClick, onLo
             letterSpacing: '0.01em',
           }}
           onMouseEnter={e => {
-            e.currentTarget.style.color = '#EF4444'
-            e.currentTarget.style.borderColor = 'rgba(239,68,68,0.30)'
-            e.currentTarget.style.background = 'rgba(239,68,68,0.06)'
+            e.currentTarget.style.color = 'var(--red)'
+            e.currentTarget.style.borderColor = 'var(--red-line)'
+            e.currentTarget.style.background = 'var(--red-bg)'
           }}
           onMouseLeave={e => {
             e.currentTarget.style.color = 'var(--text-muted)'
@@ -69,7 +69,7 @@ export default function Header({ isDark, onToggle, profile, onProfileClick, onLo
             e.currentTarget.style.background = 'var(--surface-2)'
           }}
         >
-          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
             <path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4"/>
             <polyline points="16 17 21 12 16 7"/>
             <line x1="21" y1="12" x2="9" y2="12"/>
@@ -85,22 +85,22 @@ export default function Header({ isDark, onToggle, profile, onProfileClick, onLo
           aria-label="Perfil"
           style={{
             width: '36px', height: '36px', borderRadius: '50%', flexShrink: 0,
-            background: 'linear-gradient(135deg, #2563EB, #7C3AED)',
+            background: 'var(--g-cta)',
             border: '2px solid var(--border-strong)',
             display: 'flex', alignItems: 'center', justifyContent: 'center',
             fontSize: '12px', fontWeight: 800, color: '#fff',
             cursor: 'pointer', letterSpacing: '-0.3px',
             fontFamily: 'Inter, -apple-system, sans-serif',
-            boxShadow: '0 2px 10px rgba(37,99,235,0.28)',
+            boxShadow: '0 2px 10px rgba(var(--shadow-rgb),0.28)',
             transition: 'transform 0.15s var(--ease-spring), box-shadow 0.15s',
           }}
           onMouseEnter={e => {
             e.currentTarget.style.transform = 'scale(1.10)'
-            e.currentTarget.style.boxShadow = '0 4px 18px rgba(37,99,235,0.45)'
+            e.currentTarget.style.boxShadow = '0 4px 18px rgba(var(--shadow-rgb),0.28)'
           }}
           onMouseLeave={e => {
             e.currentTarget.style.transform = 'scale(1)'
-            e.currentTarget.style.boxShadow = '0 2px 10px rgba(37,99,235,0.28)'
+            e.currentTarget.style.boxShadow = '0 2px 10px rgba(var(--shadow-rgb),0.28)'
           }}
         >
           {initials}

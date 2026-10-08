@@ -35,12 +35,12 @@ export default function Atendimento() {
         <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
           <div style={{
             width: '48px', height: '48px', borderRadius: '14px',
-            background: 'linear-gradient(135deg, #10B981 0%, #059669 100%)',
+            background: 'var(--ice)',
             display: 'flex', alignItems: 'center', justifyContent: 'center',
             flexShrink: 0,
           }}>
             <svg width="24" height="24" viewBox="0 0 24 24" fill="none"
-              stroke="rgba(255,255,255,0.95)" strokeWidth="2"
+              stroke="var(--cobalt)" strokeWidth="1.75"
               strokeLinecap="round" strokeLinejoin="round">
               <path d="M12 2a10 10 0 100 20A10 10 0 0012 2z"/>
               <path d="M8 12s1.5 2 4 2 4-2 4-2"/>
@@ -70,7 +70,7 @@ export default function Atendimento() {
           style={{
             display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px',
             width: '100%', padding: '14px 20px',
-            background: 'linear-gradient(135deg, #10B981 0%, #059669 100%)',
+            background: 'var(--g-cta)',
             color: '#fff', border: 'none', borderRadius: '12px',
             fontSize: '14px', fontWeight: 700, cursor: 'pointer',
             letterSpacing: '0.01em',
@@ -101,18 +101,18 @@ export default function Atendimento() {
         <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
           <div style={{
             width: '48px', height: '48px', borderRadius: '14px',
-            background: 'linear-gradient(135deg, #6366F1 0%, #4F46E5 100%)',
+            background: 'var(--ice)',
             display: 'flex', alignItems: 'center', justifyContent: 'center',
             flexShrink: 0,
           }}>
             <svg width="24" height="24" viewBox="0 0 24 24" fill="none"
-              stroke="rgba(255,255,255,0.95)" strokeWidth="2"
+              stroke="var(--cobalt)" strokeWidth="1.75"
               strokeLinecap="round" strokeLinejoin="round">
               <path d="M6 4v16M18 4v16M8 4h8M8 20h8M8 12h8"/>
-              <circle cx="6" cy="4" r="1" fill="rgba(255,255,255,0.95)" stroke="none"/>
-              <circle cx="6" cy="20" r="1" fill="rgba(255,255,255,0.95)" stroke="none"/>
-              <circle cx="18" cy="4" r="1" fill="rgba(255,255,255,0.95)" stroke="none"/>
-              <circle cx="18" cy="20" r="1" fill="rgba(255,255,255,0.95)" stroke="none"/>
+              <circle cx="6" cy="4" r="1" fill="var(--cobalt)" stroke="none"/>
+              <circle cx="6" cy="20" r="1" fill="var(--cobalt)" stroke="none"/>
+              <circle cx="18" cy="4" r="1" fill="var(--cobalt)" stroke="none"/>
+              <circle cx="18" cy="20" r="1" fill="var(--cobalt)" stroke="none"/>
             </svg>
           </div>
           <div>
@@ -137,7 +137,7 @@ export default function Atendimento() {
           style={{
             display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px',
             width: '100%', padding: '14px 20px',
-            background: 'linear-gradient(135deg, #6366F1 0%, #4F46E5 100%)',
+            background: 'var(--g-cta)',
             color: '#fff', border: 'none', borderRadius: '12px',
             fontSize: '14px', fontWeight: 700, cursor: 'pointer',
             letterSpacing: '0.01em',

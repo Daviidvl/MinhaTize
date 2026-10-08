@@ -11,6 +11,7 @@ import { readJSON, removeKey } from '../utils/storage'
 import { USER_DATA_KEYS } from '../utils/storageKeys'
 import { exportAllData } from '../utils/dataExport'
 import { getAppsLeft, getDoseLabel, getMedicationLabel, resolveDoseMode } from '../utils/medicationUtils'
+import { LOJA_CATEGORIES, LojaProduct } from '../data/lojaProducts'
 
 interface Props {
   profile: UserProfile
@@ -34,15 +35,15 @@ function buildAchievements(profile: UserProfile): Achievement[] {
   const entries = profile.weightHistory.length
   const reachedGoal = lastW <= profile.goalWeight && profile.goalWeight < profile.startWeight
   return [
-    { id: 'start',  icon: <Zap size={26} strokeWidth={1.5} />,      title: 'Primeiro passo', phrase: 'Você deu o primeiro passo — o mais difícil de todos.',  unlocked: !!profile.name },
-    { id: 'week1',  icon: <Calendar size={26} strokeWidth={1.5} />,  title: '1ª semana',      phrase: 'Uma semana inteira de comprometimento. Continue!',        unlocked: days >= 7 },
-    { id: 'month1', icon: <Calendar size={26} strokeWidth={1.5} />,  title: '1 mês',          phrase: 'Um mês de protocolo. Os resultados estão chegando.',       unlocked: days >= 30 },
-    { id: 'month2', icon: <Award size={26} strokeWidth={1.5} />,     title: '2 meses',        phrase: '60 dias. Você já criou um hábito real.',                   unlocked: days >= 60 },
-    { id: 'track3', icon: <BarChart2 size={26} strokeWidth={1.5} />, title: 'Comprometido',   phrase: 'Monitorar é o segredo de quem chega lá.',                  unlocked: entries >= 3 },
-    { id: 'lost2',  icon: <Scale size={26} strokeWidth={1.5} />,     title: '2kg a menos',    phrase: 'Os primeiros 2kg são os mais significativos.',             unlocked: lost >= 2 },
-    { id: 'lost5',  icon: <Flame size={26} strokeWidth={1.5} />,     title: '5kg a menos',    phrase: 'Seu corpo está respondendo. 5kg é transformação.',         unlocked: lost >= 5 },
-    { id: 'lost10', icon: <Dumbbell size={26} strokeWidth={1.5} />,  title: '10kg a menos',   phrase: '10kg! Uma conquista que muda a vida.',                     unlocked: lost >= 10 },
-    { id: 'goal',   icon: <Target size={26} strokeWidth={1.5} />,    title: 'Meta atingida!', phrase: 'Meta atingida. Você é um exemplo de dedicação.',           unlocked: reachedGoal },
+    { id: 'start',  icon: <Zap size={26} strokeWidth={1.75} />,      title: 'Primeiro passo', phrase: 'Você deu o primeiro passo — o mais difícil de todos.',  unlocked: !!profile.name },
+    { id: 'week1',  icon: <Calendar size={26} strokeWidth={1.75} />,  title: '1ª semana',      phrase: 'Uma semana inteira de comprometimento. Continue!',        unlocked: days >= 7 },
+    { id: 'month1', icon: <Calendar size={26} strokeWidth={1.75} />,  title: '1 mês',          phrase: 'Um mês de protocolo. Os resultados estão chegando.',       unlocked: days >= 30 },
+    { id: 'month2', icon: <Award size={26} strokeWidth={1.75} />,     title: '2 meses',        phrase: '60 dias. Você já criou um hábito real.',                   unlocked: days >= 60 },
+    { id: 'track3', icon: <BarChart2 size={26} strokeWidth={1.75} />, title: 'Comprometido',   phrase: 'Monitorar é o segredo de quem chega lá.',                  unlocked: entries >= 3 },
+    { id: 'lost2',  icon: <Scale size={26} strokeWidth={1.75} />,     title: '2kg a menos',    phrase: 'Os primeiros 2kg são os mais significativos.',             unlocked: lost >= 2 },
+    { id: 'lost5',  icon: <Flame size={26} strokeWidth={1.75} />,     title: '5kg a menos',    phrase: 'Seu corpo está respondendo. 5kg é transformação.',         unlocked: lost >= 5 },
+    { id: 'lost10', icon: <Dumbbell size={26} strokeWidth={1.75} />,  title: '10kg a menos',   phrase: '10kg! Uma conquista que muda a vida.',                     unlocked: lost >= 10 },
+    { id: 'goal',   icon: <Target size={26} strokeWidth={1.75} />,    title: 'Meta atingida!', phrase: 'Meta atingida. Você é um exemplo de dedicação.',           unlocked: reachedGoal },
   ]
 }
 
@@ -61,91 +62,13 @@ function WaIcon({ size = 16 }: { size?: number }) {
   )
 }
 
-// ── Loja: categorias e produtos de exemplo ─────────────────────────────────────
-interface LojaProduct {
-  name: string; price: string; originalPrice?: string
-  discountPercent?: number; installment?: string
-}
-interface LojaCategory {
-  title: string; sub: string; gradient: string; shadowColor: string; accent: string
-  icon: (color: string, size: number) => React.ReactNode
-  products: LojaProduct[]
-}
-
-const LOJA_CATEGORIES: Record<string, LojaCategory> = {
-  aplicacao: {
-    title: 'Aplicação & Insumos',
-    sub: 'Agulhas, seringas e descarte',
-    gradient: 'linear-gradient(135deg,#007991,#004F5E)',
-    shadowColor: 'rgba(0,121,145,0.28)',
-    accent: '#007991',
-    icon: (color, size) => <Syringe size={size} strokeWidth={1.8} color={color} />,
-    products: [
-      { name: 'Agulhas para Caneta 32G (4mm)', price: 'R$ 49,90', originalPrice: 'R$ 59,90', discountPercent: 17, installment: 'R$16,63 em 3x sem juros' },
-      { name: 'Seringas de Insulina 1ml', price: 'R$ 19,90', originalPrice: 'R$ 24,90', discountPercent: 20, installment: 'R$9,95 em 2x sem juros' },
-      { name: 'Descarpack Perfurocortantes', price: 'R$ 24,90', originalPrice: 'R$ 29,90', discountPercent: 17, installment: 'R$12,45 em 2x sem juros' },
-    ],
-  },
-  suplementos: {
-    title: 'Suplementos & Vitaminas',
-    sub: 'Reposição e suporte nutricional',
-    gradient: 'linear-gradient(135deg,#60992D,#487322)',
-    shadowColor: 'rgba(96,153,45,0.28)',
-    accent: '#487322',
-    icon: (color, size) => <Pill size={size} strokeWidth={1.8} color={color} />,
-    products: [
-      { name: 'Whey Protein Isolado', price: 'R$ 129,90', originalPrice: 'R$ 159,90', discountPercent: 19, installment: 'R$21,65 em 6x sem juros' },
-      { name: 'Multivitamínico Completo', price: 'R$ 59,90', originalPrice: 'R$ 74,90', discountPercent: 20, installment: 'R$19,97 em 3x sem juros' },
-      { name: 'Colágeno Hidrolisado + Vit. C', price: 'R$ 69,90', originalPrice: 'R$ 84,90', discountPercent: 18, installment: 'R$23,30 em 3x sem juros' },
-    ],
-  },
-  treino: {
-    title: 'Treino & Bem-estar',
-    sub: 'Atividade física e mobilidade',
-    gradient: 'linear-gradient(135deg,#AAADC4,#7A7D8D)',
-    shadowColor: 'rgba(170,173,196,0.28)',
-    accent: '#7A7D8D',
-    icon: (color, size) => <Dumbbell size={size} strokeWidth={1.8} color={color} />,
-    products: [
-      { name: 'Kit de Elásticos de Resistência', price: 'R$ 39,90', originalPrice: 'R$ 49,90', discountPercent: 20, installment: 'R$19,95 em 2x sem juros' },
-      { name: 'Tapete de Yoga Premium', price: 'R$ 89,90', originalPrice: 'R$ 109,90', discountPercent: 18, installment: 'R$29,97 em 3x sem juros' },
-      { name: 'Garrafa de Água Inteligente 1L', price: 'R$ 79,90', originalPrice: 'R$ 99,90', discountPercent: 20, installment: 'R$26,63 em 3x sem juros' },
-    ],
-  },
-  pele: {
-    title: 'Pele & Corpo',
-    sub: 'Cuidados durante o emagrecimento',
-    gradient: 'linear-gradient(135deg,#FE5F55,#C64A42)',
-    shadowColor: 'rgba(254,95,85,0.28)',
-    accent: '#C64A42',
-    icon: (color, size) => <Sparkles size={size} strokeWidth={1.8} color={color} />,
-    products: [
-      { name: 'Creme Firmador Corporal', price: 'R$ 54,90', originalPrice: 'R$ 69,90', discountPercent: 21, installment: 'R$18,30 em 3x sem juros' },
-      { name: 'Óleo Corporal Hidratante', price: 'R$ 44,90', originalPrice: 'R$ 54,90', discountPercent: 18, installment: 'R$22,45 em 2x sem juros' },
-      { name: 'Escova de Massagem Anticelulite', price: 'R$ 34,90', originalPrice: 'R$ 44,90', discountPercent: 22, installment: 'R$17,45 em 2x sem juros' },
-    ],
-  },
-  monitoramento: {
-    title: 'Monitoramento',
-    sub: 'Acompanhe sua evolução',
-    gradient: 'linear-gradient(135deg,#333138,#242227)',
-    shadowColor: 'rgba(51,49,56,0.32)',
-    accent: '#333138',
-    icon: (color, size) => <Scale size={size} strokeWidth={1.8} color={color} />,
-    products: [
-      { name: 'Balança Digital de Bioimpedância', price: 'R$ 119,90', originalPrice: 'R$ 149,90', discountPercent: 20, installment: 'R$19,98 em 6x sem juros' },
-      { name: 'Fita Métrica Corporal', price: 'R$ 14,90', originalPrice: 'R$ 19,90', discountPercent: 25 },
-      { name: 'Smartwatch com Monitor de Saúde', price: 'R$ 249,90', originalPrice: 'R$ 299,90', discountPercent: 17, installment: 'R$41,65 em 6x sem juros' },
-    ],
-  },
-}
-
-const LOJA_GREEN = '#15803D'
-
-function ProductCard({ icon, accent, product, onBuy }: {
-  icon: React.ReactNode; accent: string; product: LojaProduct; onBuy: () => void
+// ── Loja ──────────────────────────────────────────────────────────────────────
+function ProductCard({ icon, product, onBuy }: {
+  icon: React.ReactNode; product: LojaProduct; onBuy: () => void
 }) {
   const [fav, setFav] = useState(false)
+  const [imgError, setImgError] = useState(false)
+  const showImage = !!product.image && !imgError
   return (
     <div style={{
       display: 'flex', flexDirection: 'column',
@@ -153,13 +76,13 @@ function ProductCard({ icon, accent, product, onBuy }: {
       borderRadius: '18px', overflow: 'hidden',
     }}>
       <div style={{
-        position: 'relative', minHeight: '84px', padding: '18px 12px',
+        position: 'relative', minHeight: '84px', padding: showImage ? 0 : '18px 12px',
         background: 'var(--surface-2)', display: 'flex', alignItems: 'center', justifyContent: 'center',
       }}>
         {product.discountPercent && (
           <span style={{
             position: 'absolute', top: '8px', left: '8px',
-            fontSize: '10px', fontWeight: 800, color: '#fff', background: '#E53935',
+            fontSize: '10px', fontWeight: 800, color: 'var(--teal-d)', background: 'var(--teal-l)',
             padding: '3px 7px', borderRadius: '7px', letterSpacing: '-0.2px',
           }}>-{product.discountPercent}%</span>
         )}
@@ -172,38 +95,62 @@ function ProductCard({ icon, accent, product, onBuy }: {
             display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', padding: 0,
           }}
         >
-          <Heart size={13} strokeWidth={2} color={fav ? '#EF4444' : 'var(--text-faint)'} fill={fav ? '#EF4444' : 'none'} />
+          <Heart size={13} strokeWidth={2} color={fav ? 'var(--cobalt)' : 'var(--text-faint)'} fill={fav ? 'var(--cobalt)' : 'none'} />
         </button>
-        <div style={{
-          width: '44px', height: '44px', borderRadius: '12px', flexShrink: 0,
-          background: `${accent}1A`, display: 'flex', alignItems: 'center', justifyContent: 'center',
-        }}>{icon}</div>
+        {showImage ? (
+          <img
+            src={product.image}
+            alt={product.name}
+            loading="lazy"
+            referrerPolicy="no-referrer"
+            onError={() => setImgError(true)}
+            style={{ width: '100%', aspectRatio: '1 / 1', objectFit: 'cover', display: 'block' }}
+          />
+        ) : (
+          <div style={{
+            width: '44px', height: '44px', borderRadius: '12px', flexShrink: 0,
+            background: 'var(--ice)', display: 'flex', alignItems: 'center', justifyContent: 'center',
+          }}>{icon}</div>
+        )}
       </div>
 
-      <div style={{ padding: '10px 12px 12px', display: 'flex', flexDirection: 'column', gap: '4px' }}>
+      <div style={{ flex: 1, padding: '10px 12px 12px', display: 'flex', flexDirection: 'column', gap: '4px' }}>
         <p style={{
           fontSize: '11.5px', fontWeight: 700, color: 'var(--text-primary)', margin: 0,
           letterSpacing: '-0.1px', lineHeight: 1.3, minHeight: '28px',
           display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden',
         }}>{product.name}</p>
 
+        {product.description && (
+          <p style={{
+            fontSize: '10px', fontWeight: 500, color: 'var(--text-muted)', margin: 0, lineHeight: 1.35,
+            display: '-webkit-box', WebkitLineClamp: 3, WebkitBoxOrient: 'vertical', overflow: 'hidden',
+          }}>{product.description}</p>
+        )}
+
         {product.originalPrice && (
           <span style={{ fontSize: '10px', color: 'var(--text-faint)', textDecoration: 'line-through', fontWeight: 500 }}>
             {product.originalPrice}
           </span>
         )}
-        <span style={{ fontSize: '15px', fontWeight: 800, color: LOJA_GREEN, letterSpacing: '-0.3px' }}>
-          {product.price}
-        </span>
-        {product.installment && (
+        {product.price ? (
+          <span style={{ fontSize: '15px', fontWeight: 800, color: 'var(--ink)', letterSpacing: '-0.3px' }}>
+            {product.price}
+          </span>
+        ) : (
+          <span style={{ fontSize: '11px', fontWeight: 700, color: 'var(--text-muted)' }}>
+            Ver preço na Shopee
+          </span>
+        )}
+        {product.priceNote && (
           <span style={{ fontSize: '9px', color: 'var(--text-muted)', fontWeight: 500, marginBottom: '2px' }}>
-            {product.installment}
+            {product.priceNote}
           </span>
         )}
 
         <button onClick={onBuy} style={{
-          marginTop: '4px', width: '100%', fontSize: '11px', fontWeight: 800, color: '#fff',
-          background: LOJA_GREEN, border: 'none', borderRadius: '9px', padding: '9px 0', cursor: 'pointer',
+          marginTop: 'auto', width: '100%', fontSize: '11px', fontWeight: 800, color: '#fff',
+          background: 'var(--g-cta)', border: 'none', borderRadius: '9px', padding: '9px 0', cursor: 'pointer',
           fontFamily: 'Inter, -apple-system, sans-serif', letterSpacing: '0.02em', textTransform: 'uppercase',
         }}>Comprar</button>
       </div>
@@ -241,7 +188,7 @@ function CategoryBanner({ iconBg, icon, label, sub, onClick }: {
       gridColumn: '1 / -1', display: 'flex', alignItems: 'center', gap: '14px',
       padding: '18px 20px', borderRadius: '22px', textAlign: 'left', cursor: 'pointer',
       background: iconBg, border: 'none', position: 'relative', overflow: 'hidden',
-      boxShadow: '0 8px 24px rgba(0,0,0,0.18), 0 2px 6px rgba(0,0,0,0.14)',
+      boxShadow: '0 8px 24px rgba(var(--shadow-rgb),0.18), 0 2px 6px rgba(var(--shadow-rgb),0.14)',
       fontFamily: 'Inter, -apple-system, sans-serif',
     }}>
       <div style={{ position: 'absolute', top: '-28px', right: '-28px', width: '100px', height: '100px', borderRadius: '50%', background: 'rgba(255,255,255,0.08)', pointerEvents: 'none' }} />
@@ -254,26 +201,26 @@ function CategoryBanner({ iconBg, icon, label, sub, onClick }: {
         <p style={{ fontSize: '15px', fontWeight: 800, color: '#fff', margin: '0 0 2px', letterSpacing: '-0.3px' }}>{label}</p>
         <p style={{ fontSize: '11px', color: 'rgba(255,255,255,0.65)', fontWeight: 600, margin: 0 }}>{sub}</p>
       </div>
-      <ChevronRight size={18} strokeWidth={2.5} style={{ color: 'rgba(255,255,255,0.65)', flexShrink: 0, position: 'relative' }} />
+      <ChevronRight size={18} strokeWidth={1.75} style={{ color: 'rgba(255,255,255,0.65)', flexShrink: 0, position: 'relative' }} />
     </button>
   )
 }
 
-function CategoryTile({ gradient, shadowColor, icon, label, onClick, span = 2, minHeight = '118px', dark = false }: {
+function CategoryTile({ gradient, shadowColor, icon, label, onClick, span = 2, minHeight = '118px' }: {
   gradient: string; shadowColor: string; icon: React.ReactNode; label: string; onClick: () => void
-  span?: number; minHeight?: string; dark?: boolean
+  span?: number; minHeight?: string
 }) {
   const big       = span >= 4
-  const textColor = dark ? '#2A2A2A' : '#fff'
-  const badgeBg   = dark ? 'rgba(0,0,0,0.08)' : 'rgba(255,255,255,0.18)'
-  const circleBg  = dark ? 'rgba(0,0,0,0.05)' : 'rgba(255,255,255,0.10)'
+  const textColor = 'var(--ink)'
+  const badgeBg   = 'var(--ice)'
+  const circleBg  = 'rgba(255,255,255,0.10)'
   return (
     <button onClick={onClick} style={{
       gridColumn: `span ${span}`,
       display: 'flex', flexDirection: 'column', justifyContent: 'space-between', gap: '14px',
       minHeight, padding: big ? '18px' : '14px', borderRadius: big ? '22px' : '20px', textAlign: 'left', cursor: 'pointer',
       background: gradient, border: 'none', position: 'relative', overflow: 'hidden',
-      boxShadow: `0 8px 22px ${shadowColor}, 0 2px 6px rgba(0,0,0,0.14)`,
+      boxShadow: `inset 0 0 0 1px var(--line), 0 8px 22px ${shadowColor}, 0 2px 6px rgba(var(--shadow-rgb),0.08)`,
       fontFamily: 'Inter, -apple-system, sans-serif', transition: 'transform 0.15s, box-shadow 0.2s',
     }}>
       <div style={{
@@ -298,7 +245,7 @@ function CategoryTile({ gradient, shadowColor, icon, label, onClick, span = 2, m
 
 function LRow({ iconBg, icon, label, badge, value, onClick }: {
   iconBg: string; icon: React.ReactNode; label: string
-  badge?: string; value?: string; onClick: () => void
+  badge?: string; value?: React.ReactNode; onClick: () => void
 }) {
   return (
     <button onClick={onClick} style={{
@@ -318,7 +265,7 @@ function LRow({ iconBg, icon, label, badge, value, onClick }: {
         }}>{badge}</span>
       )}
       {value && !badge && (
-        <span style={{ fontSize: '12px', color: 'var(--text-muted)', fontWeight: 500 }}>{value}</span>
+        <span style={{ fontSize: '12px', color: 'var(--text-muted)', fontWeight: 500, display: 'inline-flex', alignItems: 'center', gap: '4px' }}>{value}</span>
       )}
       <ChevronRight size={15} style={{ color: 'var(--text-faint)', flexShrink: 0, marginLeft: '2px' }} />
     </button>
@@ -333,7 +280,7 @@ function SubHeader({ title, onBack }: { title: string; onBack: () => void }) {
         background: 'var(--surface-2)', border: '1px solid var(--border)',
         cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center',
         color: 'var(--text-primary)',
-      }}><ChevronLeft size={16} strokeWidth={2.5} /></button>
+      }}><ChevronLeft size={16} strokeWidth={1.75} /></button>
       <h2 style={{ fontSize: '17px', fontWeight: 800, color: 'var(--text-primary)', margin: 0 }}>{title}</h2>
     </div>
   )
@@ -420,7 +367,7 @@ export default function ProfilePage({ profile, onUpdateProfile, onBack, initialS
 
   const selBtn = (active: boolean): React.CSSProperties => ({
     padding: '10px 8px', borderRadius: '10px', border: 'none', cursor: 'pointer',
-    background: active ? 'linear-gradient(135deg, var(--primary), #0D9488)' : 'var(--surface-2)',
+    background: active ? 'var(--g-cta)' : 'var(--surface-2)',
     color: active ? '#fff' : 'var(--text-primary)', fontWeight: 700, fontSize: '12px',
     transition: 'all 0.15s', fontFamily: 'Inter, -apple-system, sans-serif',
     boxShadow: active ? 'var(--shadow-green)' : 'none',
@@ -446,16 +393,16 @@ export default function ProfilePage({ profile, onUpdateProfile, onBack, initialS
         {achievements.map(a => (
           <div key={a.id} style={{
             flexShrink: 0, width: '148px', padding: '16px 12px', borderRadius: '16px',
-            border: `1.5px solid ${a.unlocked ? 'rgba(37,99,235,0.2)' : 'var(--border)'}`,
+            border: `1.5px solid ${a.unlocked ? 'var(--sky)' : 'var(--border)'}`,
             background: a.unlocked ? 'var(--primary-light)' : 'var(--surface)',
             opacity: a.unlocked ? 1 : 0.5,
-            boxShadow: a.unlocked ? '0 4px 16px rgba(37,99,235,0.12)' : 'var(--shadow-card)',
+            boxShadow: a.unlocked ? '0 4px 16px rgba(var(--shadow-rgb),0.12)' : 'var(--shadow-card)',
             display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center', gap: '8px',
           }}>
             <div style={{
               width: '50px', height: '50px', borderRadius: '14px',
               background: a.unlocked ? 'var(--primary-light)' : 'var(--surface-2)',
-              border: `1px solid ${a.unlocked ? 'rgba(37,99,235,0.15)' : 'var(--border)'}`,
+              border: `1px solid ${a.unlocked ? 'var(--sky)' : 'var(--border)'}`,
               display: 'flex', alignItems: 'center', justifyContent: 'center',
               color: a.unlocked ? 'var(--primary)' : 'var(--text-muted)', opacity: a.unlocked ? 1 : 0.5,
             }}>{a.icon}</div>
@@ -473,7 +420,7 @@ export default function ProfilePage({ profile, onUpdateProfile, onBack, initialS
     <div className="fade-in" style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
       <SubHeader title="Estoque" onBack={() => setSection(null)} />
       <div style={{
-        background: 'linear-gradient(135deg, var(--primary) 0%, #0D9488 100%)',
+        background: 'var(--g-hero)',
         borderRadius: '18px', padding: '18px 20px', color: '#fff', boxShadow: 'var(--shadow-green)',
       }}>
         <p style={{ fontSize: '11px', fontWeight: 700, opacity: 0.7, textTransform: 'uppercase', letterSpacing: '0.07em', marginBottom: '6px' }}>
@@ -490,8 +437,8 @@ export default function ProfilePage({ profile, onUpdateProfile, onBack, initialS
         )}
         {appsLeft != null && (
           <>
-            <div style={{ background: 'rgba(255,255,255,0.2)', borderRadius: '99px', height: '6px', overflow: 'hidden', marginBottom: '8px' }}>
-              <div style={{ width: `${Math.min(100, (appsLeft / 12) * 100)}%`, height: '100%', background: '#fff', borderRadius: '99px', transition: 'width 0.9s ease' }} />
+            <div style={{ background: 'var(--track-on-dark)', borderRadius: '99px', height: '6px', overflow: 'hidden', marginBottom: '8px' }}>
+              <div style={{ width: `${Math.min(100, (appsLeft / 12) * 100)}%`, height: '100%', background: stockLow ? 'var(--amber-fill)' : 'var(--g-ring)', borderRadius: '99px', transition: 'width 0.9s ease' }} />
             </div>
             <p style={{ fontSize: '12px', opacity: 0.8, fontWeight: 700, display: 'flex', alignItems: 'center', gap: '5px', margin: 0 }}>
               {stockLow ? <><AlertTriangle size={12} strokeWidth={2} />Estoque baixo — reponha em breve</> : <><Check size={12} strokeWidth={2.5} />Estoque confortável</>}
@@ -647,13 +594,13 @@ export default function ProfilePage({ profile, onUpdateProfile, onBack, initialS
       {!showReset ? (
         <button onClick={() => setShowReset(true)} style={{
           width: '100%', padding: '12px', borderRadius: '10px',
-          border: '1.5px solid rgba(239,68,68,0.3)', background: 'transparent',
-          color: '#EF4444', fontWeight: 600, fontSize: '13px', cursor: 'pointer',
+          border: '1.5px solid var(--red-line)', background: 'transparent',
+          color: 'var(--red)', fontWeight: 600, fontSize: '13px', cursor: 'pointer',
           fontFamily: 'Inter, -apple-system, sans-serif',
         }}>Resetar todos os dados</button>
       ) : (
-        <div className="card" style={{ border: '1.5px solid rgba(239,68,68,0.4)' }}>
-          <p style={{ fontSize: '13px', color: '#EF4444', fontWeight: 700, marginBottom: '4px' }}>
+        <div className="card" style={{ border: '1.5px solid var(--red-line)' }}>
+          <p style={{ fontSize: '13px', color: 'var(--red)', fontWeight: 700, marginBottom: '4px' }}>
             Tem certeza? Todo o histórico será apagado permanentemente.
           </p>
           <p style={{ fontSize: '11px', color: 'var(--text-muted)', marginBottom: '12px', lineHeight: 1.5 }}>
@@ -664,7 +611,7 @@ export default function ProfilePage({ profile, onUpdateProfile, onBack, initialS
             <button onClick={() => {
               USER_DATA_KEYS.forEach(removeKey)
               window.location.reload()
-            }} style={{ flex: 1, padding: '10px', borderRadius: '8px', border: 'none', background: '#EF4444', color: '#fff', fontWeight: 700, cursor: 'pointer', fontFamily: 'Inter, -apple-system, sans-serif' }}>
+            }} style={{ flex: 1, padding: '10px', borderRadius: '8px', border: 'none', background: 'var(--red)', color: 'var(--surface)', fontWeight: 700, cursor: 'pointer', fontFamily: 'Inter, -apple-system, sans-serif' }}>
               Sim, resetar
             </button>
           </div>
@@ -682,8 +629,8 @@ export default function ProfilePage({ profile, onUpdateProfile, onBack, initialS
 
       <div className="card" style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-          <div style={{ width: '44px', height: '44px', borderRadius: '12px', flexShrink: 0, background: 'linear-gradient(135deg,#10B981,#059669)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-            <Utensils size={20} strokeWidth={2} style={{ color: '#fff' }} />
+          <div style={{ width: '44px', height: '44px', borderRadius: '12px', flexShrink: 0, background: 'var(--ice)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            <Utensils size={20} strokeWidth={1.75} style={{ color: 'var(--cobalt)' }} />
           </div>
           <div>
             <p style={{ margin: 0, fontSize: '15px', fontWeight: 700, color: 'var(--text-primary)' }}>Nutricionista</p>
@@ -695,7 +642,7 @@ export default function ProfilePage({ profile, onUpdateProfile, onBack, initialS
         </p>
         <button onClick={() => openWA('Olá! Gostaria de agendar uma consulta com a nutricionista.')} style={{
           display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px',
-          width: '100%', padding: '13px 20px', background: 'linear-gradient(135deg,#10B981,#059669)',
+          width: '100%', padding: '13px 20px', background: 'var(--g-cta)',
           color: '#fff', border: 'none', borderRadius: '12px', fontSize: '14px', fontWeight: 700,
           cursor: 'pointer', fontFamily: 'Inter, -apple-system, sans-serif',
         }}>
@@ -705,8 +652,8 @@ export default function ProfilePage({ profile, onUpdateProfile, onBack, initialS
 
       <div className="card" style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-          <div style={{ width: '44px', height: '44px', borderRadius: '12px', flexShrink: 0, background: 'linear-gradient(135deg,#6366F1,#4F46E5)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-            <Dumbbell size={20} strokeWidth={2} style={{ color: '#fff' }} />
+          <div style={{ width: '44px', height: '44px', borderRadius: '12px', flexShrink: 0, background: 'var(--ice)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            <Dumbbell size={20} strokeWidth={1.75} style={{ color: 'var(--cobalt)' }} />
           </div>
           <div>
             <p style={{ margin: 0, fontSize: '15px', fontWeight: 700, color: 'var(--text-primary)' }}>Educador Físico</p>
@@ -718,7 +665,7 @@ export default function ProfilePage({ profile, onUpdateProfile, onBack, initialS
         </p>
         <button onClick={() => openWA('Olá! Gostaria de solicitar uma nova ficha de treino com o educador físico.')} style={{
           display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px',
-          width: '100%', padding: '13px 20px', background: 'linear-gradient(135deg,#6366F1,#4F46E5)',
+          width: '100%', padding: '13px 20px', background: 'var(--g-cta)',
           color: '#fff', border: 'none', borderRadius: '12px', fontSize: '14px', fontWeight: 700,
           cursor: 'pointer', fontFamily: 'Inter, -apple-system, sans-serif',
         }}>
@@ -732,7 +679,7 @@ export default function ProfilePage({ profile, onUpdateProfile, onBack, initialS
     <div className="fade-in" style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
       <SubHeader title="Suporte" onBack={() => setSection(null)} />
       <div className="card" style={{ display: 'flex', flexDirection: 'column', gap: '16px', alignItems: 'center', textAlign: 'center', padding: '32px 20px' }}>
-        <div style={{ width: '60px', height: '60px', borderRadius: '18px', background: 'linear-gradient(135deg,#22C55E,#16A34A)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+        <div style={{ width: '60px', height: '60px', borderRadius: '18px', background: 'var(--ice)', color: 'var(--cobalt)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
           <WaIcon size={30} />
         </div>
         <div>
@@ -743,7 +690,7 @@ export default function ProfilePage({ profile, onUpdateProfile, onBack, initialS
         </div>
         <button onClick={() => openWA()} style={{
           display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px',
-          width: '100%', padding: '14px 20px', background: 'linear-gradient(135deg,#22C55E,#16A34A)',
+          width: '100%', padding: '14px 20px', background: 'var(--g-cta)',
           color: '#fff', border: 'none', borderRadius: '12px', fontSize: '14px', fontWeight: 700,
           cursor: 'pointer', fontFamily: 'Inter, -apple-system, sans-serif',
         }}>
@@ -758,7 +705,7 @@ export default function ProfilePage({ profile, onUpdateProfile, onBack, initialS
       <SubHeader title="Legal & Privacidade" onBack={() => setSection(null)} />
       <ConsentInfo />
 
-      <div style={{ padding: '14px 16px', background: 'rgba(239,68,68,0.07)', border: '1px solid rgba(239,68,68,0.2)', borderRadius: '12px' }}>
+      <div style={{ padding: '14px 16px', background: 'var(--red-bg)', border: '1px solid var(--red-line)', borderRadius: '12px' }}>
         <p style={{ fontSize: '11px', fontWeight: 700, color: 'var(--danger-text)', margin: '0 0 6px', textTransform: 'uppercase', letterSpacing: '0.06em' }}>Aviso Médico</p>
         <p style={{ fontSize: '12px', color: 'var(--text-secondary)', margin: 0, lineHeight: 1.65 }}>
           O MinhaTize é <strong style={{ color: 'var(--text-primary)' }}>exclusivamente educativo</strong>. Não realiza diagnósticos, não prescreve medicamentos e não substitui o acompanhamento médico ou nutricional.
@@ -788,12 +735,12 @@ export default function ProfilePage({ profile, onUpdateProfile, onBack, initialS
           display: 'block', textAlign: 'center', padding: '11px',
           background: 'var(--primary-light)', borderRadius: '10px',
           color: 'var(--primary)', fontWeight: 700, fontSize: '13px',
-          textDecoration: 'none', border: '1px solid rgba(37,99,235,0.2)',
+          textDecoration: 'none', border: '1px solid var(--sky)',
         }}>Enviar solicitação por e-mail</a>
       </div>
 
-      <div className="card" style={{ border: '1px solid rgba(239,68,68,0.2)' }}>
-        <p style={{ fontSize: '13px', fontWeight: 700, color: '#EF4444', marginBottom: '6px' }}>Revogar consentimento</p>
+      <div className="card" style={{ border: '1px solid var(--red-line)' }}>
+        <p style={{ fontSize: '13px', fontWeight: 700, color: 'var(--red)', marginBottom: '6px' }}>Revogar consentimento</p>
         <p style={{ fontSize: '12px', color: 'var(--text-muted)', lineHeight: 1.6, marginBottom: '14px' }}>
           Ao revogar, seus dados locais serão apagados e você precisará aceitar os termos novamente.
         </p>
@@ -802,8 +749,8 @@ export default function ProfilePage({ profile, onUpdateProfile, onBack, initialS
           window.location.reload()
         }} style={{
           width: '100%', padding: '11px', borderRadius: '10px',
-          border: '1.5px solid rgba(239,68,68,0.3)', background: 'transparent',
-          color: '#EF4444', fontWeight: 600, fontSize: '13px', cursor: 'pointer',
+          border: '1.5px solid var(--red-line)', background: 'transparent',
+          color: 'var(--red)', fontWeight: 600, fontSize: '13px', cursor: 'pointer',
           fontFamily: 'Inter, -apple-system, sans-serif',
         }}>Revogar e apagar dados</button>
       </div>
@@ -818,34 +765,34 @@ export default function ProfilePage({ profile, onUpdateProfile, onBack, initialS
         <SLabel>Categorias</SLabel>
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(6, 1fr)', gap: '10px' }}>
           <CategoryBanner
-            iconBg="linear-gradient(135deg,#007991,#004F5E)"
-            icon={<Syringe size={22} strokeWidth={1.8} color="#fff" />}
+            iconBg="var(--g-midnight)"
+            icon={<Syringe size={22} strokeWidth={1.75} color="#fff" />}
             label="Aplicação & Insumos"
             sub="Agulhas, seringas e descarte"
             onClick={() => { setLojaCategoria('aplicacao'); setSection('loja-categoria') }}
           />
           <CategoryTile
             span={4} minHeight="150px"
-            gradient="linear-gradient(135deg,#60992D,#487322)" shadowColor="rgba(96,153,45,0.28)"
-            icon={<Pill size={22} strokeWidth={1.8} color="#fff" />} label="Suplementos & Vitaminas"
+            gradient="var(--surface)" shadowColor="rgba(var(--shadow-rgb),0.10)"
+            icon={<Pill size={22} strokeWidth={1.75} color="var(--cobalt)" />} label="Suplementos & Vitaminas"
             onClick={() => { setLojaCategoria('suplementos'); setSection('loja-categoria') }}
           />
           <CategoryTile
             span={2} minHeight="150px"
-            gradient="linear-gradient(135deg,#AAADC4,#7A7D8D)" shadowColor="rgba(170,173,196,0.28)"
-            icon={<Dumbbell size={17} strokeWidth={1.8} color="#fff" />} label="Treino & Bem-estar"
+            gradient="var(--surface)" shadowColor="rgba(var(--shadow-rgb),0.10)"
+            icon={<Dumbbell size={17} strokeWidth={1.75} color="var(--cobalt)" />} label="Treino & Bem-estar"
             onClick={() => { setLojaCategoria('treino'); setSection('loja-categoria') }}
           />
           <CategoryTile
             span={3} minHeight="132px"
-            gradient="linear-gradient(135deg,#FE5F55,#C64A42)" shadowColor="rgba(254,95,85,0.28)"
-            icon={<Sparkles size={19} strokeWidth={1.8} color="#fff" />} label="Pele & Corpo"
+            gradient="var(--surface)" shadowColor="rgba(var(--shadow-rgb),0.10)"
+            icon={<Sparkles size={19} strokeWidth={1.75} color="var(--cobalt)" />} label="Pele & Corpo"
             onClick={() => { setLojaCategoria('pele'); setSection('loja-categoria') }}
           />
           <CategoryTile
             span={3} minHeight="132px"
-            gradient="linear-gradient(135deg,#333138,#242227)" shadowColor="rgba(51,49,56,0.32)"
-            icon={<Scale size={19} strokeWidth={1.8} color="#fff" />} label="Monitoramento"
+            gradient="var(--surface)" shadowColor="rgba(var(--shadow-rgb),0.10)"
+            icon={<Scale size={19} strokeWidth={1.75} color="var(--cobalt)" />} label="Monitoramento"
             onClick={() => { setLojaCategoria('monitoramento'); setSection('loja-categoria') }}
           />
         </div>
@@ -861,7 +808,7 @@ export default function ProfilePage({ profile, onUpdateProfile, onBack, initialS
 
         <div style={{
           borderRadius: '22px', padding: '18px 20px', background: cat.gradient,
-          boxShadow: `0 8px 24px ${cat.shadowColor}, 0 2px 6px rgba(0,0,0,0.14)`,
+          boxShadow: `0 8px 24px ${cat.shadowColor}, 0 2px 6px rgba(var(--shadow-rgb),0.14)`,
           display: 'flex', alignItems: 'center', gap: '14px', position: 'relative', overflow: 'hidden',
         }}>
           <div style={{ position: 'absolute', top: '-28px', right: '-28px', width: '100px', height: '100px', borderRadius: '50%', background: 'rgba(255,255,255,0.08)', pointerEvents: 'none' }} />
@@ -875,20 +822,23 @@ export default function ProfilePage({ profile, onUpdateProfile, onBack, initialS
           </div>
         </div>
 
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-          <SLabel>Produtos selecionados</SLabel>
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
-            {cat.products.map(p => (
-              <ProductCard
-                key={p.name}
-                icon={cat.icon(cat.accent, 22)}
-                accent={cat.accent}
-                product={p}
-                onBuy={() => openWA(`Olá! Tenho interesse no produto: ${p.name}`)}
-              />
-            ))}
+        {cat.groups.map(g => (
+          <div key={g.label} style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+            <SLabel>{g.label}</SLabel>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
+              {g.products.map(p => (
+                <ProductCard
+                  key={p.name}
+                  icon={cat.icon(cat.accent, 22)}
+                  product={p}
+                  onBuy={() => p.url
+                    ? window.open(p.url, '_blank', 'noopener,noreferrer')
+                    : openWA(`Olá! Tenho interesse no produto: ${p.name}`)}
+                />
+              ))}
+            </div>
           </div>
-        </div>
+        ))}
       </div>
     )
   }
@@ -904,13 +854,13 @@ export default function ProfilePage({ profile, onUpdateProfile, onBack, initialS
           background: 'var(--surface-2)', border: '1px solid var(--border)',
           cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center',
           color: 'var(--text-primary)',
-        }}><ChevronLeft size={16} strokeWidth={2.5} /></button>
+        }}><ChevronLeft size={16} strokeWidth={1.75} /></button>
         <h2 style={{ fontSize: '18px', fontWeight: 800, color: 'var(--text-primary)', margin: 0 }}>Perfil</h2>
       </div>
 
       {/* Hero card */}
       <div style={{
-        background: 'linear-gradient(135deg, var(--primary) 0%, var(--accent) 100%)',
+        background: 'var(--g-hero)',
         borderRadius: '20px', padding: '20px', color: '#fff',
         display: 'flex', alignItems: 'center', gap: '14px',
         boxShadow: 'var(--shadow-blue)',
@@ -937,7 +887,7 @@ export default function ProfilePage({ profile, onUpdateProfile, onBack, initialS
       {/* Quick stats */}
       <div style={{ display: 'flex', gap: '10px' }}>
         {[
-          { label: 'Perdido', value: totalLost > 0 ? `-${totalLost.toFixed(1)}kg` : '0kg', color: 'var(--green)' },
+          { label: 'Perdido', value: totalLost > 0 ? `-${totalLost.toFixed(1)}kg` : '0kg', color: 'var(--teal-d)' },
           { label: 'Semanas', value: String(weeks), color: 'var(--primary)' },
           { label: 'Conquistas', value: `${unlocked}/${achievements.length}`, color: 'var(--accent)' },
         ].map(s => (
@@ -956,18 +906,18 @@ export default function ProfilePage({ profile, onUpdateProfile, onBack, initialS
         <SLabel>Acompanhamento</SLabel>
         <LGroup>
           <LRow
-            iconBg="linear-gradient(135deg,#F59E0B,#D97706)"
-            icon={<Award size={18} strokeWidth={2} style={{ color: '#fff' }} />}
+            iconBg="var(--ice)"
+            icon={<Award size={18} strokeWidth={1.75} style={{ color: 'var(--cobalt)' }} />}
             label="Conquistas"
             badge={`${unlocked}/${achievements.length}`}
             onClick={() => setSection('achievements')}
           />
           <LDivider />
           <LRow
-            iconBg="linear-gradient(135deg,var(--primary),#0D9488)"
-            icon={<Package size={18} strokeWidth={2} style={{ color: '#fff' }} />}
+            iconBg="var(--ice)"
+            icon={<Package size={18} strokeWidth={1.75} style={{ color: 'var(--cobalt)' }} />}
             label="Estoque"
-            value={stockLow ? '⚠️ Baixo' : appsLeft != null ? `${appsLeft} aplic.` : undefined}
+            value={stockLow ? <><AlertTriangle size={12} strokeWidth={2} color="var(--amber)" />Baixo</> : appsLeft != null ? `${appsLeft} aplic.` : undefined}
             onClick={() => setSection('stock')}
           />
         </LGroup>
@@ -978,24 +928,24 @@ export default function ProfilePage({ profile, onUpdateProfile, onBack, initialS
         <SLabel>Minha Equipe</SLabel>
         <LGroup>
           <LRow
-            iconBg="linear-gradient(135deg,#10B981,#059669)"
-            icon={<Utensils size={18} strokeWidth={2} style={{ color: '#fff' }} />}
+            iconBg="var(--ice)"
+            icon={<Utensils size={18} strokeWidth={1.75} style={{ color: 'var(--cobalt)' }} />}
             label="Nutricionista"
             value="WhatsApp"
             onClick={() => setSection('equipe')}
           />
           <LDivider />
           <LRow
-            iconBg="linear-gradient(135deg,#6366F1,#4F46E5)"
-            icon={<Dumbbell size={18} strokeWidth={2} style={{ color: '#fff' }} />}
+            iconBg="var(--ice)"
+            icon={<Dumbbell size={18} strokeWidth={1.75} style={{ color: 'var(--cobalt)' }} />}
             label="Educador Físico"
             value="WhatsApp"
             onClick={() => setSection('equipe')}
           />
           <LDivider />
           <LRow
-            iconBg="linear-gradient(135deg,#22C55E,#16A34A)"
-            icon={<MessageCircle size={18} strokeWidth={2} style={{ color: '#fff' }} />}
+            iconBg="var(--ice)"
+            icon={<MessageCircle size={18} strokeWidth={1.75} style={{ color: 'var(--cobalt)' }} />}
             label="Suporte"
             onClick={() => setSection('suporte')}
           />
@@ -1007,8 +957,8 @@ export default function ProfilePage({ profile, onUpdateProfile, onBack, initialS
         <SLabel>Legal</SLabel>
         <LGroup>
           <LRow
-            iconBg="linear-gradient(135deg,#64748B,#475569)"
-            icon={<Shield size={18} strokeWidth={2} style={{ color: '#fff' }} />}
+            iconBg="var(--ice)"
+            icon={<Shield size={18} strokeWidth={1.75} style={{ color: 'var(--cobalt)' }} />}
             label="Legal & Privacidade"
             onClick={() => setSection('legal')}
           />
@@ -1040,7 +990,7 @@ function ConsentInfo() {
     }
   }
   return (
-    <div style={{ padding: '14px 16px', background: 'rgba(34,197,94,0.07)', border: '1px solid rgba(34,197,94,0.18)', borderRadius: '12px' }}>
+    <div style={{ padding: '14px 16px', background: 'var(--teal-l)', border: '1px solid var(--teal)', borderRadius: '12px' }}>
       <p style={{ fontSize: '11px', fontWeight: 700, color: 'var(--success)', margin: '0 0 8px', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
         Consentimento registrado
       </p>

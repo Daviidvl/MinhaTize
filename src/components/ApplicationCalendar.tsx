@@ -1,9 +1,11 @@
 import { useState } from 'react'
+import { Check } from 'lucide-react'
 import { UserProfile, WEEK_DAYS } from '../types'
 import {
   toDateStr, getLog, fmtDateShort, getGlobalNextApp, calcStreak, calcAdherence, SITES,
 } from '../utils/applicationCalendarUtils'
 import { getDoseLabel } from '../utils/medicationUtils'
+import { alpha, shade } from '../utils/color'
 
 interface Props {
   profile: UserProfile
@@ -22,22 +24,22 @@ function IcoAlert({ c }: { c: string }) {
   return <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke={c} strokeWidth="2.3" strokeLinecap="round" strokeLinejoin="round"><path d="M7 1.5L1.2 12.5h11.6L7 1.5z"/><line x1="7" y1="6" x2="7" y2="9"/><circle cx="7" cy="10.8" r="0.5" fill={c} stroke="none"/></svg>
 }
 function IcoSyringe() {
-  return <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M18 2l4 4"/><path d="M17 7L4 20"/><path d="M14 4l6 6"/><path d="M9 9l6 6"/><path d="M3 21l3-3"/></svg>
+  return <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round"><path d="M18 2l4 4"/><path d="M17 7L4 20"/><path d="M14 4l6 6"/><path d="M9 9l6 6"/><path d="M3 21l3-3"/></svg>
 }
 function IcoChevLeft() {
-  return <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
+  return <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
 }
 function IcoChevRight() {
-  return <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
+  return <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
 }
 function IcoX() {
-  return <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+  return <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
 }
 function IcoWarning() {
-  return <svg width="28" height="28" viewBox="0 0 28 28" fill="none" stroke="#F59E0B" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12.07 3.86L1.5 22a2 2 0 001.71 3H24.8a2 2 0 001.71-3L15.93 3.86a2 2 0 00-3.42 0z"/><line x1="14" y1="10" x2="14" y2="16"/><circle cx="14" cy="20" r="1" fill="#F59E0B" stroke="none"/></svg>
+  return <svg width="28" height="28" viewBox="0 0 28 28" fill="none" stroke="var(--amber)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12.07 3.86L1.5 22a2 2 0 001.71 3H24.8a2 2 0 001.71-3L15.93 3.86a2 2 0 00-3.42 0z"/><line x1="14" y1="10" x2="14" y2="16"/><circle cx="14" cy="20" r="1" fill="var(--amber)" stroke="none"/></svg>
 }
 function IcoTrash() {
-  return <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#EF4444" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6"/><path d="M10 11v6M14 11v6"/><path d="M9 6V4a1 1 0 011-1h4a1 1 0 011 1v2"/></svg>
+  return <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="var(--red)" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6"/><path d="M10 11v6M14 11v6"/><path d="M9 6V4a1 1 0 011-1h4a1 1 0 011 1v2"/></svg>
 }
 
 // ── Component ─────────────────────────────────────────────────────────────────
@@ -142,11 +144,11 @@ export default function ApplicationCalendar({ profile, onUpdateProfile, compact 
     'Agendado'
 
   const statusMeta: Record<string, { color: string; bg: string; grad: string; label: string }> = {
-    Aplicado: { color: '#10B981', bg: 'rgba(16,185,129,0.12)',  grad: 'linear-gradient(135deg,#059669,#10B981)', label: 'Aplicado' },
-    Hoje:     { color: '#2E6FEB', bg: 'rgba(46,111,235,0.12)',  grad: 'linear-gradient(135deg,#1A52C9,#2E6FEB)', label: 'Hoje' },
-    Atrasado: { color: '#EF4444', bg: 'rgba(239,68,68,0.10)',   grad: 'linear-gradient(135deg,#DC2626,#EF4444)', label: 'Atrasado' },
-    Agendado: { color: '#7B5CF5', bg: 'rgba(123,92,245,0.10)',  grad: 'linear-gradient(135deg,#6D28D9,#7B5CF5)', label: 'Agendado' },
-    Livre:    { color: '#64748B', bg: 'rgba(100,116,139,0.10)', grad: 'linear-gradient(135deg,#475569,#64748B)', label: 'Data livre' },
+    Aplicado: { color: 'var(--teal-d)', bg: 'var(--teal-l)',  grad: 'var(--g-cta)', label: 'Aplicado' },
+    Hoje:     { color: 'var(--cobalt)', bg: 'var(--ice)',  grad: 'var(--g-cta)', label: 'Hoje' },
+    Atrasado: { color: 'var(--red)', bg: 'var(--red-bg)',   grad: 'var(--g-cta)', label: 'Atrasado' },
+    Agendado: { color: 'var(--cobalt)', bg: 'var(--ice)',  grad: 'var(--g-cta)', label: 'Agendado' },
+    Livre:    { color: 'var(--ink-2)', bg: 'var(--mist)', grad: 'var(--g-cta)', label: 'Data livre' },
   }
   const sm = statusMeta[selStatus]
 
@@ -170,7 +172,7 @@ export default function ApplicationCalendar({ profile, onUpdateProfile, compact 
       ════════════════════════════════════════════════════════════════ */}
       {selectedDay && (
         <div
-          style={{ position: 'fixed', inset: 0, zIndex: 200, background: 'rgba(0,0,0,0.55)', backdropFilter: 'blur(6px)', display: 'flex', alignItems: 'flex-end', justifyContent: 'center' }}
+          style={{ position: 'fixed', inset: 0, zIndex: 200, background: 'var(--scrim)', backdropFilter: 'blur(6px)', display: 'flex', alignItems: 'flex-end', justifyContent: 'center' }}
           onClick={closeSheet}
         >
           <div
@@ -178,7 +180,7 @@ export default function ApplicationCalendar({ profile, onUpdateProfile, compact 
             style={{
               background: 'var(--surface)', borderRadius: '28px 28px 0 0',
               width: '100%', maxWidth: '480px', maxHeight: '92dvh', overflowY: 'auto',
-              boxShadow: '0 -16px 60px rgba(0,0,0,0.35)',
+              boxShadow: '0 -16px 60px rgba(var(--shadow-rgb),0.28)',
               border: '1px solid var(--border)', borderBottom: 'none',
               animation: 'slide-up 0.28s cubic-bezier(0.34,1.06,0.64,1) both',
             }}
@@ -206,7 +208,7 @@ export default function ApplicationCalendar({ profile, onUpdateProfile, compact 
                   <div style={{
                     display: 'inline-flex', alignItems: 'center', gap: '6px',
                     padding: '5px 12px 5px 9px', borderRadius: '99px',
-                    background: sm.bg, border: `1px solid ${sm.color}40`,
+                    background: sm.bg, border: `1px solid ${alpha(sm.color, 25)}`,
                     marginBottom: '10px',
                   }}>
                     {selStatus === 'Aplicado' ? <IcoCheck c={sm.color} /> :
@@ -240,14 +242,14 @@ export default function ApplicationCalendar({ profile, onUpdateProfile, compact 
                         {getDoseLabel(profile)}
                       </p>
                     </div>
-                    <div style={{ padding: '14px 16px', borderRadius: '16px', background: selConfirmed ? 'rgba(16,185,129,0.08)' : 'var(--surface-2)', border: `1px solid ${selConfirmed ? 'rgba(16,185,129,0.22)' : 'var(--border)'}` }}>
+                    <div style={{ padding: '14px 16px', borderRadius: '16px', background: selConfirmed ? 'var(--teal-l)' : 'var(--surface-2)', border: `1px solid ${selConfirmed ? 'var(--teal)' : 'var(--border)'}` }}>
                       <p style={{ fontSize: '9px', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.09em', margin: '0 0 8px' }}>
                         {selIsToday ? 'Hoje' : selIsFuture ? 'Em' : selConfirmed ? 'Há' : 'Há'}
                       </p>
                       {selIsToday ? (
-                        <p style={{ fontSize: '22px', fontWeight: 900, color: selConfirmed ? '#10B981' : 'var(--primary)', margin: 0, lineHeight: 1 }}>Hoje</p>
+                        <p style={{ fontSize: '22px', fontWeight: 900, color: selConfirmed ? 'var(--teal-d)' : 'var(--primary)', margin: 0, lineHeight: 1 }}>Hoje</p>
                       ) : (
-                        <p style={{ fontSize: '28px', fontWeight: 900, color: selConfirmed ? '#10B981' : 'var(--text-primary)', margin: 0, letterSpacing: '-1px', lineHeight: 1 }}>
+                        <p style={{ fontSize: '28px', fontWeight: 900, color: selConfirmed ? 'var(--teal-d)' : 'var(--text-primary)', margin: 0, letterSpacing: '-1px', lineHeight: 1 }}>
                           {selDiff}<span style={{ fontSize: '14px', fontWeight: 600, color: 'var(--text-muted)', marginLeft: '3px' }}>dias</span>
                         </p>
                       )}
@@ -274,7 +276,7 @@ export default function ApplicationCalendar({ profile, onUpdateProfile, compact 
                               fontFamily: 'Inter, -apple-system, sans-serif',
                               outline: active ? 'none' : `1px solid var(--border)`,
                               transition: 'all 0.15s',
-                              boxShadow: active ? `0 4px 14px ${sm.color}40` : 'none',
+                              boxShadow: active ? `0 4px 14px ${shade(0.25)}` : 'none',
                             }}
                           >{s}</button>
                         )
@@ -299,7 +301,7 @@ export default function ApplicationCalendar({ profile, onUpdateProfile, compact 
                         color: 'var(--text-primary)', resize: 'none', outline: 'none',
                         boxSizing: 'border-box', lineHeight: 1.55, transition: 'border-color 0.2s, box-shadow 0.2s',
                       }}
-                      onFocus={e => { e.currentTarget.style.borderColor = sm.color; e.currentTarget.style.boxShadow = `0 0 0 3px ${sm.color}22` }}
+                      onFocus={e => { e.currentTarget.style.borderColor = sm.color; e.currentTarget.style.boxShadow = `0 0 0 3px ${alpha(sm.color, 13)}` }}
                       onBlur={e => { e.currentTarget.style.borderColor = 'var(--border)'; e.currentTarget.style.boxShadow = 'none'; saveNote(selectedDay, noteInput) }}
                     />
                   </div>
@@ -316,12 +318,12 @@ export default function ApplicationCalendar({ profile, onUpdateProfile, compact 
                     {!selIsFuture && (
                       <button onClick={handleDetailAction} style={{
                         flex: 2, padding: '14px', borderRadius: '16px',
-                        border: selConfirmed ? '1.5px solid rgba(239,68,68,0.25)' : 'none',
-                        background: selConfirmed ? 'rgba(239,68,68,0.09)' : sm.grad,
-                        color: selConfirmed ? '#EF4444' : '#fff',
+                        border: selConfirmed ? '1.5px solid var(--red-line)' : 'none',
+                        background: selConfirmed ? 'var(--red-bg)' : sm.grad,
+                        color: selConfirmed ? 'var(--red)' : '#fff',
                         cursor: 'pointer', fontWeight: 700, fontSize: '14px',
                         fontFamily: 'Inter, -apple-system, sans-serif',
-                        boxShadow: selConfirmed ? 'none' : `0 6px 20px ${sm.color}44`,
+                        boxShadow: selConfirmed ? 'none' : `0 6px 20px ${shade(0.27)}`,
                         display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '7px',
                         transition: 'all 0.18s',
                       }}>
@@ -336,15 +338,15 @@ export default function ApplicationCalendar({ profile, onUpdateProfile, compact 
             {/* ── Confirmação antecipada ──────────────────────────────────── */}
             {sheetMode === 'confirm-early' && (
               <div style={{ padding: '20px 22px 36px' }}>
-                <div style={{ width: '54px', height: '54px', borderRadius: '18px', background: 'rgba(245,158,11,0.12)', border: '1.5px solid rgba(245,158,11,0.3)', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: '18px' }}>
+                <div style={{ width: '54px', height: '54px', borderRadius: '18px', background: 'var(--amber-bg)', border: '1.5px solid var(--amber-line)', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: '18px' }}>
                   <IcoWarning />
                 </div>
                 <p style={{ fontSize: '20px', fontWeight: 900, color: 'var(--text-primary)', margin: '0 0 10px', letterSpacing: '-0.5px' }}>Aplicação antecipada</p>
                 <p style={{ fontSize: '13px', color: 'var(--text-secondary)', lineHeight: 1.65, margin: '0 0 12px' }}>
                   Sua próxima aplicação está programada para:
                 </p>
-                <div style={{ padding: '12px 16px', borderRadius: '14px', background: 'rgba(245,158,11,0.09)', border: '1px solid rgba(245,158,11,0.25)', marginBottom: '12px' }}>
-                  <p style={{ fontSize: '15px', fontWeight: 800, color: '#D97706', margin: 0, textTransform: 'capitalize' }}>
+                <div style={{ padding: '12px 16px', borderRadius: '14px', background: 'var(--amber-bg)', border: '1px solid var(--amber-line)', marginBottom: '12px' }}>
+                  <p style={{ fontSize: '15px', fontWeight: 800, color: 'var(--amber)', margin: 0, textTransform: 'capitalize' }}>
                     {nextAppGlobal ? fmtDateShort(nextAppGlobal) : '—'}
                   </p>
                 </div>
@@ -353,7 +355,7 @@ export default function ApplicationCalendar({ profile, onUpdateProfile, compact 
                 </p>
                 <div style={{ display: 'flex', gap: '10px' }}>
                   <button onClick={() => setSheetMode('detail')} style={{ flex: 1, padding: '14px', borderRadius: '16px', border: '1.5px solid var(--border)', background: 'var(--surface-2)', cursor: 'pointer', fontWeight: 700, fontSize: '13px', color: 'var(--text-secondary)', fontFamily: 'Inter, -apple-system, sans-serif' }}>Voltar</button>
-                  <button onClick={() => selectedDay && doRegister(selectedDay)} style={{ flex: 2, padding: '14px', borderRadius: '16px', border: 'none', background: 'linear-gradient(135deg,#D97706,#FBBF24)', color: '#fff', cursor: 'pointer', fontWeight: 700, fontSize: '13px', fontFamily: 'Inter, -apple-system, sans-serif', boxShadow: '0 6px 20px rgba(217,119,6,0.38)' }}>
+                  <button onClick={() => selectedDay && doRegister(selectedDay)} style={{ flex: 2, padding: '14px', borderRadius: '16px', border: 'none', background: 'var(--amber)', color: 'var(--surface)', cursor: 'pointer', fontWeight: 700, fontSize: '13px', fontFamily: 'Inter, -apple-system, sans-serif', boxShadow: '0 6px 20px rgba(var(--shadow-rgb),0.28)' }}>
                     Confirmar mesmo assim
                   </button>
                 </div>
@@ -363,18 +365,18 @@ export default function ApplicationCalendar({ profile, onUpdateProfile, compact 
             {/* ── Confirmação de remoção ──────────────────────────────────── */}
             {sheetMode === 'confirm-delete' && (
               <div style={{ padding: '20px 22px 36px' }}>
-                <div style={{ width: '54px', height: '54px', borderRadius: '18px', background: 'rgba(239,68,68,0.10)', border: '1.5px solid rgba(239,68,68,0.22)', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: '18px' }}>
+                <div style={{ width: '54px', height: '54px', borderRadius: '18px', background: 'var(--red-bg)', border: '1.5px solid var(--red-line)', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: '18px' }}>
                   <IcoTrash />
                 </div>
                 <p style={{ fontSize: '20px', fontWeight: 900, color: 'var(--text-primary)', margin: '0 0 10px', letterSpacing: '-0.5px' }}>Remover aplicação?</p>
                 <p style={{ fontSize: '13px', color: 'var(--text-secondary)', lineHeight: 1.65, margin: '0 0 12px' }}>Você está prestes a remover o registro de:</p>
-                <div style={{ padding: '12px 16px', borderRadius: '14px', background: 'rgba(239,68,68,0.07)', border: '1px solid rgba(239,68,68,0.20)', marginBottom: '12px' }}>
-                  <p style={{ fontSize: '15px', fontWeight: 800, color: '#EF4444', margin: 0, textTransform: 'capitalize' }}>{fmtDateShort(selectedDay)}</p>
+                <div style={{ padding: '12px 16px', borderRadius: '14px', background: 'var(--red-bg)', border: '1px solid var(--red-line)', marginBottom: '12px' }}>
+                  <p style={{ fontSize: '15px', fontWeight: 800, color: 'var(--red)', margin: 0, textTransform: 'capitalize' }}>{fmtDateShort(selectedDay)}</p>
                 </div>
                 <p style={{ fontSize: '12px', color: 'var(--text-muted)', lineHeight: 1.65, margin: '0 0 24px' }}>Esta ação não pode ser desfeita.</p>
                 <div style={{ display: 'flex', gap: '10px' }}>
                   <button onClick={() => setSheetMode('detail')} style={{ flex: 1, padding: '14px', borderRadius: '16px', border: '1.5px solid var(--border)', background: 'var(--surface-2)', cursor: 'pointer', fontWeight: 700, fontSize: '13px', color: 'var(--text-secondary)', fontFamily: 'Inter, -apple-system, sans-serif' }}>Voltar</button>
-                  <button onClick={() => selectedDay && doDelete(selectedDay)} style={{ flex: 2, padding: '14px', borderRadius: '16px', border: 'none', background: 'linear-gradient(135deg,#DC2626,#F87171)', color: '#fff', cursor: 'pointer', fontWeight: 700, fontSize: '13px', fontFamily: 'Inter, -apple-system, sans-serif', boxShadow: '0 6px 20px rgba(220,38,38,0.35)' }}>
+                  <button onClick={() => selectedDay && doDelete(selectedDay)} style={{ flex: 2, padding: '14px', borderRadius: '16px', border: 'none', background: 'var(--red)', color: 'var(--surface)', cursor: 'pointer', fontWeight: 700, fontSize: '13px', fontFamily: 'Inter, -apple-system, sans-serif', boxShadow: '0 6px 20px rgba(var(--shadow-rgb),0.28)' }}>
                     Sim, remover
                   </button>
                 </div>
@@ -390,8 +392,8 @@ export default function ApplicationCalendar({ profile, onUpdateProfile, compact 
       {!compact && (
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '8px' }}>
           {[
-            { label: 'Sequência', value: streak > 0 ? `${streak}sem` : '—', color: 'var(--green)', sub: streak === 1 ? 'semana' : 'semanas' },
-            { label: 'Aderência', value: `${adherence}%`, color: adherence >= 80 ? 'var(--green)' : adherence >= 50 ? '#F59E0B' : '#EF4444', sub: 'últimas 12 sem.' },
+            { label: 'Sequência', value: streak > 0 ? `${streak}sem` : '—', color: 'var(--teal-d)', sub: streak === 1 ? 'semana' : 'semanas' },
+            { label: 'Aderência', value: `${adherence}%`, color: adherence >= 80 ? 'var(--teal-d)' : adherence >= 50 ? 'var(--amber)' : 'var(--red)', sub: 'últimas 12 sem.' },
             { label: 'Total', value: String(confirmed.size), color: 'var(--primary)', sub: confirmed.size === 1 ? 'aplicação' : 'aplicações' },
           ].map(s => (
             <div key={s.label} style={{ padding: '9px 6px', background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: '12px', textAlign: 'center' }}>
@@ -408,15 +410,17 @@ export default function ApplicationCalendar({ profile, onUpdateProfile, compact 
       {!compact && nextAppGlobal && (
         <div style={{
           padding: '14px 16px', borderRadius: '16px',
-          background: confirmed.has(todayStr) ? 'rgba(16,185,129,0.07)' : 'linear-gradient(135deg, var(--primary-light), var(--accent-light))',
-          border: `1px solid ${confirmed.has(todayStr) ? 'rgba(16,185,129,0.2)' : 'rgba(46,111,235,0.15)'}`,
+          background: confirmed.has(todayStr) ? 'var(--teal-l)' : 'var(--ice)',
+          border: `1px solid ${confirmed.has(todayStr) ? 'var(--teal)' : 'var(--sky)'}`,
           display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '10px',
         }}>
           <div>
             <p style={{ fontSize: '10px', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.07em', margin: '0 0 2px' }}>
-              {confirmed.has(todayStr) ? '✓ Aplicação de hoje' : nextAppGlobal === todayStr ? 'Aplicar hoje' : 'Próxima aplicação'}
+              {confirmed.has(todayStr)
+                ? <><Check size={11} strokeWidth={2.5} style={{ verticalAlign: '-1px', marginRight: '4px' }} />Aplicação de hoje</>
+                : nextAppGlobal === todayStr ? 'Aplicar hoje' : 'Próxima aplicação'}
             </p>
-            <p style={{ fontSize: '15px', fontWeight: 800, color: confirmed.has(todayStr) ? '#10B981' : 'var(--primary)', margin: 0, textTransform: 'capitalize' }}>
+            <p style={{ fontSize: '15px', fontWeight: 800, color: confirmed.has(todayStr) ? 'var(--teal-d)' : 'var(--primary)', margin: 0, textTransform: 'capitalize' }}>
               {fmtDateShort(nextAppGlobal)}
             </p>
           </div>
@@ -427,12 +431,12 @@ export default function ApplicationCalendar({ profile, onUpdateProfile, compact 
                 padding: '9px 16px', borderRadius: '11px', border: 'none', flexShrink: 0,
                 background: 'var(--primary)', color: '#fff', fontWeight: 700, fontSize: '12px',
                 cursor: 'pointer', fontFamily: 'Inter, -apple-system, sans-serif',
-                boxShadow: '0 4px 14px rgba(46,111,235,0.3)',
+                boxShadow: '0 4px 14px rgba(var(--shadow-rgb),0.28)',
               }}
             >Registrar</button>
           )}
           {confirmed.has(todayStr) && (
-            <span style={{ fontSize: '12px', fontWeight: 700, color: '#10B981', background: 'rgba(16,185,129,0.12)', padding: '6px 12px', borderRadius: '9px', border: '1px solid rgba(16,185,129,0.22)', flexShrink: 0 }}>✓ Registrado</span>
+            <span style={{ fontSize: '12px', fontWeight: 700, color: 'var(--teal-d)', background: 'var(--teal-l)', padding: '6px 12px', borderRadius: '9px', border: '1px solid var(--teal)', flexShrink: 0 }}><Check size={12} strokeWidth={2.5} style={{ verticalAlign: '-2px', marginRight: '4px' }} />Registrado</span>
           )}
         </div>
       )}
@@ -501,15 +505,15 @@ export default function ApplicationCalendar({ profile, onUpdateProfile, compact 
           let fw = isPast ? 400 : 500
 
           if (isConf) {
-            bg = '#10B981'; color = '#fff'; fw = 700; border = 'none'
+            bg = 'var(--teal-l)'; color = 'var(--teal-d)'; fw = 700; border = '1px solid var(--teal)'
           } else if (isToday && isAppDay) {
-            bg = 'var(--primary)'; color = '#fff'; fw = 800
+            bg = 'var(--navy)'; color = 'var(--surface)'; fw = 800
           } else if (isToday) {
-            bg = 'var(--surface-3)'; fw = 800; border = '2px solid var(--primary)'
+            bg = 'var(--mist)'; fw = 800; border = '2px solid var(--navy)'
           } else if (isNext) {
-            bg = 'var(--primary-light)'; color = 'var(--primary)'; fw = 700; border = '1.5px dashed var(--primary)'
+            bg = 'var(--ice)'; color = 'var(--cobalt)'; fw = 700; border = '1.5px dashed var(--cobalt)'
           } else if (isAppDay && isPast) {
-            bg = 'rgba(239,68,68,0.09)'; color = '#EF4444'; fw = 600; border = '1px solid rgba(239,68,68,0.25)'
+            bg = 'var(--red-bg)'; color = 'var(--red)'; fw = 600; border = '1px solid var(--red-line)'
           } else if (isAppDay && isFuture && !isNext) {
             color = 'var(--primary)'; fw = 600
           }
@@ -540,8 +544,8 @@ export default function ApplicationCalendar({ profile, onUpdateProfile, compact 
               {!compact && (
                 <span style={{
                   width: '4px', height: '4px', borderRadius: '50%',
-                  background: isConf ? 'rgba(255,255,255,0.7)' :
-                              isToday && isAppDay ? 'rgba(255,255,255,0.7)' :
+                  background: isConf ? 'var(--teal-d)' :
+                              isToday && isAppDay ? 'var(--surface)' :
                               hasNote || hasSite ? 'var(--primary)' : 'transparent',
                   display: 'block', flexShrink: 0,
                 }} />
@@ -556,9 +560,9 @@ export default function ApplicationCalendar({ profile, onUpdateProfile, compact 
       ════════════════════════════════════════════════════════════════ */}
       <div style={{ display: 'flex', gap: compact ? '8px' : '10px', flexWrap: 'wrap', paddingTop: '2px' }}>
         {[
-          { label: 'Aplicado',  dot: '#10B981',              dotBorder: 'none' },
-          { label: 'Agendado',  dot: 'var(--primary-light)', dotBorder: '1.5px dashed var(--primary)' },
-          { label: 'Atrasado',  dot: 'rgba(239,68,68,0.10)', dotBorder: '1px solid rgba(239,68,68,0.3)' },
+          { label: 'Aplicado',  dot: 'var(--teal-l)',        dotBorder: '1px solid var(--teal)' },
+          { label: 'Agendado',  dot: 'var(--ice)',           dotBorder: '1.5px dashed var(--cobalt)' },
+          { label: 'Atrasado',  dot: 'var(--red-bg)', dotBorder: '1px solid var(--red-line)' },
           { label: 'Livre',     dot: 'var(--surface-3)',     dotBorder: '1px solid var(--border)' },
         ].map(l => (
           <div key={l.label} style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>

@@ -1,9 +1,10 @@
 import type { ReactNode, CSSProperties } from 'react'
-import { Package, AlertTriangle, ChevronRight, Moon, Zap, Search, ShoppingBag } from 'lucide-react'
+import { Package, AlertTriangle, ChevronRight, Moon, Zap, Search, ShoppingBag, Target } from 'lucide-react'
 import { UserProfile, Tab } from '../types'
 import ApplicationCalendar from './ApplicationCalendar'
 import { calcIMC, imcLabel } from '../utils/bmiUtils'
 import { readJSON } from '../utils/storage'
+import { alpha } from '../utils/color'
 import { STORAGE_KEYS } from '../utils/storageKeys'
 import { getAppsLeft, getDoseValue, getMedicationLabel } from '../utils/medicationUtils'
 import { getPlateauStatus, getPlateauStatusMeta } from '../utils/plateauUtils'
@@ -33,7 +34,6 @@ function WorkoutWidget({ onNavigate }: { onNavigate: (t: Tab, s?: string) => voi
   const workout  = splits && idx !== -1 ? splits[idx] : null
   const isRest   = !!wp && !!splits && idx === -1
   const noData   = !wp || !splits
-  const accent   = workout?.color ?? '#10B981'
 
   const monday = new Date(today)
   monday.setDate(today.getDate() - ((todayDay + 6) % 7))
@@ -58,14 +58,12 @@ function WorkoutWidget({ onNavigate }: { onNavigate: (t: Tab, s?: string) => voi
           <p style={{ fontSize: '13px', fontWeight: 800, color: 'var(--text-primary)', margin: '0 0 3px', letterSpacing: '-0.3px' }}>Configurar treino</p>
           <p style={{ fontSize: '10px', color: 'var(--text-muted)', margin: 0 }}>Saúde → Exercícios</p>
         </div>
-        <ChevronRight size={14} strokeWidth={2.5} color="var(--text-muted)" />
+        <ChevronRight size={14} strokeWidth={2} color="var(--text-muted)" />
       </button>
     )
   }
 
-  const bgGradient = isRest
-    ? 'linear-gradient(135deg, #1C2438 0%, #12182A 100%)'
-    : 'linear-gradient(135deg, #101B3F 0%, #1B2F72 100%)'
+  const bgGradient = 'var(--g-hero)'
 
   return (
     <button
@@ -75,8 +73,8 @@ function WorkoutWidget({ onNavigate }: { onNavigate: (t: Tab, s?: string) => voi
         padding: '16px', borderRadius: '20px', textAlign: 'left', cursor: 'pointer',
         background: bgGradient, border: 'none',
         boxShadow: isRest
-          ? '0 6px 20px rgba(0,0,0,0.20), 0 1px 3px rgba(0,0,0,0.12)'
-          : '0 6px 20px rgba(20,40,120,0.28), 0 1px 3px rgba(0,0,0,0.12)',
+          ? '0 6px 20px rgba(var(--shadow-rgb),0.2), 0 1px 3px rgba(var(--shadow-rgb),0.12)'
+          : '0 6px 20px rgba(var(--shadow-rgb),0.28), 0 1px 3px rgba(var(--shadow-rgb),0.12)',
         fontFamily: 'Inter, -apple-system, sans-serif',
         color: '#fff', transition: 'transform 0.15s ease, box-shadow 0.2s ease',
         position: 'relative', overflow: 'hidden',
@@ -98,13 +96,13 @@ function WorkoutWidget({ onNavigate }: { onNavigate: (t: Tab, s?: string) => voi
         <div style={{ display: 'flex', alignItems: 'flex-start', gap: '10px' }}>
           <div style={{
             width: '36px', height: '36px', borderRadius: '10px', flexShrink: 0,
-            background: isRest ? 'rgba(255,255,255,0.07)' : `${accent}22`,
-            border: `1px solid ${isRest ? 'rgba(255,255,255,0.10)' : accent + '40'}`,
+            background: isRest ? 'rgba(255,255,255,0.07)' : 'rgba(255,255,255,0.14)',
+            border: `1px solid ${isRest ? 'rgba(255,255,255,0.10)' : 'rgba(255,255,255,0.16)'}`,
             display: 'flex', alignItems: 'center', justifyContent: 'center',
           }}>
             {isRest
-              ? <Moon size={15} strokeWidth={1.5} color="rgba(255,255,255,0.50)" />
-              : <span style={{ fontSize: '16px', fontWeight: 900, color: accent, lineHeight: 1 }}>{workout!.label}</span>
+              ? <Moon size={15} strokeWidth={2} color="rgba(255,255,255,0.50)" />
+              : <span style={{ fontSize: '16px', fontWeight: 900, color: '#fff', lineHeight: 1 }}>{workout!.label}</span>
             }
           </div>
           <div style={{ flex: 1, minWidth: 0 }}>
@@ -112,7 +110,7 @@ function WorkoutWidget({ onNavigate }: { onNavigate: (t: Tab, s?: string) => voi
               {isRest ? 'Descanso' : workout!.name.includes(' + ') ? workout!.name.split(' + ')[0] : workout!.name}
             </p>
             {!isRest && workout!.name.includes(' + ') && (
-              <p style={{ fontSize: '10px', fontWeight: 600, color: `${accent}aa`, margin: '0 0 1px', lineHeight: 1.2 }}>
+              <p style={{ fontSize: '10px', fontWeight: 600, color: 'rgba(255,255,255,0.90)', margin: '0 0 1px', lineHeight: 1.2 }}>
                 + {workout!.name.split(' + ').slice(1).join(' + ')}
               </p>
             )}
@@ -129,8 +127,8 @@ function WorkoutWidget({ onNavigate }: { onNavigate: (t: Tab, s?: string) => voi
               <div key={i} style={{
                 flex: 1, height: '3px', borderRadius: '99px',
                 background: d.done
-                  ? '#fff'
-                  : d.isToday ? 'rgba(255,255,255,0.22)' : 'rgba(255,255,255,0.07)',
+                  ? 'var(--g-ring)'
+                  : d.isToday ? 'var(--track-on-dark)' : 'rgba(255,255,255,0.07)',
                 outline: d.isToday ? '1.5px solid rgba(255,255,255,0.35)' : 'none',
                 outlineOffset: '1.5px',
                 transition: 'background 0.3s',
@@ -161,7 +159,7 @@ function MealWidget({ profile, onNavigate }: { profile: UserProfile; onNavigate:
   const arcR     = 18
   const arcCirc  = 2 * Math.PI * arcR
   const arcOff   = arcCirc * (1 - pct / 100)
-  const arcClr   = '#fff'
+  const arcClr   = 'url(#ring-agora)'
   const sub      = (dietSex === 'F' ? slot.sub_F : slot.sub_M).split(' · ')[0].trim()
 
   if (!dietSet) {
@@ -178,7 +176,7 @@ function MealWidget({ profile, onNavigate }: { profile: UserProfile; onNavigate:
           <p style={{ fontSize: '13px', fontWeight: 800, color: 'var(--text-primary)', margin: '0 0 3px', letterSpacing: '-0.3px' }}>Configurar plano</p>
           <p style={{ fontSize: '10px', color: 'var(--text-muted)', margin: 0 }}>Saúde → Alimentação</p>
         </div>
-        <ChevronRight size={14} strokeWidth={2.5} color="var(--text-muted)" />
+        <ChevronRight size={14} strokeWidth={2} color="var(--text-muted)" />
       </button>
     )
   }
@@ -189,9 +187,9 @@ function MealWidget({ profile, onNavigate }: { profile: UserProfile; onNavigate:
       style={{
         display: 'flex', flexDirection: 'column', gap: '12px',
         padding: '16px', borderRadius: '20px', textAlign: 'left', cursor: 'pointer',
-        background: 'linear-gradient(135deg, #1E1245 0%, #33207A 100%)',
+        background: 'var(--g-hero)',
         border: 'none',
-        boxShadow: '0 6px 20px rgba(51,32,122,0.28), 0 1px 3px rgba(0,0,0,0.12)',
+        boxShadow: '0 6px 20px rgba(var(--shadow-rgb),0.28), 0 1px 3px rgba(var(--shadow-rgb),0.12)',
         fontFamily: 'Inter, -apple-system, sans-serif',
         color: '#fff', transition: 'transform 0.15s ease, box-shadow 0.2s ease',
         position: 'relative', overflow: 'hidden',
@@ -219,7 +217,13 @@ function MealWidget({ profile, onNavigate }: { profile: UserProfile; onNavigate:
           </div>
           <div style={{ position: 'relative', flexShrink: 0, width: '44px', height: '44px' }}>
             <svg width="44" height="44" viewBox="0 0 44 44">
-              <circle cx="22" cy="22" r={arcR} fill="none" stroke="rgba(255,255,255,0.10)" strokeWidth="4" />
+              <defs>
+                <linearGradient id="ring-agora" x1="0" y1="0" x2="1" y2="1">
+                  <stop offset="0%" stopColor="var(--sky)" />
+                  <stop offset="100%" stopColor="var(--aqua)" />
+                </linearGradient>
+              </defs>
+              <circle cx="22" cy="22" r={arcR} fill="none" stroke="var(--track-on-dark)" strokeWidth="4" />
               <circle cx="22" cy="22" r={arcR} fill="none" stroke={arcClr} strokeWidth="4"
                 strokeLinecap="round"
                 strokeDasharray={arcCirc}
@@ -236,10 +240,10 @@ function MealWidget({ profile, onNavigate }: { profile: UserProfile; onNavigate:
 
         {/* Progresso kcal */}
         <div>
-          <div style={{ background: 'rgba(255,255,255,0.10)', borderRadius: '99px', height: '3px', overflow: 'hidden', marginBottom: '5px' }}>
+          <div style={{ background: 'var(--track-on-dark)', borderRadius: '99px', height: '3px', overflow: 'hidden', marginBottom: '5px' }}>
             <div style={{
               width: `${pct}%`, height: '100%',
-              background: '#fff',
+              background: 'var(--g-ring)',
               borderRadius: '99px', transition: 'width 0.9s cubic-bezier(0.22,1,0.36,1)',
             }} />
           </div>
@@ -356,9 +360,9 @@ export default function Dashboard({ profile, onNavigate, onUpdateProfile }: Prop
         aria-label="Ver evolução de peso"
       >
         <div style={{
-          background: 'linear-gradient(135deg, #1A40BE 0%, #1D4ED8 40%, #2563EB 75%, #2F77F2 100%)',
+          background: 'var(--g-hero)',
           borderRadius: '26px', padding: '22px 22px 20px',
-          boxShadow: '0 10px 40px rgba(29,78,216,0.32), 0 2px 8px rgba(29,78,216,0.18)',
+          boxShadow: '0 10px 40px rgba(var(--shadow-rgb),0.28), 0 2px 8px rgba(var(--shadow-rgb),0.18)',
           color: '#fff', position: 'relative', overflow: 'hidden',
         }}>
           {/* Decoração de fundo */}
@@ -393,17 +397,17 @@ export default function Dashboard({ profile, onNavigate, onUpdateProfile }: Prop
                   <span style={{ fontSize: '18px', opacity: 0.60, marginLeft: '5px', fontWeight: 600, letterSpacing: '0' }}>kg</span>
                 </p>
                 {totalLost > 0 ? (
-                  <div style={{ display: 'inline-flex', alignItems: 'center', gap: '5px', background: 'rgba(0,212,168,0.18)', border: '1px solid rgba(0,212,168,0.30)', borderRadius: '99px', padding: '4px 10px' }}>
+                  <div style={{ display: 'inline-flex', alignItems: 'center', gap: '5px', background: 'rgba(255,255,255,0.14)', border: '1px solid rgba(255,255,255,0.16)', borderRadius: '99px', padding: '4px 10px' }}>
                     <svg width="9" height="9" viewBox="0 0 9 9" fill="none">
-                      <path d="M4.5 8L4.5 1M1 4.5L4.5 1L8 4.5" stroke="rgba(0,212,168,0.95)" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/>
+                      <path d="M4.5 8L4.5 1M1 4.5L4.5 1L8 4.5" stroke="var(--aqua)" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/>
                     </svg>
-                    <span style={{ fontSize: '12px', fontWeight: 800, color: 'rgba(0,212,168,0.95)', letterSpacing: '-0.3px' }}>
+                    <span style={{ fontSize: '12px', fontWeight: 800, color: '#fff', letterSpacing: '-0.3px' }}>
                       {totalLost.toFixed(1)} kg eliminados
                     </span>
                   </div>
                 ) : totalLost < 0 ? (
-                  <div style={{ display: 'inline-flex', alignItems: 'center', gap: '5px', background: 'rgba(249,115,22,0.16)', border: '1px solid rgba(249,115,22,0.28)', borderRadius: '99px', padding: '4px 10px' }}>
-                    <span style={{ fontSize: '12px', fontWeight: 800, color: 'rgba(251,146,60,0.95)', letterSpacing: '-0.3px' }}>
+                  <div style={{ display: 'inline-flex', alignItems: 'center', gap: '5px', background: 'var(--amber-bg)', border: '1px solid var(--amber-line)', borderRadius: '99px', padding: '4px 10px' }}>
+                    <span style={{ fontSize: '12px', fontWeight: 800, color: 'var(--amber)', letterSpacing: '-0.3px' }}>
                       +{Math.abs(totalLost).toFixed(1)} kg
                     </span>
                   </div>
@@ -416,10 +420,16 @@ export default function Dashboard({ profile, onNavigate, onUpdateProfile }: Prop
               {hasGoal && (
                 <div style={{ position: 'relative', flexShrink: 0, width: '108px', height: '108px' }}>
                   <svg width="108" height="108" viewBox="0 0 108 108">
+                    <defs>
+                      <linearGradient id="ring-peso" x1="0" y1="0" x2="1" y2="1">
+                        <stop offset="0%" stopColor="var(--sky)" />
+                        <stop offset="100%" stopColor="var(--aqua)" />
+                      </linearGradient>
+                    </defs>
                     <circle cx="54" cy="54" r={arcR} fill="none"
-                      stroke="rgba(255,255,255,0.10)" strokeWidth="7" />
+                      stroke="var(--track-on-dark)" strokeWidth="7" />
                     <circle cx="54" cy="54" r={arcR} fill="none"
-                      stroke={reachedGoal ? 'rgba(0,212,168,0.92)' : 'rgba(255,255,255,0.85)'}
+                      stroke="url(#ring-peso)"
                       strokeWidth="7"
                       strokeLinecap="round"
                       strokeDasharray={arcCirc}
@@ -443,12 +453,10 @@ export default function Dashboard({ profile, onNavigate, onUpdateProfile }: Prop
             {/* Barra de progresso */}
             {hasGoal && (
               <>
-                <div style={{ background: 'rgba(255,255,255,0.14)', borderRadius: '99px', height: '4px', overflow: 'hidden', marginBottom: '8px' }}>
+                <div style={{ background: 'var(--track-on-dark)', borderRadius: '99px', height: '4px', overflow: 'hidden', marginBottom: '8px' }}>
                   <div style={{
                     width: `${pct}%`, height: '100%',
-                    background: reachedGoal
-                      ? 'linear-gradient(90deg, rgba(0,212,168,0.90), rgba(0,212,168,1))'
-                      : '#fff',
+                    background: 'var(--g-ring)',
                     borderRadius: '99px',
                     transition: 'width 1.2s cubic-bezier(0.22,1,0.36,1)',
                   }} />
@@ -458,7 +466,9 @@ export default function Dashboard({ profile, onNavigate, onUpdateProfile }: Prop
                     {profile.startWeight} kg início
                   </span>
                   <span style={{ fontSize: '10px', opacity: 0.75, fontWeight: 700, fontFamily: 'Inter, sans-serif' }}>
-                    {reachedGoal ? '🎯 Meta atingida!' : `Faltam ${toGoal.toFixed(1)} kg`}
+                    {reachedGoal
+                      ? <><Target size={11} strokeWidth={2.5} style={{ verticalAlign: '-1px', marginRight: '4px' }} />Meta atingida!</>
+                      : `Faltam ${toGoal.toFixed(1)} kg`}
                   </span>
                 </div>
               </>
@@ -477,11 +487,11 @@ export default function Dashboard({ profile, onNavigate, onUpdateProfile }: Prop
           <div style={{
             display: 'flex', alignItems: 'center', gap: '10px',
             padding: '11px 16px', borderRadius: '16px',
-            background: `${plateauMeta.color}0f`, border: `1.5px solid ${plateauMeta.color}30`,
+            background: alpha(plateauMeta.color, 6), border: `1.5px solid ${alpha(plateauMeta.color, 19)}`,
           }}>
             <div style={{
               width: '30px', height: '30px', borderRadius: '9px', flexShrink: 0,
-              background: `${plateauMeta.color}18`, display: 'flex',
+              background: alpha(plateauMeta.color, 9), display: 'flex',
               alignItems: 'center', justifyContent: 'center', color: plateauMeta.color,
             }}>
               <Search size={15} strokeWidth={2} />
@@ -489,7 +499,7 @@ export default function Dashboard({ profile, onNavigate, onUpdateProfile }: Prop
             <p style={{ flex: 1, fontSize: '12px', fontWeight: 700, color: plateauMeta.color, margin: 0 }}>
               {plateauMeta.label}
             </p>
-            <ChevronRight size={14} strokeWidth={2.5} color={plateauMeta.color} />
+            <ChevronRight size={14} strokeWidth={2} color={plateauMeta.color} />
           </div>
         </button>
       )}
@@ -502,7 +512,7 @@ export default function Dashboard({ profile, onNavigate, onUpdateProfile }: Prop
           value={imc ? imc.toFixed(1) : '—'}
           sub={imcInfo?.label}
           subColor={imcInfo?.color}
-          icon={<svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M20.84 4.61a5.5 5.5 0 00-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 00-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 000-7.78z"/></svg>}
+          icon={<svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><path d="M20.84 4.61a5.5 5.5 0 00-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 00-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 000-7.78z"/></svg>}
         />
 
         {/* Tile de Dose */}
@@ -522,18 +532,18 @@ export default function Dashboard({ profile, onNavigate, onUpdateProfile }: Prop
           {daysUntilNext !== null && (
             <div style={{
               display: 'inline-flex', alignItems: 'center', gap: '4px',
-              background: appToday ? 'rgba(16,185,129,0.10)' : 'var(--primary-light)',
-              border: `1px solid ${appToday ? 'rgba(16,185,129,0.22)' : 'var(--primary-glow)'}`,
+              background: appToday ? 'var(--teal-l)' : 'var(--ice)',
+              border: `1px solid ${appToday ? 'var(--teal)' : 'var(--sky)'}`,
               borderRadius: '99px', padding: '2px 8px', marginBottom: '4px',
             }}>
-              <div style={{ width: '5px', height: '5px', borderRadius: '50%', background: appToday ? '#10B981' : 'var(--primary)', flexShrink: 0 }} />
-              <span style={{ fontSize: '10px', fontWeight: 700, color: appToday ? '#10B981' : 'var(--primary)' }}>
+              <div style={{ width: '5px', height: '5px', borderRadius: '50%', background: appToday ? 'var(--teal)' : 'var(--cobalt)', flexShrink: 0 }} />
+              <span style={{ fontSize: '10px', fontWeight: 700, color: appToday ? 'var(--teal-d)' : 'var(--cobalt)' }}>
                 {appToday ? 'Aplicar hoje!' : `Próxima em ${daysUntilNext}d`}
               </span>
             </div>
           )}
           {getDoseValue(profile) != null && DOSE_PHASE[getDoseValue(profile)!] && (
-            <p style={{ fontSize: '10px', fontWeight: 600, color: 'var(--text-muted)', margin: 0 }}>
+            <p style={{ fontSize: '10px', fontWeight: 600, color: 'var(--cobalt)', margin: 0 }}>
               {DOSE_PHASE[getDoseValue(profile)!]}
             </p>
           )}
@@ -554,8 +564,8 @@ export default function Dashboard({ profile, onNavigate, onUpdateProfile }: Prop
       >
         <div style={{
           borderRadius: '26px', padding: '18px 20px',
-          background: 'linear-gradient(135deg, #007991 0%, #004F5E 100%)',
-          boxShadow: '0 8px 28px rgba(0,121,145,0.28), 0 2px 6px rgba(0,0,0,0.16)',
+          background: 'var(--g-midnight)',
+          boxShadow: '0 8px 28px rgba(var(--shadow-rgb),0.28), 0 2px 6px rgba(var(--shadow-rgb),0.16)',
           position: 'relative', overflow: 'hidden',
           transition: 'transform 0.15s, box-shadow 0.2s',
         }}>
@@ -582,7 +592,7 @@ export default function Dashboard({ profile, onNavigate, onUpdateProfile }: Prop
               background: 'rgba(255,255,255,0.14)', border: '1px solid rgba(255,255,255,0.16)',
               display: 'flex', alignItems: 'center', justifyContent: 'center',
             }}>
-              <ShoppingBag size={22} strokeWidth={1.8} color="rgba(255,255,255,0.90)" />
+              <ShoppingBag size={22} strokeWidth={1.75} color="rgba(255,255,255,0.90)" />
             </div>
           </div>
         </div>
@@ -621,15 +631,11 @@ export default function Dashboard({ profile, onNavigate, onUpdateProfile }: Prop
       >
         <div style={{
           borderRadius: '26px', padding: '18px 20px',
-          background: stockLow
-            ? 'linear-gradient(135deg, #C81E1E 0%, #991B1B 100%)'
-            : appsLeft != null
-              ? 'linear-gradient(135deg, #A87040 0%, #8B5C30 100%)'
-              : 'var(--surface)',
+          background: stockLow ? 'var(--amber-bg)' : 'var(--surface)',
           boxShadow: stockLow
-            ? '0 8px 28px rgba(200,30,30,0.28), 0 2px 6px rgba(0,0,0,0.16)'
+            ? 'inset 0 0 0 1px var(--amber-line), var(--shadow-card)'
             : appsLeft != null
-              ? '0 8px 28px rgba(168,112,64,0.28), 0 2px 6px rgba(0,0,0,0.16)'
+              ? 'inset 0 0 0 1px var(--line), var(--shadow-card)'
               : 'var(--shadow-card)',
           border: appsLeft == null ? '1.5px dashed var(--border-strong)' : 'none',
           position: 'relative', overflow: 'hidden',
@@ -646,20 +652,20 @@ export default function Dashboard({ profile, onNavigate, onUpdateProfile }: Prop
               <p style={{
                 fontSize: '9px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.10em',
                 margin: 0, marginBottom: '8px',
-                color: appsLeft != null ? 'rgba(255,255,255,0.50)' : 'var(--text-muted)',
+                color: 'var(--ink-2)',
                 fontFamily: 'Inter, sans-serif',
               }}>
                 Estoque de medicamento
               </p>
               {appsLeft != null ? (
                 <>
-                  <p className="num-display" style={{ fontSize: '40px', color: '#fff', margin: '0 0 4px' }}>
+                  <p className="num-display" style={{ fontSize: '40px', color: 'var(--ink)', margin: '0 0 4px' }}>
                     {appsLeft}
                     <span style={{ fontSize: '14px', fontWeight: 600, opacity: 0.65, marginLeft: '6px', letterSpacing: '0.02em' }}>
                       {appsLeft === 1 ? 'aplicação' : 'aplicações'}
                     </span>
                   </p>
-                  <p style={{ fontSize: '11px', color: 'rgba(255,255,255,0.65)', fontWeight: 600, margin: 0, fontFamily: 'Inter, sans-serif', display: 'flex', alignItems: 'center', gap: '5px' }}>
+                  <p style={{ fontSize: '11px', color: stockLow ? 'var(--amber)' : 'var(--ink-2)', fontWeight: 600, margin: 0, fontFamily: 'Inter, sans-serif', display: 'flex', alignItems: 'center', gap: '5px' }}>
                     ~{Math.round(appsLeft / 4)} {Math.round(appsLeft / 4) === 1 ? 'mês' : 'meses'} restantes
                     {stockLow && (
                       <span style={{ display: 'inline-flex', alignItems: 'center', gap: '3px' }}>
@@ -676,12 +682,12 @@ export default function Dashboard({ profile, onNavigate, onUpdateProfile }: Prop
             </div>
             <div style={{
               width: '48px', height: '48px', borderRadius: '14px', flexShrink: 0,
-              background: appsLeft != null ? 'rgba(255,255,255,0.14)' : 'var(--surface-2)',
+              background: appsLeft == null ? 'var(--surface-2)' : stockLow ? 'var(--surface)' : 'var(--ice)',
               border: appsLeft != null ? '1px solid rgba(255,255,255,0.16)' : '1px solid var(--border)',
               display: 'flex', alignItems: 'center', justifyContent: 'center',
               opacity: appsLeft != null ? 1 : 0.35,
             }}>
-              <Package size={22} strokeWidth={1.8} color={appsLeft != null ? 'rgba(255,255,255,0.90)' : 'var(--text-muted)'} />
+              <Package size={22} strokeWidth={1.75} color={appsLeft == null ? 'var(--text-muted)' : stockLow ? 'var(--amber)' : 'var(--cobalt)'} />
             </div>
           </div>
         </div>

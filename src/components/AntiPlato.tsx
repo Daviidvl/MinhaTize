@@ -16,20 +16,21 @@ import {
 import {
   hasUsableHistory, getWeightTrend, evaluateNewUser, evaluateReassessment, writePlateauStatus,
 } from '../utils/plateauUtils'
+import { alpha } from '../utils/color'
 
 const CHECK_ICON: Record<string, React.ReactNode> = {
-  water:    <Droplets      size={16} strokeWidth={2} />,
-  food:     <ClipboardList size={16} strokeWidth={2} />,
-  protein:  <Dumbbell      size={16} strokeWidth={2} />,
-  steps:    <Activity      size={16} strokeWidth={2} />,
-  exercise: <Zap           size={16} strokeWidth={2} />,
-  sleep:    <Moon          size={16} strokeWidth={2} />,
+  water:    <Droplets      size={16} strokeWidth={1.75} />,
+  food:     <ClipboardList size={16} strokeWidth={1.75} />,
+  protein:  <Dumbbell      size={16} strokeWidth={1.75} />,
+  steps:    <Activity      size={16} strokeWidth={1.75} />,
+  exercise: <Zap           size={16} strokeWidth={1.75} />,
+  sleep:    <Moon          size={16} strokeWidth={1.75} />,
 }
 
 const LEVEL_ICON: Record<string, React.ReactNode> = {
-  high:     <AlertCircle   size={18} strokeWidth={2} />,
-  moderate: <AlertTriangle size={18} strokeWidth={2} />,
-  low:      <CheckCircle2  size={18} strokeWidth={2} />,
+  high:     <AlertCircle   size={18} strokeWidth={1.75} />,
+  moderate: <AlertTriangle size={18} strokeWidth={1.75} />,
+  low:      <CheckCircle2  size={18} strokeWidth={1.75} />,
 }
 
 // ── Shared UI helpers ─────────────────────────────────────────────────────────
@@ -78,7 +79,7 @@ function CheckBtn({ label, checked, onChange }: { label: string; checked: boolea
         display: 'flex', alignItems: 'center', justifyContent: 'center',
         color: '#fff',
       }}>
-        {checked && <Check size={10} strokeWidth={3} />}
+        {checked && <Check size={10} strokeWidth={2.5} />}
       </span>
       {label}
     </button>
@@ -92,9 +93,9 @@ function StepHeader({ title, subtitle, stepNum, totalSteps }: {
     <div>
       {stepNum != null && totalSteps != null && (
         <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '12px' }}>
-          <div style={{ flex: 1, height: '4px', borderRadius: '99px', background: 'var(--surface-3)', overflow: 'hidden' }}>
+          <div style={{ flex: 1, height: '4px', borderRadius: '99px', background: 'var(--mist)', overflow: 'hidden' }}>
             <div style={{
-              height: '100%', borderRadius: '99px', background: 'var(--primary)',
+              height: '100%', borderRadius: '99px', background: 'var(--g-progress)',
               width: `${(stepNum / totalSteps) * 100}%`, transition: 'width 0.4s ease',
             }} />
           </div>
@@ -128,9 +129,9 @@ function PlateauCard({
   secondaryCta?: { label: string; onClick: () => void }
 }) {
   const palette = {
-    positive: { bg: 'var(--primary-light)', border: 'rgba(16,185,129,0.3)', color: '#10B981' },
-    warning:  { bg: 'rgba(245,158,11,0.08)', border: 'rgba(245,158,11,0.3)', color: '#F59E0B' },
-    negative: { bg: 'rgba(239,68,68,0.06)', border: 'rgba(239,68,68,0.2)', color: '#EF4444' },
+    positive: { bg: 'var(--primary-light)', border: 'var(--teal)', color: 'var(--teal-d)' },
+    warning:  { bg: 'var(--amber-bg)', border: 'var(--amber-line)', color: 'var(--amber)' },
+    negative: { bg: 'var(--red-bg)', border: 'var(--red-line)', color: 'var(--red)' },
     neutral:  { bg: 'var(--surface)', border: 'var(--border)', color: 'var(--text-muted)' },
   }[tone]
 
@@ -211,7 +212,7 @@ function AutoView({ profile, onUpdateProfile, onGoProgress, onStartScreening, on
     return (
       <PlateauCard
         tone="neutral"
-        icon={<Scale size={26} strokeWidth={2} />}
+        icon={<Scale size={26} strokeWidth={1.75} />}
         title="Vamos avaliar seu platô"
         subtitle="Ainda não temos histórico suficiente de peso. Responda 3 perguntas rápidas para uma primeira avaliação."
         cta={{ label: 'Iniciar avaliação rápida', onClick: onStartNewUser }}
@@ -223,7 +224,7 @@ function AutoView({ profile, onUpdateProfile, onGoProgress, onStartScreening, on
     return (
       <PlateauCard
         tone="positive"
-        icon={<TrendingDown size={26} strokeWidth={2} />}
+        icon={<TrendingDown size={26} strokeWidth={1.75} />}
         title="Sua tendência de peso ainda é de queda"
         subtitle="Pequenas oscilações são normais. Continue registrando seu peso para acompanharmos sua evolução."
         cta={{ label: 'Ver minha evolução', onClick: onGoProgress }}
@@ -235,7 +236,7 @@ function AutoView({ profile, onUpdateProfile, onGoProgress, onStartScreening, on
     return (
       <PlateauCard
         tone="neutral"
-        icon={<BarChart2 size={26} strokeWidth={2} />}
+        icon={<BarChart2 size={26} strokeWidth={1.75} />}
         title="Sua evolução continua acontecendo"
         subtitle="Pelos registros disponíveis, seu peso ainda apresenta tendência de mudança. No momento, não há sinal claro de estabilização."
         cta={{ label: 'Ver minha evolução', onClick: onGoProgress }}
@@ -246,7 +247,7 @@ function AutoView({ profile, onUpdateProfile, onGoProgress, onStartScreening, on
   return (
     <PlateauCard
       tone="warning"
-      icon={<Search size={26} strokeWidth={2} />}
+      icon={<Search size={26} strokeWidth={1.75} />}
       title="Possível estagnação identificada"
       subtitle="Seu peso apresentou pouca variação nas últimas semanas. Vamos fazer uma avaliação rápida antes de concluir se existe um platô."
       cta={{ label: 'Fazer avaliação rápida', onClick: onStartScreening }}
@@ -269,9 +270,9 @@ function TrackingView({ profile, tracking, onGoProgress, onOpenHabits }: {
   return (
     <div className="fade-in" style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
       <div style={{
-        background: 'linear-gradient(135deg, #7C3AED 0%, #4F46E5 100%)',
+        background: 'var(--g-hero)',
         borderRadius: '20px', padding: '20px', color: '#fff',
-        boxShadow: '0 8px 24px rgba(124,58,237,0.3)',
+        boxShadow: '0 8px 24px rgba(var(--shadow-rgb),0.28)',
       }}>
         <p style={{ fontSize: '11px', fontWeight: 700, opacity: 0.7, textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: '6px' }}>
           Acompanhamento de platô
@@ -279,8 +280,8 @@ function TrackingView({ profile, tracking, onGoProgress, onOpenHabits }: {
         <p style={{ fontSize: '26px', fontWeight: 800, margin: 0 }}>
           Dia {day} <span style={{ fontSize: '16px', opacity: 0.7 }}>de 14</span>
         </p>
-        <div style={{ marginTop: '12px', height: '4px', borderRadius: '99px', background: 'rgba(255,255,255,0.2)', overflow: 'hidden' }}>
-          <div style={{ height: '100%', borderRadius: '99px', background: '#fff', width: `${(day / 14) * 100}%`, transition: 'width 0.5s ease' }} />
+        <div style={{ marginTop: '12px', height: '4px', borderRadius: '99px', background: 'var(--track-on-dark)', overflow: 'hidden' }}>
+          <div style={{ height: '100%', borderRadius: '99px', background: 'var(--g-ring)', width: `${(day / 14) * 100}%`, transition: 'width 0.5s ease' }} />
         </div>
       </div>
 
@@ -331,22 +332,22 @@ function ReassessmentView({ profile, onUpdateProfile, tracking, onOpenHabits, on
 
   const config = {
     tendencia_queda: {
-      icon: <TrendingDown size={36} strokeWidth={2} />, color: '#10B981',
-      bg: 'var(--primary-light)', border: 'rgba(16,185,129,0.3)',
+      icon: <TrendingDown size={36} strokeWidth={1.5} />, color: 'var(--teal-d)',
+      bg: 'var(--primary-light)', border: 'var(--teal)',
       title: 'Tendência de queda',
       msg: 'Sua evolução mostra tendência de queda. Não há evidência suficiente de estagnação neste momento.',
       nextStatus: 'tendencia_queda' as const,
     },
     oscilacao_inconclusiva: {
-      icon: <Search size={36} strokeWidth={2} />, color: '#F59E0B',
-      bg: 'rgba(245,158,11,0.08)', border: 'rgba(245,158,11,0.3)',
+      icon: <Search size={36} strokeWidth={1.5} />, color: 'var(--amber)',
+      bg: 'var(--amber-bg)', border: 'var(--amber-line)',
       title: 'Oscilação nos dados',
       msg: 'Sua evolução apresentou oscilações. Ainda não há dados suficientes para concluir que exista um platô. Continue registrando seu peso.',
       nextStatus: 'possivel_estagnacao' as const,
     },
     estagnacao_persistente: {
-      icon: <AlertTriangle size={36} strokeWidth={2} />, color: '#EF4444',
-      bg: 'rgba(239,68,68,0.06)', border: 'rgba(239,68,68,0.2)',
+      icon: <AlertTriangle size={36} strokeWidth={1.5} />, color: 'var(--red)',
+      bg: 'var(--red-bg)', border: 'var(--red-line)',
       title: 'Estabilidade persistente',
       msg: 'A estabilidade do peso persiste. Os dados mostram uma possível estagnação. Considere discutir sua evolução com o profissional que acompanha seu tratamento.',
       nextStatus: 'estagnacao_persistente' as const,
@@ -533,7 +534,7 @@ function NewUserFlow({ profile, onUpdateProfile, onDone, onCancel, onGoProgress 
     return (
       <PlateauCard
         tone="warning"
-        icon={<Search size={26} strokeWidth={2} />}
+        icon={<Search size={26} strokeWidth={1.75} />}
         title="Possível estagnação identificada"
         subtitle="Como ainda não temos histórico suficiente do seu peso, vamos acompanhar sua evolução por 14 dias antes de tirar uma conclusão."
         cta={{ label: 'Ok, entendi', onClick: onDone }}
@@ -544,7 +545,7 @@ function NewUserFlow({ profile, onUpdateProfile, onDone, onCancel, onGoProgress 
     return (
       <PlateauCard
         tone="neutral"
-        icon={<CheckCircle2 size={26} strokeWidth={2} />}
+        icon={<CheckCircle2 size={26} strokeWidth={1.75} />}
         title="Não há sinal claro de estagnação neste momento"
         subtitle="Continue registrando seu peso para que o Minha Tize acompanhe sua evolução ao longo do tempo."
         cta={{ label: 'Registrar peso', onClick: onGoProgress }}
@@ -738,8 +739,8 @@ function HabitsWizard({ profile, onUpdateProfile, onBack }: {
       return (
         <div style={{ display: 'flex', gap: '8px' }}>
           <button onClick={resetAll} style={{
-            flex: 1, padding: '10px', borderRadius: '10px', background: '#EF444415', border: '1.5px solid #EF444430',
-            color: '#EF4444', fontWeight: 700, fontSize: '13px', cursor: 'pointer',
+            flex: 1, padding: '10px', borderRadius: '10px', background: 'var(--red-bg)', border: '1.5px solid var(--red-line)',
+            color: 'var(--red)', fontWeight: 700, fontSize: '13px', cursor: 'pointer',
             fontFamily: "Inter, -apple-system, sans-serif",
           }}>
             Confirmar reset
@@ -846,15 +847,15 @@ function HabitsWizard({ profile, onUpdateProfile, onBack }: {
       <div className="fade-in" style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
         <div style={{
           borderRadius: '20px', padding: '22px', textAlign: 'center',
-          background: 'var(--primary-light)', border: '1.5px solid rgba(5,150,105,0.3)',
+          background: 'var(--primary-light)', border: '1.5px solid var(--teal)',
         }}>
           <div style={{
             width: '52px', height: '52px', borderRadius: '14px',
-            background: 'var(--primary-light)', border: '1px solid rgba(37,99,235,0.15)',
+            background: 'var(--primary-light)', border: '1px solid var(--sky)',
             display: 'flex', alignItems: 'center', justifyContent: 'center',
             margin: '0 auto 14px', color: 'var(--primary)',
           }}>
-            <Leaf size={26} strokeWidth={2} />
+            <Leaf size={26} strokeWidth={1.75} />
           </div>
           <h3 style={{ fontSize: '18px', fontWeight: 800, color: 'var(--primary)', margin: 0 }}>
             Provavelmente não é um platô verdadeiro
@@ -896,7 +897,7 @@ function HabitsWizard({ profile, onUpdateProfile, onBack }: {
   // ── STEP 2 ────────────────────────────────────────────────────────────────
   if (step === 'step2') {
     const score = answers.foodItems.length
-    const riskColor = score >= 6 ? '#EF4444' : score >= 3 ? '#F59E0B' : '#10B981'
+    const riskColor = score >= 6 ? 'var(--red)' : score >= 3 ? 'var(--amber)' : 'var(--teal-d)'
     const riskLabel = score >= 6 ? 'Possível excesso calórico oculto' : score >= 3 ? 'Risco moderado' : score > 0 ? 'Baixo risco' : ''
 
     return (
@@ -912,15 +913,15 @@ function HabitsWizard({ profile, onUpdateProfile, onBack }: {
         {score > 0 && (
           <div style={{
             padding: '12px 14px', borderRadius: '14px',
-            background: `${riskColor}08`, border: `1.5px solid ${riskColor}30`,
+            background: alpha(riskColor, 3), border: `1.5px solid ${alpha(riskColor, 19)}`,
             display: 'flex', alignItems: 'center', gap: '10px',
           }}>
             <div style={{ color: riskColor, flexShrink: 0 }}>
               {score >= 6
-                ? <AlertCircle   size={22} strokeWidth={2} />
+                ? <AlertCircle   size={22} strokeWidth={1.75} />
                 : score >= 3
-                ? <AlertTriangle size={22} strokeWidth={2} />
-                : <CheckCircle2  size={22} strokeWidth={2} />}
+                ? <AlertTriangle size={22} strokeWidth={1.75} />
+                : <CheckCircle2  size={22} strokeWidth={1.75} />}
             </div>
             <div>
               <p style={{ fontWeight: 800, fontSize: '13px', color: riskColor, margin: 0 }}>{riskLabel}</p>
@@ -958,10 +959,10 @@ function HabitsWizard({ profile, onUpdateProfile, onBack }: {
           {pMin && pMax && (
             <div style={{
               padding: '11px 14px', borderRadius: '12px',
-              background: 'var(--primary-light)', border: '1px solid rgba(5,150,105,0.25)',
+              background: 'var(--primary-light)', border: '1px solid var(--teal)',
               display: 'flex', alignItems: 'center', gap: '10px',
             }}>
-              <Target size={17} strokeWidth={2} color="var(--primary)" style={{ flexShrink: 0 }} />
+              <Target size={17} strokeWidth={1.75} color="var(--primary)" style={{ flexShrink: 0 }} />
               <p style={{ fontSize: '13px', color: 'var(--primary)', fontWeight: 800, margin: 0 }}>
                 Sua meta: {pMin}–{pMax} g de proteína/dia
               </p>
@@ -1040,7 +1041,7 @@ function HabitsWizard({ profile, onUpdateProfile, onBack }: {
 
   // ── STEP 5 ────────────────────────────────────────────────────────────────
   if (step === 'step5') {
-    const slColor = answers.stressLevel > 7 ? '#EF4444' : answers.stressLevel > 4 ? '#F59E0B' : 'var(--primary)'
+    const slColor = answers.stressLevel > 7 ? 'var(--red)' : answers.stressLevel > 4 ? 'var(--amber)' : 'var(--primary)'
 
     return (
       <div className="fade-in" style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
@@ -1063,7 +1064,7 @@ function HabitsWizard({ profile, onUpdateProfile, onBack }: {
             <p style={{ fontWeight: 700, fontSize: '14px', color: 'var(--text-primary)', margin: 0 }}>Nível de estresse atual</p>
             <span style={{
               padding: '4px 10px', borderRadius: '99px', fontSize: '14px', fontWeight: 800,
-              background: `${slColor}12`, color: slColor,
+              background: alpha(slColor, 7), color: slColor,
             }}>
               {answers.stressLevel}/10
             </span>
@@ -1122,15 +1123,15 @@ function HabitsWizard({ profile, onUpdateProfile, onBack }: {
   if (step === 'diagnosis') {
     const priorities = computeDiagnosis(answers)
     const levelLabel: Record<string, string> = { high: 'Alta prioridade', moderate: 'Moderada', low: 'Baixa prioridade' }
-    const levelColor: Record<string, string> = { high: '#EF4444', moderate: '#F59E0B', low: '#10B981' }
+    const levelColor: Record<string, string> = { high: 'var(--red)', moderate: 'var(--amber)', low: 'var(--teal-d)' }
     const w = parseFloat(answers.currentWeight) || 0
 
     return (
       <div className="fade-in" style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
         <div style={{
-          background: 'linear-gradient(135deg, #7C3AED 0%, #4F46E5 100%)',
+          background: 'var(--g-hero)',
           borderRadius: '20px', padding: '20px', color: '#fff',
-          boxShadow: '0 8px 24px rgba(124,58,237,0.3)',
+          boxShadow: '0 8px 24px rgba(var(--shadow-rgb),0.28)',
         }}>
           <p style={{ fontSize: '11px', fontWeight: 700, opacity: 0.7, textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: '6px' }}>
             Diagnóstico
@@ -1150,14 +1151,14 @@ function HabitsWizard({ profile, onUpdateProfile, onBack }: {
           {priorities.length === 0 ? (
             <div style={{
               padding: '18px', borderRadius: '14px', textAlign: 'center',
-              background: 'var(--primary-light)', border: '1px solid rgba(5,150,105,0.25)',
+              background: 'var(--primary-light)', border: '1px solid var(--teal)',
             }}>
               <div style={{
               width: '44px', height: '44px', borderRadius: '14px', margin: '0 auto 10px',
               background: 'var(--primary-light)', display: 'flex',
               alignItems: 'center', justifyContent: 'center', color: 'var(--primary)',
             }}>
-              <Sparkles size={22} strokeWidth={2} />
+              <Sparkles size={22} strokeWidth={1.75} />
             </div>
               <p style={{ fontSize: '14px', fontWeight: 700, color: 'var(--primary)', margin: 0 }}>Hábitos bem alinhados!</p>
               <p style={{ fontSize: '12px', color: 'var(--text-muted)', marginTop: '4px' }}>O platô pode ser fisiológico. O plano ajuda a desbloquear.</p>
@@ -1167,7 +1168,7 @@ function HabitsWizard({ profile, onUpdateProfile, onBack }: {
               <div key={p.id} style={{
                 display: 'flex', alignItems: 'flex-start', gap: '12px',
                 padding: '12px 14px', borderRadius: '14px',
-                background: 'var(--surface)', border: `1px solid ${levelColor[p.level]}22`,
+                background: 'var(--surface)', border: `1px solid ${alpha(levelColor[p.level], 13)}`,
                 boxShadow: 'var(--shadow-card)',
               }}>
                 <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '3px', flexShrink: 0, color: levelColor[p.level] }}>
@@ -1211,7 +1212,7 @@ function HabitsWizard({ profile, onUpdateProfile, onBack }: {
         )}
 
         <button onClick={handleStartPlan} className="btn-primary" style={{ width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}>
-          <Flag size={16} strokeWidth={2.5} />
+          <Flag size={16} strokeWidth={1.75} />
           Iniciar Plano de 14 dias
         </button>
       </div>
@@ -1234,9 +1235,9 @@ function HabitsWizard({ profile, onUpdateProfile, onBack }: {
 
         {/* Hero */}
         <div style={{
-          background: 'linear-gradient(135deg, #7C3AED 0%, #4F46E5 100%)',
+          background: 'var(--g-hero)',
           borderRadius: '20px', padding: '18px 20px', color: '#fff',
-          boxShadow: '0 8px 24px rgba(124,58,237,0.3)',
+          boxShadow: '0 8px 24px rgba(var(--shadow-rgb),0.28)',
         }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
             <div>
@@ -1252,8 +1253,8 @@ function HabitsWizard({ profile, onUpdateProfile, onBack }: {
               <p style={{ fontSize: '22px', fontWeight: 800, margin: 0 }}>{adherence}%</p>
             </div>
           </div>
-          <div style={{ marginTop: '12px', height: '4px', borderRadius: '99px', background: 'rgba(255,255,255,0.2)', overflow: 'hidden' }}>
-            <div style={{ height: '100%', borderRadius: '99px', background: '#fff', width: `${(today / 14) * 100}%`, transition: 'width 0.5s ease' }} />
+          <div style={{ marginTop: '12px', height: '4px', borderRadius: '99px', background: 'var(--track-on-dark)', overflow: 'hidden' }}>
+            <div style={{ height: '100%', borderRadius: '99px', background: 'var(--g-ring)', width: `${(today / 14) * 100}%`, transition: 'width 0.5s ease' }} />
           </div>
         </div>
 
@@ -1301,7 +1302,7 @@ function HabitsWizard({ profile, onUpdateProfile, onBack }: {
                     background: checked ? 'var(--primary)' : 'var(--surface-3)',
                     color: checked ? '#fff' : 'var(--text-muted)',
                   }}>
-                    {checked ? <CheckCheck size={14} strokeWidth={2.5} /> : CHECK_ICON[item.id]}
+                    {checked ? <CheckCheck size={14} strokeWidth={2} /> : CHECK_ICON[item.id]}
                   </span>
                   <div style={{ flex: 1 }}>
                     <p style={{ fontWeight: 700, fontSize: '13px', color: checked ? 'var(--primary)' : 'var(--text-primary)', margin: 0 }}>
@@ -1377,8 +1378,8 @@ function HabitsWizard({ profile, onUpdateProfile, onBack }: {
                   <span style={{ fontSize: '11px', fontWeight: 800, color: 'var(--text-muted)', width: '38px', flexShrink: 0 }}>
                     Dia {day}
                   </span>
-                  <div style={{ flex: 1, height: '6px', borderRadius: '99px', background: 'var(--surface-3)', overflow: 'hidden' }}>
-                    <div style={{ height: '100%', borderRadius: '99px', background: 'var(--primary)', width: `${(done / 6) * 100}%` }} />
+                  <div style={{ flex: 1, height: '6px', borderRadius: '99px', background: 'var(--mist)', overflow: 'hidden' }}>
+                    <div style={{ height: '100%', borderRadius: '99px', background: 'var(--g-progress)', width: `${(done / 6) * 100}%` }} />
                   </div>
                   <span style={{ fontSize: '11px', fontWeight: 700, color: done === 6 ? 'var(--primary)' : 'var(--text-muted)', flexShrink: 0 }}>
                     {done}/6
@@ -1398,7 +1399,7 @@ function HabitsWizard({ profile, onUpdateProfile, onBack }: {
           <button
             onClick={() => setStep('reeval')}
             className="btn-primary"
-            style={{ width: '100%', background: 'linear-gradient(135deg, #7C3AED 0%, #4F46E5 100%)' }}
+            style={{ width: '100%', background: 'var(--g-cta)' }}
           >
             <span style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
               <Flag size={14} strokeWidth={2} />Avaliar resultado do plano
@@ -1420,9 +1421,9 @@ function HabitsWizard({ profile, onUpdateProfile, onBack }: {
   if (step === 'reeval') {
     if (plan?.reevalResult) {
       const config = {
-        dropped:   { icon: <CheckCircle2 size={36} strokeWidth={2} />, color: '#10B981', bg: 'var(--primary-light)', border: 'rgba(16,185,129,0.3)', title: 'Excelente resultado!', msg: 'Continue os hábitos construídos. O platô foi desbloqueado!' },
-        same:      { icon: <Search       size={36} strokeWidth={2} />, color: '#F59E0B', bg: 'rgba(245,158,11,0.08)', border: 'rgba(245,158,11,0.3)', title: 'Peso estável', msg: 'Pode ser interessante apresentar seus registros ao médico e discutir os próximos passos.' },
-        increased: { icon: <BarChart2    size={36} strokeWidth={2} />, color: '#EF4444', bg: 'rgba(239,68,68,0.06)', border: 'rgba(239,68,68,0.2)', title: 'Peso aumentou', msg: 'Revise possíveis calorias ocultas e sua rotina alimentar. Considere conversar com seu médico.' },
+        dropped:   { icon: <CheckCircle2 size={36} strokeWidth={1.5} />, color: 'var(--teal-d)', bg: 'var(--primary-light)', border: 'var(--teal)', title: 'Excelente resultado!', msg: 'Continue os hábitos construídos. O platô foi desbloqueado!' },
+        same:      { icon: <Search       size={36} strokeWidth={1.5} />, color: 'var(--amber)', bg: 'var(--amber-bg)', border: 'var(--amber-line)', title: 'Peso estável', msg: 'Pode ser interessante apresentar seus registros ao médico e discutir os próximos passos.' },
+        increased: { icon: <BarChart2    size={36} strokeWidth={1.5} />, color: 'var(--red)', bg: 'var(--red-bg)', border: 'var(--red-line)', title: 'Peso aumentou', msg: 'Revise possíveis calorias ocultas e sua rotina alimentar. Considere conversar com seu médico.' },
       }[plan.reevalResult]
 
       return (
@@ -1437,15 +1438,15 @@ function HabitsWizard({ profile, onUpdateProfile, onBack }: {
 
           {plan.aiReport ? (
             <button onClick={() => setStep('report')} className="btn-primary" style={{ width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}>
-              <FileText size={15} strokeWidth={2.5} />
+              <FileText size={15} strokeWidth={2} />
               Ver relatório completo
             </button>
           ) : (
             <>
               <button onClick={generateReport} className="btn-primary" style={{ width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }} disabled={aiLoading}>
-                {aiLoading ? 'Gerando relatório...' : <><Sparkles size={15} strokeWidth={2.5} /> Gerar relatório com IA</>}
+                {aiLoading ? 'Gerando relatório...' : <><Sparkles size={15} strokeWidth={2} /> Gerar relatório com IA</>}
               </button>
-              {aiError && <p style={{ fontSize: '12px', color: '#EF4444', textAlign: 'center', lineHeight: 1.5 }}>{aiError}</p>}
+              {aiError && <p style={{ fontSize: '12px', color: 'var(--red)', textAlign: 'center', lineHeight: 1.5 }}>{aiError}</p>}
             </>
           )}
 
@@ -1460,12 +1461,12 @@ function HabitsWizard({ profile, onUpdateProfile, onBack }: {
     return (
       <div className="fade-in" style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
         <div style={{
-          background: 'linear-gradient(135deg, #7C3AED 0%, #4F46E5 100%)',
+          background: 'var(--g-hero)',
           borderRadius: '20px', padding: '20px', color: '#fff',
-          boxShadow: '0 8px 24px rgba(124,58,237,0.3)',
+          boxShadow: '0 8px 24px rgba(var(--shadow-rgb),0.28)',
         }}>
           <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '10px' }}>
-            <Flag size={28} strokeWidth={2} />
+            <Flag size={28} strokeWidth={1.5} />
           </div>
           <h3 style={{ fontSize: '18px', fontWeight: 800, margin: 0 }}>14 dias concluídos!</h3>
           <p style={{ fontSize: '13px', opacity: 0.85, marginTop: '8px', lineHeight: 1.4 }}>
@@ -1475,9 +1476,9 @@ function HabitsWizard({ profile, onUpdateProfile, onBack }: {
 
         <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
           {[
-            { v: 'dropped',   icon: <CheckCircle2 size={22} strokeWidth={2} />, iconColor: '#10B981', label: 'Peso caiu',             sub: 'Ótimo — desbloqueamos o platô' },
-            { v: 'same',      icon: <Minus        size={22} strokeWidth={2} />, iconColor: '#F59E0B', label: 'Peso permaneceu igual', sub: 'Sem mudança significativa' },
-            { v: 'increased', icon: <TrendingUp   size={22} strokeWidth={2} />, iconColor: '#EF4444', label: 'Peso aumentou',          sub: 'Precisa de revisão' },
+            { v: 'dropped',   icon: <CheckCircle2 size={22} strokeWidth={1.75} />, iconColor: 'var(--teal-d)', label: 'Peso caiu',             sub: 'Ótimo — desbloqueamos o platô' },
+            { v: 'same',      icon: <Minus        size={22} strokeWidth={1.75} />, iconColor: 'var(--amber)', label: 'Peso permaneceu igual', sub: 'Sem mudança significativa' },
+            { v: 'increased', icon: <TrendingUp   size={22} strokeWidth={1.75} />, iconColor: 'var(--red)', label: 'Peso aumentou',          sub: 'Precisa de revisão' },
           ].map(opt => (
             <button
               key={opt.v}
@@ -1508,10 +1509,10 @@ function HabitsWizard({ profile, onUpdateProfile, onBack }: {
         <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
           <div style={{
             width: '40px', height: '40px', borderRadius: '12px', flexShrink: 0,
-            background: 'linear-gradient(135deg, #7C3AED, #4F46E5)',
-            display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff',
+            background: 'var(--teal-l)',
+            display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--teal-d)',
           }}>
-            <FileText size={20} strokeWidth={2} />
+            <FileText size={20} strokeWidth={1.75} />
           </div>
           <h3 style={{ fontSize: '18px', fontWeight: 800, color: 'var(--text-primary)', margin: 0 }}>
             Relatório Final
@@ -1531,7 +1532,7 @@ function HabitsWizard({ profile, onUpdateProfile, onBack }: {
             <button onClick={generateReport} className="btn-primary" style={{ width: '100%' }} disabled={aiLoading}>
               {aiLoading ? 'Gerando relatório...' : <><Sparkles size={14} strokeWidth={2} style={{ marginRight: '6px' }} />Gerar relatório com IA</>}
             </button>
-            {aiError && <p style={{ fontSize: '12px', color: '#EF4444', textAlign: 'center', lineHeight: 1.5 }}>{aiError}</p>}
+            {aiError && <p style={{ fontSize: '12px', color: 'var(--red)', textAlign: 'center', lineHeight: 1.5 }}>{aiError}</p>}
           </>
         )}
 
