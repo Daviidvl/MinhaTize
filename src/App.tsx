@@ -42,7 +42,7 @@ function NavIcon({ tabId }: { tabId: Tab }) {
     width: 18, height: 18,
     fill: 'none' as const,
     stroke: 'currentColor',
-    strokeWidth: 1.8,
+    strokeWidth: 1.75,
     strokeLinecap: 'round' as const,
     strokeLinejoin: 'round' as const,
     viewBox: '0 0 24 24',

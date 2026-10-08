@@ -4,6 +4,7 @@ import { UserProfile, WeightEntry } from '../types'
 import { calcIMC, imcLabel } from '../utils/bmiUtils'
 import { getDoseLabel } from '../utils/medicationUtils'
 import { getPlateauStatus, getPlateauStatusMeta } from '../utils/plateauUtils'
+import { alpha } from '../utils/color'
 
 interface Props {
   profile: UserProfile
@@ -102,7 +103,7 @@ export default function ProgressHub({ profile, onUpdateProfile }: Props) {
               fontWeight: 700, fontSize: '11px', cursor: 'pointer',
               transition: 'all 0.2s ease',
               fontFamily: 'Inter, -apple-system, sans-serif',
-              boxShadow: tab === t.id ? '0 2px 8px rgba(37,99,235,0.3)' : 'none',
+              boxShadow: tab === t.id ? '0 2px 8px rgba(var(--shadow-rgb),0.28)' : 'none',
               whiteSpace: 'nowrap',
             }}
           >
@@ -159,7 +160,7 @@ export default function ProgressHub({ profile, onUpdateProfile }: Props) {
               <div style={{
                 display: 'inline-flex', alignSelf: 'flex-start', alignItems: 'center', gap: '6px',
                 padding: '5px 12px', borderRadius: '99px',
-                background: `${plateauMeta.color}12`, border: `1px solid ${plateauMeta.color}30`,
+                background: alpha(plateauMeta.color, 7), border: `1px solid ${alpha(plateauMeta.color, 19)}`,
               }}>
                 <span style={{ width: '6px', height: '6px', borderRadius: '50%', background: plateauMeta.color, flexShrink: 0 }} />
                 <span style={{ fontSize: '11px', fontWeight: 700, color: plateauMeta.color }}>{plateauMeta.shortLabel}</span>
@@ -185,8 +186,8 @@ export default function ProgressHub({ profile, onUpdateProfile }: Props) {
                           background: isLast
                             ? 'var(--primary)'
                             : isFirst
-                              ? `rgba(124,58,237,0.5)`
-                              : `rgba(16,185,129,${0.15 + (i / chartPoints.length) * 0.45})`,
+                              ? 'var(--ice)'
+                              : alpha('var(--azure)', Math.round((0.15 + (i / chartPoints.length) * 0.45) * 100)),
                           transition: 'height 0.5s ease',
                         }} />
                       </div>
@@ -202,11 +203,11 @@ export default function ProgressHub({ profile, onUpdateProfile }: Props) {
               <div className="card" style={{ textAlign: 'center', padding: '28px 0' }}>
                 <div style={{
                   width: '52px', height: '52px', borderRadius: '14px',
-                  background: 'var(--primary-light)', border: '1px solid rgba(37,99,235,0.15)',
+                  background: 'var(--primary-light)', border: '1px solid var(--sky)',
                   display: 'flex', alignItems: 'center', justifyContent: 'center',
                   margin: '0 auto 10px',
                 }}>
-                  <TrendingDown size={24} strokeWidth={2} color="var(--primary)" />
+                  <TrendingDown size={24} strokeWidth={1.75} color="var(--primary)" />
                 </div>
                 <p style={{ fontWeight: 700, color: 'var(--text-primary)', fontSize: '14px' }}>Nenhum registro ainda</p>
                 <p style={{ color: 'var(--text-muted)', fontSize: '12px', marginTop: '4px' }}>
@@ -246,11 +247,11 @@ export default function ProgressHub({ profile, onUpdateProfile }: Props) {
                   <div style={{
                     display: 'flex', alignItems: 'flex-start', gap: '6px',
                     padding: '8px 11px', borderRadius: '9px',
-                    background: wBlocked ? 'rgba(239,68,68,0.07)' : 'rgba(245,158,11,0.07)',
-                    border: `1px solid ${wBlocked ? 'rgba(239,68,68,0.2)' : 'rgba(245,158,11,0.22)'}`,
+                    background: wBlocked ? 'var(--red-bg)' : 'var(--amber-bg)',
+                    border: `1px solid ${wBlocked ? 'var(--red-line)' : 'var(--amber-line)'}`,
                   }}>
-                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke={wBlocked ? '#EF4444' : '#D97706'} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0, marginTop: '1px' }}><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
-                    <p style={{ fontSize: '11px', color: wBlocked ? '#B91C1C' : '#92400E', margin: 0, lineHeight: 1.4, fontWeight: 600 }}>
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke={wBlocked ? 'var(--red)' : 'var(--amber)'} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0, marginTop: '1px' }}><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+                    <p style={{ fontSize: '11px', color: wBlocked ? 'var(--red)' : 'var(--amber)', margin: 0, lineHeight: 1.4, fontWeight: 600 }}>
                       {wInputErr}
                     </p>
                   </div>
@@ -280,7 +281,7 @@ export default function ProgressHub({ profile, onUpdateProfile }: Props) {
                           {diff !== null && (
                             <span style={{
                               fontSize: '11px', fontWeight: 700,
-                              color: diff < 0 ? 'var(--primary)' : diff > 0 ? '#EF4444' : 'var(--text-muted)',
+                              color: diff < 0 ? 'var(--primary)' : diff > 0 ? 'var(--red)' : 'var(--text-muted)',
                               display: 'inline-flex', alignItems: 'center', gap: '2px',
                             }}>
                               {diff < 0
@@ -311,7 +312,7 @@ export default function ProgressHub({ profile, onUpdateProfile }: Props) {
 
             {/* IMC */}
             <div style={{
-              background: 'linear-gradient(135deg, var(--primary) 0%, #0D9488 100%)',
+              background: 'var(--g-hero)',
               borderRadius: '18px', padding: '18px 20px', color: '#fff',
               boxShadow: 'var(--shadow-green)',
             }}>
@@ -360,26 +361,26 @@ export default function ProgressHub({ profile, onUpdateProfile }: Props) {
               <div style={{
                 display: 'flex', alignItems: 'center', gap: '12px',
                 padding: '14px', borderRadius: '12px',
-                background: weekDiff < 0 ? 'var(--primary-light)' : weekDiff > 0 ? 'rgba(239,68,68,0.06)' : 'var(--surface-2)',
-                border: `1px solid ${weekDiff < 0 ? 'rgba(37,99,235,0.2)' : weekDiff > 0 ? 'rgba(239,68,68,0.2)' : 'var(--border)'}`,
+                background: weekDiff < 0 ? 'var(--primary-light)' : weekDiff > 0 ? 'var(--red-bg)' : 'var(--surface-2)',
+                border: `1px solid ${weekDiff < 0 ? 'var(--sky)' : weekDiff > 0 ? 'var(--red-line)' : 'var(--border)'}`,
               }}>
                 <div style={{
                   width: '40px', height: '40px', borderRadius: '11px',
-                  background: weekDiff < 0 ? 'var(--primary-light)' : weekDiff > 0 ? 'rgba(239,68,68,0.08)' : 'var(--surface-2)',
+                  background: weekDiff < 0 ? 'var(--primary-light)' : weekDiff > 0 ? 'var(--red-bg)' : 'var(--surface-2)',
                   display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
-                  color: weekDiff < 0 ? 'var(--primary)' : weekDiff > 0 ? '#EF4444' : 'var(--text-muted)',
+                  color: weekDiff < 0 ? 'var(--primary)' : weekDiff > 0 ? 'var(--red)' : 'var(--text-muted)',
                 }}>
                   {weekDiff < 0
-                    ? <TrendingDown size={20} strokeWidth={2} />
+                    ? <TrendingDown size={20} strokeWidth={1.75} />
                     : weekDiff > 0
-                      ? <TrendingUp size={20} strokeWidth={2} />
-                      : <Minus size={20} strokeWidth={2} />
+                      ? <TrendingUp size={20} strokeWidth={1.75} />
+                      : <Minus size={20} strokeWidth={1.75} />
                   }
                 </div>
                 <div>
                   <p style={{
                     fontSize: '20px', fontWeight: 800, lineHeight: 1,
-                    color: weekDiff < 0 ? 'var(--primary)' : weekDiff > 0 ? '#EF4444' : 'var(--text-muted)',
+                    color: weekDiff < 0 ? 'var(--primary)' : weekDiff > 0 ? 'var(--red)' : 'var(--text-muted)',
                   }}>
                     {weekDiff === 0 ? 'Estável' : `${weekDiff < 0 ? '-' : '+'}${Math.abs(weekDiff).toFixed(1)}kg`}
                   </p>

@@ -14,9 +14,9 @@ export default function Result({ result, syringeCapacity }: Props) {
       <div className="card-warning scale-in" style={{ display: 'flex', gap: '12px', alignItems: 'flex-start' }}>
         <div style={{
           width: '36px', height: '36px', borderRadius: '10px', flexShrink: 0,
-          background: 'rgba(245,158,11,0.15)', display: 'flex', alignItems: 'center',
-          justifyContent: 'center', color: '#F59E0B',
-        }}><AlertTriangle size={18} strokeWidth={2} /></div>
+          background: 'var(--amber-bg)', display: 'flex', alignItems: 'center',
+          justifyContent: 'center', color: 'var(--amber)',
+        }}><AlertTriangle size={18} strokeWidth={1.75} /></div>
         <div>
           <p style={{ fontWeight: 700, fontSize: '15px', color: 'var(--warn-text)' }}>Atenção</p>
           <p style={{ fontSize: '13px', color: 'var(--warn-text)', marginTop: '4px', lineHeight: 1.5 }} role="alert">
@@ -36,10 +36,10 @@ export default function Result({ result, syringeCapacity }: Props) {
 
       {/* Resultado principal */}
       <div style={{
-        background: 'linear-gradient(135deg, var(--result-bg) 0%, #065F46 100%)',
+        background: 'var(--g-hero)',
         borderRadius: '20px', padding: '28px 24px', textAlign: 'center',
         position: 'relative', overflow: 'hidden',
-        boxShadow: '0 8px 40px rgba(5,150,105,0.35)',
+        boxShadow: '0 8px 40px rgba(var(--shadow-rgb),0.28)',
       }}>
         <div style={{
           position: 'absolute', top: '-50px', right: '-50px', width: '160px', height: '160px',
@@ -71,7 +71,7 @@ export default function Result({ result, syringeCapacity }: Props) {
             Seringa {syringeCapacity} UI
           </p>
           <span className={nearLimit ? '' : 'badge badge-green'} style={nearLimit ? {
-            fontSize: '11px', fontWeight: 700, color: '#F59E0B', background: 'rgba(245,158,11,0.1)',
+            fontSize: '11px', fontWeight: 700, color: 'var(--amber)', background: 'var(--amber-bg)',
             padding: '2px 10px', borderRadius: '99px',
           } : {}}>
             {fillPct.toFixed(0)}% da capacidade
@@ -81,13 +81,13 @@ export default function Result({ result, syringeCapacity }: Props) {
           <div className="progress-fill" style={{
             width: `${fillPct}%`,
             background: nearLimit
-              ? 'linear-gradient(90deg, var(--primary), #F59E0B)'
-              : 'linear-gradient(90deg, var(--primary), var(--accent))',
+              ? 'linear-gradient(90deg, var(--azure), var(--amber-fill))'
+              : 'var(--g-progress)',
           }}/>
         </div>
         {nearLimit && (
-          <p style={{ fontSize: '11px', color: '#F59E0B', fontWeight: 700, marginTop: '6px', display: 'flex', alignItems: 'center', gap: '4px' }}>
-            <AlertTriangle size={11} strokeWidth={2} />Próximo ao limite da seringa
+          <p style={{ fontSize: '11px', color: 'var(--amber)', fontWeight: 700, marginTop: '6px', display: 'flex', alignItems: 'center', gap: '4px' }}>
+            <AlertTriangle size={11} strokeWidth={2.5} />Próximo ao limite da seringa
           </p>
         )}
       </div>
@@ -124,7 +124,7 @@ export default function Result({ result, syringeCapacity }: Props) {
               display: 'flex', justifyContent: 'space-between', alignItems: 'center',
               padding: '9px 12px', borderRadius: '10px',
               background: r.hi ? 'var(--primary-light)' : 'var(--surface-2)',
-              border: r.hi ? '1px solid rgba(16,185,129,0.2)' : '1px solid var(--border)',
+              border: r.hi ? '1px solid var(--teal)' : '1px solid var(--border)',
             }}>
               <span style={{ fontSize: '12px', color: 'var(--text-muted)', fontWeight: 600 }}>{r.label}</span>
               <span style={{ fontSize: '13px', fontWeight: 800, color: r.hi ? 'var(--primary)' : 'var(--text-primary)', fontFamily: 'monospace' }}>

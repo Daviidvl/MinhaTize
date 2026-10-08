@@ -55,14 +55,14 @@ export function getCalorieStatus(): { consumed: number; target: number; pct: num
 
 // ── Dados de treino ───────────────────────────────────────────────────────────
 export const SPLIT_INFO: Record<string, { label: string; name: string; color: string }[]> = {
-  '2_M': [{ label: 'A', name: 'Empurrar + Core',         color: '#059669' }, { label: 'B', name: 'Puxar + Posterior',        color: '#7C3AED' }],
-  '2_F': [{ label: 'A', name: 'Glúteos + Pernas',        color: '#EC4899' }, { label: 'B', name: 'Superior + Core',          color: '#7C3AED' }],
-  '3_M': [{ label: 'A', name: 'Peito + Tríceps',         color: '#059669' }, { label: 'B', name: 'Costas + Bíceps',          color: '#7C3AED' }, { label: 'C', name: 'Pernas + Core',             color: '#0EA5E9' }],
-  '3_F': [{ label: 'A', name: 'Glúteos + Isquios',       color: '#EC4899' }, { label: 'B', name: 'Peito + Costas + Ombros', color: '#7C3AED' }, { label: 'C', name: 'Pernas + Core',             color: '#059669' }],
-  '4_M': [{ label: 'A', name: 'Peito + Tríceps',         color: '#059669' }, { label: 'B', name: 'Costas + Bíceps',         color: '#7C3AED' }, { label: 'C', name: 'Pernas',                   color: '#0EA5E9' }, { label: 'D', name: 'Ombros + Core',           color: '#F59E0B' }],
-  '4_F': [{ label: 'A', name: 'Glúteos',                 color: '#EC4899' }, { label: 'B', name: 'Peito + Tríceps',        color: '#059669' }, { label: 'C', name: 'Pernas + Panturrilha',     color: '#0EA5E9' }, { label: 'D', name: 'Costas + Bíceps',         color: '#7C3AED' }],
-  '5_M': [{ label: 'A', name: 'Peito',                   color: '#059669' }, { label: 'B', name: 'Costas',                 color: '#7C3AED' }, { label: 'C', name: 'Pernas',                   color: '#0EA5E9' }, { label: 'D', name: 'Ombros',                 color: '#F59E0B' }, { label: 'E', name: 'Bíceps + Tríceps', color: '#DC2626' }],
-  '5_F': [{ label: 'A', name: 'Glúteos',                 color: '#EC4899' }, { label: 'B', name: 'Pernas',                 color: '#0EA5E9' }, { label: 'C', name: 'Peito + Costas',           color: '#7C3AED' }, { label: 'D', name: 'Glúteos 2 + Isquios',    color: '#F97316' }, { label: 'E', name: 'Ombros + Braços + Core', color: '#059669' }],
+  '2_M': [{ label: 'A', name: 'Empurrar + Core',         color: 'var(--teal-d)' }, { label: 'B', name: 'Puxar + Posterior',        color: 'var(--cobalt)' }],
+  '2_F': [{ label: 'A', name: 'Glúteos + Pernas',        color: 'var(--ink-2)' }, { label: 'B', name: 'Superior + Core',          color: 'var(--cobalt)' }],
+  '3_M': [{ label: 'A', name: 'Peito + Tríceps',         color: 'var(--teal-d)' }, { label: 'B', name: 'Costas + Bíceps',          color: 'var(--cobalt)' }, { label: 'C', name: 'Pernas + Core',             color: 'var(--navy)' }],
+  '3_F': [{ label: 'A', name: 'Glúteos + Isquios',       color: 'var(--ink-2)' }, { label: 'B', name: 'Peito + Costas + Ombros', color: 'var(--cobalt)' }, { label: 'C', name: 'Pernas + Core',             color: 'var(--teal-d)' }],
+  '4_M': [{ label: 'A', name: 'Peito + Tríceps',         color: 'var(--teal-d)' }, { label: 'B', name: 'Costas + Bíceps',         color: 'var(--cobalt)' }, { label: 'C', name: 'Pernas',                   color: 'var(--navy)' }, { label: 'D', name: 'Ombros + Core',           color: 'var(--ink-2)' }],
+  '4_F': [{ label: 'A', name: 'Glúteos',                 color: 'var(--ink-2)' }, { label: 'B', name: 'Peito + Tríceps',        color: 'var(--teal-d)' }, { label: 'C', name: 'Pernas + Panturrilha',     color: 'var(--navy)' }, { label: 'D', name: 'Costas + Bíceps',         color: 'var(--cobalt)' }],
+  '5_M': [{ label: 'A', name: 'Peito',                   color: 'var(--teal-d)' }, { label: 'B', name: 'Costas',                 color: 'var(--cobalt)' }, { label: 'C', name: 'Pernas',                   color: 'var(--navy)' }, { label: 'D', name: 'Ombros',                 color: 'var(--ink-2)' }, { label: 'E', name: 'Bíceps + Tríceps', color: 'var(--cobalt)' }],
+  '5_F': [{ label: 'A', name: 'Glúteos',                 color: 'var(--ink-2)' }, { label: 'B', name: 'Pernas',                 color: 'var(--navy)' }, { label: 'C', name: 'Peito + Costas',           color: 'var(--cobalt)' }, { label: 'D', name: 'Glúteos 2 + Isquios',    color: 'var(--ink-2)' }, { label: 'E', name: 'Ombros + Braços + Core', color: 'var(--teal-d)' }],
 }
 export const WORKOUT_SCHEDULE: Record<number, number[]> = { 2: [1,4], 3: [1,3,5], 4: [1,2,4,5], 5: [1,2,3,4,5] }
 export const LEVEL_LABEL: Record<string, string> = { beginner: 'Iniciante', intermediate: 'Intermediário', advanced: 'Avançado' }
@@ -70,12 +70,12 @@ export const LEVEL_LABEL: Record<string, string> = { beginner: 'Iniciante', inte
 // ── Dados de refeições ────────────────────────────────────────────────────────
 export interface MealSlot { label: string; color: string; startH: number; endH: number; sub_M: string; sub_F: string }
 export const MEAL_SLOTS: MealSlot[] = [
-  { label: 'Café da manhã',   color: '#D97706', startH: 6,    endH: 9.5,  sub_M: 'Ovos · pão · fruta',                 sub_F: 'Ovos · queijo · fruta' },
-  { label: 'Lanche manhã',    color: '#F59E0B', startH: 9.5,  endH: 12,   sub_M: 'Whey ou iogurte proteico',           sub_F: 'Whey ou iogurte proteico' },
-  { label: 'Almoço',          color: '#059669', startH: 12,   endH: 14.5, sub_M: 'Arroz · feijão · frango · legumes',  sub_F: 'Arroz · feijão · frango · legumes' },
-  { label: 'Lanche tarde',    color: '#0891B2', startH: 14.5, endH: 18,   sub_M: 'Whey + fruta ou sanduíche',          sub_F: 'Whey + fruta ou 2 ovos' },
-  { label: 'Jantar',          color: '#7C3AED', startH: 18,   endH: 21,   sub_M: 'Arroz · proteína magra · legumes',   sub_F: 'Arroz · proteína magra · legumes' },
-  { label: 'Ceia',            color: '#1E40AF', startH: 21,   endH: 24,   sub_M: 'Whey com água ou leite desnatado',   sub_F: 'Whey ou iogurte grego natural' },
+  { label: 'Café da manhã',   color: 'var(--cobalt)', startH: 6,    endH: 9.5,  sub_M: 'Ovos · pão · fruta',                 sub_F: 'Ovos · queijo · fruta' },
+  { label: 'Lanche manhã',    color: 'var(--ink-2)', startH: 9.5,  endH: 12,   sub_M: 'Whey ou iogurte proteico',           sub_F: 'Whey ou iogurte proteico' },
+  { label: 'Almoço',          color: 'var(--teal-d)', startH: 12,   endH: 14.5, sub_M: 'Arroz · feijão · frango · legumes',  sub_F: 'Arroz · feijão · frango · legumes' },
+  { label: 'Lanche tarde',    color: 'var(--ink-2)', startH: 14.5, endH: 18,   sub_M: 'Whey + fruta ou sanduíche',          sub_F: 'Whey + fruta ou 2 ovos' },
+  { label: 'Jantar',          color: 'var(--cobalt)', startH: 18,   endH: 21,   sub_M: 'Arroz · proteína magra · legumes',   sub_F: 'Arroz · proteína magra · legumes' },
+  { label: 'Ceia',            color: 'var(--navy)', startH: 21,   endH: 24,   sub_M: 'Whey com água ou leite desnatado',   sub_F: 'Whey ou iogurte grego natural' },
 ]
 export function getMealNow(): { slot: MealSlot; isCurrent: boolean } {
   const h = new Date().getHours() + new Date().getMinutes() / 60

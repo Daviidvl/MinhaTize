@@ -7,6 +7,7 @@ import AntiPlato from './AntiPlato'
 import Storage from './Storage'
 import Exercise from './Exercise'
 import { Tab, UserProfile } from '../types'
+import { alpha } from '../utils/color'
 import {
   type HealthTab,
   SECTION_ICON_MAP, SECTION_ICON_SM, SYMPTOM_ICON_MAP, SUPP_ICON_MAP,
@@ -32,10 +33,13 @@ export default function HealthHub({ profile, onUpdateProfile, initialSection, on
     ? Math.max(...activeSymptoms.map(s => s.intensity)) : 0
 
   const symptomBadge =
-    maxIntensity === 0 ? { label: 'Sem sintomas', color: '#10B981', dotColor: '#10B981' }
-    : maxIntensity === 1 ? { label: `${activeSymptoms.length} leve${activeSymptoms.length > 1 ? 's' : ''}`, color: '#10B981', dotColor: '#10B981' }
-    : maxIntensity === 2 ? { label: `${activeSymptoms.length} moderado${activeSymptoms.length > 1 ? 's' : ''}`, color: '#F59E0B', dotColor: '#F59E0B' }
-    : { label: `${activeSymptoms.length} intenso${activeSymptoms.length > 1 ? 's' : ''}`, color: '#EF4444', dotColor: '#EF4444' }
+    maxIntensity === 0 ? { label: 'Sem sintomas', color: 'var(--teal-d)', dotColor: 'var(--teal)', bg: 'var(--teal-l)' }
+    : maxIntensity === 1 ? { label: `${activeSymptoms.length} leve${activeSymptoms.length > 1 ? 's' : ''}`, color: 'var(--teal-d)', dotColor: 'var(--teal)', bg: 'var(--teal-l)' }
+    : maxIntensity === 2 ? { label: `${activeSymptoms.length} moderado${activeSymptoms.length > 1 ? 's' : ''}`, color: 'var(--amber)', dotColor: 'var(--amber-fill)', bg: 'var(--amber-bg)' }
+    : { label: `${activeSymptoms.length} intenso${activeSymptoms.length > 1 ? 's' : ''}`, color: 'var(--red)', dotColor: 'var(--red)', bg: 'var(--red-bg)' }
+
+  // "Esta semana" é o card principal da tela; alerta só quando há sintoma moderado ou intenso
+  const calmWeek = maxIntensity < 2
 
   const currentCard = SECTION_CARDS.find(c => c.id === activeSection)
 
@@ -62,7 +66,7 @@ export default function HealthHub({ profile, onUpdateProfile, initialSection, on
                 color: 'var(--primary)', fontFamily: 'Inter, -apple-system, sans-serif',
               }}
             >
-              <ChevronLeft size={14} strokeWidth={2.5} />
+              <ChevronLeft size={14} strokeWidth={2} />
               <span style={{ fontSize: '13px', fontWeight: 600 }}>Saúde</span>
             </button>
             <ChevronRight size={12} strokeWidth={2} color="var(--text-muted)" />
@@ -75,9 +79,9 @@ export default function HealthHub({ profile, onUpdateProfile, initialSection, on
           <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
             <div style={{
               width: '38px', height: '38px', borderRadius: '10px', flexShrink: 0,
-              background: currentCard?.gradient,
+              background: currentCard?.chipBg,
               display: 'flex', alignItems: 'center', justifyContent: 'center',
-              boxShadow: currentCard?.shadow,
+              color: currentCard?.accentColor,
             }}>
               {activeSection && SECTION_ICON_SM[activeSection]}
             </div>
@@ -113,24 +117,24 @@ export default function HealthHub({ profile, onUpdateProfile, initialSection, on
                   {activeSymptoms.map(s => {
                     const tip = SYMPTOM_TIPS[s.id]
                     if (!tip) return null
-                    const intensityColor = s.intensity === 1 ? '#10B981' : s.intensity === 2 ? '#F59E0B' : '#EF4444'
+                    const intensityColor = s.intensity === 1 ? 'var(--teal-d)' : s.intensity === 2 ? 'var(--amber)' : 'var(--red)'
                     const intensityLabel = s.intensity === 1 ? 'Leve' : s.intensity === 2 ? 'Moderado' : 'Intenso'
                     return (
                       <div key={s.id} style={{
                         borderRadius: '16px', overflow: 'hidden',
-                        border: `1px solid ${intensityColor}25`,
+                        border: `1px solid ${alpha(intensityColor, 15)}`,
                         background: 'var(--surface)',
                         boxShadow: 'var(--shadow-card)',
                       }}>
                         <div style={{
                           display: 'flex', alignItems: 'center', gap: '10px',
                           padding: '12px 14px',
-                          background: `${intensityColor}08`,
-                          borderBottom: `1px solid ${intensityColor}20`,
+                          background: alpha(intensityColor, 3),
+                          borderBottom: `1px solid ${alpha(intensityColor, 13)}`,
                         }}>
                           <div style={{
                             width: '32px', height: '32px', borderRadius: '9px', flexShrink: 0,
-                            background: `${intensityColor}15`,
+                            background: alpha(intensityColor, 8),
                             display: 'flex', alignItems: 'center', justifyContent: 'center',
                             color: intensityColor,
                           }}>
@@ -141,7 +145,7 @@ export default function HealthHub({ profile, onUpdateProfile, initialSection, on
                           </p>
                           <span style={{
                             fontSize: '10px', fontWeight: 700, padding: '3px 8px', borderRadius: '99px',
-                            background: `${intensityColor}15`, color: intensityColor,
+                            background: alpha(intensityColor, 8), color: intensityColor,
                           }}>
                             {intensityLabel}
                           </span>
@@ -185,11 +189,11 @@ export default function HealthHub({ profile, onUpdateProfile, initialSection, on
                 <div style={{
                   display: 'flex', alignItems: 'center', gap: '10px',
                   padding: '11px 14px', borderRadius: '12px',
-                  background: 'rgba(245,158,11,0.07)',
-                  border: '1px solid rgba(245,158,11,0.25)',
+                  background: 'var(--amber-bg)',
+                  border: '1px solid var(--amber-line)',
                 }}>
-                  <Lightbulb size={16} strokeWidth={2} style={{ flexShrink: 0, color: '#B45309' }} />
-                  <p style={{ fontSize: '12px', color: '#B45309', fontWeight: 600, lineHeight: 1.4, margin: 0 }}>
+                  <Lightbulb size={16} strokeWidth={1.75} style={{ flexShrink: 0, color: 'var(--amber)' }} />
+                  <p style={{ fontSize: '12px', color: 'var(--amber)', fontWeight: 600, lineHeight: 1.4, margin: 0 }}>
                     Você tem sintomas digestivos esta semana. Priorize os alimentos da lista <strong>Aliados</strong> e evite os listados em <strong>Evitar</strong>.
                   </p>
                 </div>
@@ -330,29 +334,30 @@ export default function HealthHub({ profile, onUpdateProfile, initialSection, on
           display: 'flex', alignItems: 'center', gap: '12px',
           padding: '14px 16px', borderRadius: '16px',
           background: maxIntensity >= 3
-            ? 'rgba(239,68,68,0.06)'
+            ? 'var(--red-bg)'
             : maxIntensity === 2
-            ? 'rgba(245,158,11,0.06)'
-            : 'var(--primary-light)',
-          border: `1.5px solid ${maxIntensity >= 3 ? 'rgba(239,68,68,0.20)' : maxIntensity === 2 ? 'rgba(245,158,11,0.25)' : 'rgba(37,99,235,0.18)'}`,
+            ? 'var(--amber-bg)'
+            : 'var(--g-hero)',
+          backgroundOrigin: 'border-box',
+          border: `1.5px solid ${maxIntensity >= 3 ? 'var(--red-line)' : maxIntensity === 2 ? 'var(--amber-line)' : 'transparent'}`,
         }}
       >
         <div style={{
           width: '10px', height: '10px', borderRadius: '50%', flexShrink: 0,
-          background: symptomBadge.dotColor,
-          boxShadow: `0 0 0 3px ${symptomBadge.dotColor}22`,
+          background: calmWeek ? 'var(--aqua)' : symptomBadge.dotColor,
+          boxShadow: `0 0 0 3px ${alpha(calmWeek ? 'var(--aqua)' : symptomBadge.dotColor, 13)}`,
         }} />
         <div style={{ flex: 1, minWidth: 0 }}>
-          <p style={{ fontWeight: 800, fontSize: '13px', color: 'var(--text-primary)', margin: 0 }}>
+          <p style={{ fontWeight: 800, fontSize: '13px', color: calmWeek ? '#fff' : 'var(--text-primary)', margin: 0 }}>
             Esta semana
           </p>
-          <p style={{ fontSize: '12px', color: symptomBadge.color, fontWeight: 600, margin: 0, marginTop: '2px' }}>
+          <p style={{ fontSize: '12px', color: calmWeek ? '#fff' : symptomBadge.color, fontWeight: 600, margin: 0, marginTop: '2px' }}>
             {symptomBadge.label}
           </p>
         </div>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '4px', color: 'var(--text-muted)' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '4px', color: calmWeek ? 'rgba(255,255,255,0.72)' : 'var(--text-muted)' }}>
           <span style={{ fontSize: '11px', fontWeight: 700 }}>Ver</span>
-          <ChevronRight size={14} strokeWidth={2.5} />
+          <ChevronRight size={14} strokeWidth={2} />
         </div>
       </button>
 
@@ -369,7 +374,7 @@ export default function HealthHub({ profile, onUpdateProfile, initialSection, on
               border: 'none',
               cursor: 'pointer',
               textAlign: 'left',
-              boxShadow: card.shadow,
+              boxShadow: `inset 0 0 0 1px var(--line), ${card.shadow}`,
               display: 'flex',
               flexDirection: 'column',
               gap: '10px',
@@ -399,7 +404,8 @@ export default function HealthHub({ profile, onUpdateProfile, initialSection, on
             {/* Glassmorphism icon */}
             <div style={{
               width: '52px', height: '52px', borderRadius: '16px',
-              background: 'rgba(255,255,255,0.14)',
+              background: card.chipBg,
+              color: card.accentColor,
               backdropFilter: 'blur(20px)',
               WebkitBackdropFilter: 'blur(20px)',
               border: '1px solid rgba(255,255,255,0.18)',
@@ -411,10 +417,10 @@ export default function HealthHub({ profile, onUpdateProfile, initialSection, on
             </div>
 
             <div>
-              <p style={{ fontSize: '14px', fontWeight: 800, color: '#fff', margin: 0, letterSpacing: '-0.2px' }}>
+              <p style={{ fontSize: '14px', fontWeight: 800, color: 'var(--ink)', margin: 0, letterSpacing: '-0.2px' }}>
                 {card.title}
               </p>
-              <p style={{ fontSize: '10px', color: 'rgba(255,255,255,0.65)', margin: 0, marginTop: '4px', lineHeight: 1.4 }}>
+              <p style={{ fontSize: '10px', color: 'var(--ink-2)', margin: 0, marginTop: '4px', lineHeight: 1.4 }}>
                 {card.subtitle}
               </p>
             </div>
@@ -423,8 +429,8 @@ export default function HealthHub({ profile, onUpdateProfile, initialSection, on
               <span style={{
                 display: 'inline-flex', alignItems: 'center', gap: '5px',
                 padding: '3px 8px', borderRadius: '99px',
-                background: 'rgba(255,255,255,0.18)',
-                fontSize: '10px', fontWeight: 700, color: '#fff',
+                background: symptomBadge.bg,
+                fontSize: '10px', fontWeight: 700, color: symptomBadge.color,
                 alignSelf: 'flex-start',
               }}>
                 <div style={{

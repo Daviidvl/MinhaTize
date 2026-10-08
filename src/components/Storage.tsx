@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { Syringe, Check, X, AlertTriangle, ChevronDown, Info } from 'lucide-react'
+import { alpha } from '../utils/color'
 
 type ItemStatus = 'ok' | 'no' | 'warn'
 
@@ -26,11 +27,11 @@ const MEDS: Med[] = [
 
     name: 'Tirzepatida',
     brand: 'Mounjaro',
-    color: '#0EA5E9',
-    badgeBg: 'rgba(14,165,233,0.12)',
-    badgeColor: '#0369A1',
-    accentBg: 'rgba(14,165,233,0.05)',
-    accentBorder: 'rgba(14,165,233,0.18)',
+    color: 'var(--cobalt)',
+    badgeBg: 'var(--ice)',
+    badgeColor: 'var(--cobalt)',
+    accentBg: 'var(--ice)',
+    accentBorder: 'var(--sky)',
     items: [
       { status: 'ok',   text: 'Armazenar entre 2°C e 8°C' },
       { status: 'ok',   text: 'Manter na embalagem original' },
@@ -44,11 +45,11 @@ const MEDS: Med[] = [
 
     name: 'Semaglutida',
     brand: 'Wegovy',
-    color: '#7C3AED',
-    badgeBg: 'rgba(124,58,237,0.1)',
-    badgeColor: '#6D28D9',
-    accentBg: 'rgba(124,58,237,0.05)',
-    accentBorder: 'rgba(124,58,237,0.18)',
+    color: 'var(--cobalt)',
+    badgeBg: 'var(--ice)',
+    badgeColor: 'var(--cobalt)',
+    accentBg: 'var(--ice)',
+    accentBorder: 'var(--sky)',
     items: [
       { status: 'ok',   text: 'Manter refrigerada antes do uso' },
       { status: 'ok',   text: 'Proteger da luz' },
@@ -62,11 +63,11 @@ const MEDS: Med[] = [
 
     name: 'Liraglutida',
     brand: 'Olire',
-    color: '#059669',
-    badgeBg: 'rgba(5,150,105,0.1)',
-    badgeColor: '#047857',
-    accentBg: 'rgba(5,150,105,0.05)',
-    accentBorder: 'rgba(5,150,105,0.18)',
+    color: 'var(--teal-d)',
+    badgeBg: 'var(--teal-l)',
+    badgeColor: 'var(--teal-d)',
+    accentBg: 'var(--teal-l)',
+    accentBorder: 'var(--teal)',
     items: [
       { status: 'ok',   text: 'Manter refrigerada' },
       { status: 'ok',   text: 'Proteger da luz e calor' },
@@ -79,23 +80,23 @@ const MEDS: Med[] = [
 
 const STATUS_ICON: Record<ItemStatus, React.ReactNode> = {
   ok:   <Check         size={14} strokeWidth={2.5} />,
-  no:   <X             size={14} strokeWidth={2.5} />,
-  warn: <AlertTriangle size={14} strokeWidth={2.5} />,
+  no:   <X             size={14} strokeWidth={2} />,
+  warn: <AlertTriangle size={14} strokeWidth={2} />,
 }
 const STATUS_COLOR: Record<ItemStatus, string> = {
   ok:   'var(--text-secondary)',
-  no:   '#DC2626',
-  warn: '#B45309',
+  no:   'var(--red)',
+  warn: 'var(--amber)',
 }
 const STATUS_BG: Record<ItemStatus, string> = {
   ok:   'var(--surface-2)',
-  no:   'rgba(239,68,68,0.05)',
-  warn: 'rgba(245,158,11,0.07)',
+  no:   'var(--red-bg)',
+  warn: 'var(--amber-bg)',
 }
 const STATUS_BORDER: Record<ItemStatus, string> = {
   ok:   'var(--border)',
-  no:   'rgba(239,68,68,0.18)',
-  warn: 'rgba(245,158,11,0.25)',
+  no:   'var(--red-line)',
+  warn: 'var(--amber-line)',
 }
 
 export default function Storage() {
@@ -115,9 +116,9 @@ export default function Storage() {
 
       {/* Intro banner */}
       <div style={{
-        background: 'linear-gradient(135deg, #0EA5E9 0%, #0284C7 100%)',
+        background: 'var(--g-hero)',
         borderRadius: '20px', padding: '18px 20px', color: '#fff',
-        boxShadow: '0 4px 20px rgba(14,165,233,0.28)',
+        boxShadow: '0 4px 20px rgba(var(--shadow-rgb),0.28)',
       }}>
         <p style={{ fontSize: '11px', fontWeight: 700, opacity: 0.7, textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: '6px' }}>
           Orientações de armazenamento
@@ -153,11 +154,11 @@ export default function Storage() {
             >
               <div style={{
                 width: '42px', height: '42px', borderRadius: '12px', flexShrink: 0,
-                background: `${med.color}18`, border: `1px solid ${med.color}30`,
+                background: alpha(med.color, 9), border: `1px solid ${alpha(med.color, 19)}`,
                 display: 'flex', alignItems: 'center', justifyContent: 'center',
               color: med.color,
               }}>
-                <Syringe size={20} strokeWidth={2} />
+                <Syringe size={20} strokeWidth={1.75} />
               </div>
 
               <div style={{ flex: 1, minWidth: 0 }}>
@@ -181,7 +182,7 @@ export default function Storage() {
                 flexShrink: 0, color: 'var(--text-muted)',
                 transition: 'transform 0.2s', display: 'inline-flex',
                 transform: isOpen ? 'rotate(180deg)' : 'none',
-              }}><ChevronDown size={16} strokeWidth={2} /></span>
+              }}><ChevronDown size={16} strokeWidth={1.75} /></span>
             </button>
 
             {/* Items */}

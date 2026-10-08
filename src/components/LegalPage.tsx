@@ -32,15 +32,15 @@ const s = {
   } as React.CSSProperties,
   warn: {
     padding: '12px 14px',
-    background: 'rgba(239,68,68,0.07)',
-    border: '1px solid rgba(239,68,68,0.2)',
+    background: 'var(--red-bg)',
+    border: '1px solid var(--red-line)',
     borderRadius: '10px', margin: '0 0 14px',
     fontSize: '13px', color: 'var(--danger-text)', lineHeight: 1.65,
   } as React.CSSProperties,
   info: {
     padding: '12px 14px',
-    background: 'rgba(37,99,235,0.07)',
-    border: '1px solid rgba(37,99,235,0.18)',
+    background: 'var(--ice)',
+    border: '1px solid var(--sky)',
     borderRadius: '10px', margin: '0 0 14px',
     fontSize: '13px', color: 'var(--info-text)', lineHeight: 1.65,
   } as React.CSSProperties,
@@ -286,8 +286,8 @@ function Privacidade() {
             { dado: 'Registro de consentimento', finalidade: 'Cumprimento de obrigação legal (LGPD Art. 8)', base: 'Obrigação legal (Art. 7, II)' },
             { dado: 'IP', finalidade: 'Prevenção de abuso e segurança', base: 'Legítimo interesse (Art. 7, IX)' },
           ].map((row, i) => (
-            <div key={i} style={{ padding: '10px 12px', background: 'rgba(255,255,255,0.03)', borderRadius: '8px', border: '1px solid rgba(255,255,255,0.06)' }}>
-              <p style={{ ...s.p, margin: 0, color: 'rgba(255,255,255,0.75)', fontWeight: 600 }}>{row.dado}</p>
+            <div key={i} style={{ padding: '10px 12px', background: 'var(--mist)', borderRadius: '8px', border: '1px solid var(--line)' }}>
+              <p style={{ ...s.p, margin: 0, color: 'var(--ink)', fontWeight: 600 }}>{row.dado}</p>
               <p style={{ ...s.p, margin: '2px 0 0', fontSize: '12px' }}>{row.finalidade} — <em>{row.base}</em></p>
             </div>
           ))}
@@ -633,9 +633,9 @@ function Cookies() {
             { chave: 'tizetrack_workout', desc: 'Treinos cadastrados' },
             { chave: 'tizetrack_workout_log', desc: 'Log de treinos realizados' },
           ].map((item, i) => (
-            <div key={i} style={{ padding: '8px 12px', background: 'rgba(255,255,255,0.03)', borderRadius: '8px', border: '1px solid rgba(255,255,255,0.06)' }}>
-              <code style={{ fontSize: '11px', color: 'rgba(147,197,253,0.9)', display: 'block', marginBottom: '2px' }}>{item.chave}</code>
-              <span style={{ fontSize: '12px', color: 'rgba(255,255,255,0.45)' }}>{item.desc}</span>
+            <div key={i} style={{ padding: '8px 12px', background: 'var(--mist)', borderRadius: '8px', border: '1px solid var(--line)' }}>
+              <code style={{ fontSize: '11px', color: 'var(--cobalt)', display: 'block', marginBottom: '2px' }}>{item.chave}</code>
+              <span style={{ fontSize: '12px', color: 'var(--ink-2)' }}>{item.desc}</span>
             </div>
           ))}
         </div>
@@ -717,7 +717,7 @@ export default function LegalPage({ initialDoc = 'termos', onBack }: Props) {
       {/* Header fixo */}
       <div style={{
         position: 'sticky', top: 0, zIndex: 50,
-        background: 'var(--bg)', borderBottom: '1px solid rgba(255,255,255,0.06)',
+        background: 'var(--bg)', borderBottom: '1px solid var(--line)',
         padding: '12px 20px',
         display: 'flex', alignItems: 'center', gap: '12px',
         maxWidth: '100%',
@@ -746,7 +746,7 @@ export default function LegalPage({ initialDoc = 'termos', onBack }: Props) {
       {/* Tabs de documentos */}
       <div style={{
         overflowX: 'auto',
-        borderBottom: '1px solid rgba(255,255,255,0.06)',
+        borderBottom: '1px solid var(--line)',
         background: 'var(--bg)',
         scrollbarWidth: 'none',
       }}>

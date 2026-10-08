@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { Waves, AlertCircle, ArrowDown, Droplets, Flame, Battery, RotateCcw, Circle, Minus, X, Activity } from 'lucide-react'
 import { SideEffectEntry, UserProfile } from '../types'
+import { alpha } from '../utils/color'
 
 interface Props {
   profile: UserProfile
@@ -35,9 +36,9 @@ const SYMPTOMS = [
 
 const INTENSITIES: { value: 0 | 1 | 2 | 3; label: string; color: string }[] = [
   { value: 0, label: 'Nenhum',   color: 'var(--text-muted)' },
-  { value: 1, label: 'Leve',     color: '#10B981' },
-  { value: 2, label: 'Moderado', color: '#F59E0B' },
-  { value: 3, label: 'Intenso',  color: '#EF4444' },
+  { value: 1, label: 'Leve',     color: 'var(--teal-d)' },
+  { value: 2, label: 'Moderado', color: 'var(--amber)' },
+  { value: 3, label: 'Intenso',  color: 'var(--red)' },
 ]
 
 function getMondayOf(date: Date): string {
@@ -117,15 +118,15 @@ export default function SideEffects({ profile, onUpdateProfile }: Props) {
             return (
               <div key={symptom.id} style={{
                 padding: '10px 12px', borderRadius: '12px',
-                background: current.intensity > 0 ? `${intensityColor(current.intensity)}10` : 'var(--surface-2)',
-                border: `1.5px solid ${current.intensity > 0 ? intensityColor(current.intensity) + '30' : 'var(--border)'}`,
+                background: current.intensity > 0 ? alpha(intensityColor(current.intensity), 6) : 'var(--surface-2)',
+                border: `1.5px solid ${current.intensity > 0 ? alpha(intensityColor(current.intensity), 19) : 'var(--border)'}`,
                 transition: 'all 0.15s ease',
               }}>
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                     <div style={{
                       width: '28px', height: '28px', borderRadius: '8px', flexShrink: 0,
-                      background: current.intensity > 0 ? `${intensityColor(current.intensity)}15` : 'var(--surface-3)',
+                      background: current.intensity > 0 ? alpha(intensityColor(current.intensity), 8) : 'var(--surface-3)',
                       display: 'flex', alignItems: 'center', justifyContent: 'center',
                       color: current.intensity > 0 ? intensityColor(current.intensity) : 'var(--text-muted)',
                     }}>
@@ -138,7 +139,7 @@ export default function SideEffects({ profile, onUpdateProfile }: Props) {
                   {current.intensity > 0 && (
                     <span style={{
                       fontSize: '10px', fontWeight: 700, padding: '2px 8px', borderRadius: '99px',
-                      background: intensityColor(current.intensity) + '15',
+                      background: alpha(intensityColor(current.intensity), 8),
                       color: intensityColor(current.intensity),
                     }}>
                       {INTENSITIES.find(i => i.value === current.intensity)?.label}
@@ -153,7 +154,7 @@ export default function SideEffects({ profile, onUpdateProfile }: Props) {
                       style={{
                         flex: 1, padding: '6px 2px', borderRadius: '8px', fontSize: '10px', fontWeight: 700,
                         border: `1.5px solid ${current.intensity === int.value ? int.color : 'var(--border)'}`,
-                        background: current.intensity === int.value ? int.color + '15' : 'transparent',
+                        background: current.intensity === int.value ? alpha(int.color, 8) : 'transparent',
                         color: current.intensity === int.value ? int.color : 'var(--text-muted)',
                         cursor: 'pointer', transition: 'all 0.15s ease',
                         fontFamily: "Inter, -apple-system, sans-serif",
@@ -202,8 +203,8 @@ export default function SideEffects({ profile, onUpdateProfile }: Props) {
                 <div key={s.id} style={{
                   display: 'flex', alignItems: 'center', gap: '5px',
                   padding: '5px 10px', borderRadius: '99px',
-                  background: intensityColor(s.intensity) + '12',
-                  border: `1px solid ${intensityColor(s.intensity)}25`,
+                  background: alpha(intensityColor(s.intensity), 7),
+                  border: `1px solid ${alpha(intensityColor(s.intensity), 15)}`,
                   color: intensityColor(s.intensity),
                 }}>
                   {SYMPTOM_ICON[sym.id]}
@@ -244,7 +245,7 @@ export default function SideEffects({ profile, onUpdateProfile }: Props) {
                   {worst > 0 && (
                     <span style={{
                       fontSize: '11px', fontWeight: 700, padding: '3px 10px', borderRadius: '99px',
-                      background: intensityColor(worst) + '15', color: intensityColor(worst),
+                      background: alpha(intensityColor(worst), 8), color: intensityColor(worst),
                     }}>
                       {INTENSITIES.find(i => i.value === worst)?.label}
                     </span>
@@ -271,7 +272,7 @@ export default function SideEffects({ profile, onUpdateProfile }: Props) {
             background: 'var(--primary-light)', display: 'flex', alignItems: 'center',
             justifyContent: 'center', color: 'var(--primary)',
           }}>
-            <Activity size={24} strokeWidth={2} />
+            <Activity size={24} strokeWidth={1.75} />
           </div>
           <p style={{ fontWeight: 700, color: 'var(--text-primary)', fontSize: '14px' }}>Nenhum registro ainda</p>
           <p style={{ color: 'var(--text-muted)', fontSize: '12px', marginTop: '4px' }}>

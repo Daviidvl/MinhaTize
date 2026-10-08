@@ -27,9 +27,9 @@ export interface WorkoutDay {
 }
 
 export const VOLUME = {
-  beginner:     { sets: '2–3', reps: '12–15', rest: '60s',  tag: 'Iniciante',     tagBg: 'rgba(5,150,105,0.1)',   tagColor: '#047857' },
-  intermediate: { sets: '3–4', reps: '8–12',  rest: '90s',  tag: 'Intermediário', tagBg: 'rgba(124,58,237,0.1)', tagColor: '#6D28D9' },
-  advanced:     { sets: '4–5', reps: '6–10',  rest: '2min', tag: 'Avançado',      tagBg: 'rgba(220,38,38,0.1)',  tagColor: '#B91C1C' },
+  beginner:     { sets: '2–3', reps: '12–15', rest: '60s',  tag: 'Iniciante',     tagBg: 'var(--teal-l)',          tagColor: 'var(--teal-d)' },
+  intermediate: { sets: '3–4', reps: '8–12',  rest: '90s',  tag: 'Intermediário', tagBg: 'var(--ice)',            tagColor: 'var(--cobalt)' },
+  advanced:     { sets: '4–5', reps: '6–10',  rest: '2min', tag: 'Avançado',      tagBg: 'var(--mist)',           tagColor: 'var(--navy)' },
 }
 
 export const SPLIT_LABEL: Record<WorkoutDays, string> = {
@@ -45,7 +45,7 @@ export const SPLITS: Record<SplitKey, WorkoutDay[]> = {
   // ── 2 dias ────────────────────────────────────────────────────────────────
   '2_M': [
     {
-      label: 'A', name: 'Empurrar + Core', color: '#059669',
+      label: 'A', name: 'Empurrar + Core', color: 'var(--teal-d)',
       gym: [
         { name: 'Supino reto com barra', tip: 'Desça a barra até o peito' },
         { name: 'Desenvolvimento militar', tip: 'Core contraído, sem arquear lombar' },
@@ -62,7 +62,7 @@ export const SPLITS: Record<SplitKey, WorkoutDay[]> = {
       ],
     },
     {
-      label: 'B', name: 'Puxar + Posterior', color: '#7C3AED',
+      label: 'B', name: 'Puxar + Posterior', color: 'var(--cobalt)',
       gym: [
         { name: 'Puxador frontal (pegada aberta)', tip: 'Puxe pelo cotovelo, não pela mão' },
         { name: 'Remada curvada com barra', tip: 'Tronco a 45°, barra ao umbigo' },
@@ -81,7 +81,7 @@ export const SPLITS: Record<SplitKey, WorkoutDay[]> = {
   ],
   '2_F': [
     {
-      label: 'A', name: 'Glúteos + Pernas', color: '#EC4899',
+      label: 'A', name: 'Glúteos + Pernas', color: 'var(--ink-2)',
       gym: [
         { name: 'Hip thrust com barra', tip: 'Esprema o glúteo 2s no topo' },
         { name: 'Agachamento livre', tip: 'Profundidade paralela ou abaixo' },
@@ -98,7 +98,7 @@ export const SPLITS: Record<SplitKey, WorkoutDay[]> = {
       ],
     },
     {
-      label: 'B', name: 'Superior + Core', color: '#7C3AED',
+      label: 'B', name: 'Superior + Core', color: 'var(--cobalt)',
       gym: [
         { name: 'Supino inclinado com halteres', tip: 'Toque os halteres no peito' },
         { name: 'Puxador frontal', tip: 'Foco em puxar pelo cotovelo' },
@@ -119,7 +119,7 @@ export const SPLITS: Record<SplitKey, WorkoutDay[]> = {
   // ── 3 dias ────────────────────────────────────────────────────────────────
   '3_M': [
     {
-      label: 'A', name: 'Peito + Tríceps', color: '#059669',
+      label: 'A', name: 'Peito + Tríceps', color: 'var(--teal-d)',
       gym: [
         { name: 'Supino reto com barra' },
         { name: 'Supino inclinado com halteres' },
@@ -136,7 +136,7 @@ export const SPLITS: Record<SplitKey, WorkoutDay[]> = {
       ],
     },
     {
-      label: 'B', name: 'Costas + Bíceps', color: '#7C3AED',
+      label: 'B', name: 'Costas + Bíceps', color: 'var(--cobalt)',
       gym: [
         { name: 'Puxador frontal (pegada aberta)' },
         { name: 'Remada curvada com barra' },
@@ -153,7 +153,7 @@ export const SPLITS: Record<SplitKey, WorkoutDay[]> = {
       ],
     },
     {
-      label: 'C', name: 'Pernas + Core', color: '#0EA5E9',
+      label: 'C', name: 'Pernas + Core', color: 'var(--navy)',
       gym: [
         { name: 'Agachamento livre com barra' },
         { name: 'Leg press 45°' },
@@ -172,7 +172,7 @@ export const SPLITS: Record<SplitKey, WorkoutDay[]> = {
   ],
   '3_F': [
     {
-      label: 'A', name: 'Glúteos + Isquios', color: '#EC4899',
+      label: 'A', name: 'Glúteos + Isquios', color: 'var(--ink-2)',
       gym: [
         { name: 'Hip thrust com barra', tip: '2s no topo' },
         { name: 'Agachamento profundo com barra' },
@@ -189,7 +189,7 @@ export const SPLITS: Record<SplitKey, WorkoutDay[]> = {
       ],
     },
     {
-      label: 'B', name: 'Peito + Costas + Ombros', color: '#7C3AED',
+      label: 'B', name: 'Peito + Costas + Ombros', color: 'var(--cobalt)',
       gym: [
         { name: 'Supino inclinado com halteres' },
         { name: 'Puxador frontal' },
@@ -206,7 +206,7 @@ export const SPLITS: Record<SplitKey, WorkoutDay[]> = {
       ],
     },
     {
-      label: 'C', name: 'Pernas + Core', color: '#059669',
+      label: 'C', name: 'Pernas + Core', color: 'var(--teal-d)',
       gym: [
         { name: 'Avanço com halteres' },
         { name: 'Cadeira flexora deitada' },
@@ -227,7 +227,7 @@ export const SPLITS: Record<SplitKey, WorkoutDay[]> = {
   // ── 4 dias ────────────────────────────────────────────────────────────────
   '4_M': [
     {
-      label: 'A', name: 'Peito + Tríceps', color: '#059669',
+      label: 'A', name: 'Peito + Tríceps', color: 'var(--teal-d)',
       gym: [
         { name: 'Supino reto com barra' },
         { name: 'Supino inclinado com halteres' },
@@ -244,7 +244,7 @@ export const SPLITS: Record<SplitKey, WorkoutDay[]> = {
       ],
     },
     {
-      label: 'B', name: 'Costas + Bíceps', color: '#7C3AED',
+      label: 'B', name: 'Costas + Bíceps', color: 'var(--cobalt)',
       gym: [
         { name: 'Puxador frontal (pegada aberta)' },
         { name: 'Remada curvada com barra' },
@@ -261,7 +261,7 @@ export const SPLITS: Record<SplitKey, WorkoutDay[]> = {
       ],
     },
     {
-      label: 'C', name: 'Pernas', color: '#0EA5E9',
+      label: 'C', name: 'Pernas', color: 'var(--navy)',
       gym: [
         { name: 'Agachamento livre com barra' },
         { name: 'Leg press 45°' },
@@ -278,7 +278,7 @@ export const SPLITS: Record<SplitKey, WorkoutDay[]> = {
       ],
     },
     {
-      label: 'D', name: 'Ombros + Core', color: '#F59E0B',
+      label: 'D', name: 'Ombros + Core', color: 'var(--ink-2)',
       gym: [
         { name: 'Desenvolvimento militar com barra' },
         { name: 'Elevação lateral com halteres' },
@@ -297,7 +297,7 @@ export const SPLITS: Record<SplitKey, WorkoutDay[]> = {
   ],
   '4_F': [
     {
-      label: 'A', name: 'Glúteos', color: '#EC4899',
+      label: 'A', name: 'Glúteos', color: 'var(--ink-2)',
       gym: [
         { name: 'Hip thrust com barra', tip: '2s no topo' },
         { name: 'Agachamento profundo com barra' },
@@ -314,7 +314,7 @@ export const SPLITS: Record<SplitKey, WorkoutDay[]> = {
       ],
     },
     {
-      label: 'B', name: 'Peito + Tríceps', color: '#059669',
+      label: 'B', name: 'Peito + Tríceps', color: 'var(--teal-d)',
       gym: [
         { name: 'Supino inclinado com halteres' },
         { name: 'Crossover no cabo' },
@@ -331,7 +331,7 @@ export const SPLITS: Record<SplitKey, WorkoutDay[]> = {
       ],
     },
     {
-      label: 'C', name: 'Pernas + Panturrilha', color: '#0EA5E9',
+      label: 'C', name: 'Pernas + Panturrilha', color: 'var(--navy)',
       gym: [
         { name: 'Leg press (pegada alta)' },
         { name: 'Stiff com barra' },
@@ -348,7 +348,7 @@ export const SPLITS: Record<SplitKey, WorkoutDay[]> = {
       ],
     },
     {
-      label: 'D', name: 'Costas + Bíceps', color: '#7C3AED',
+      label: 'D', name: 'Costas + Bíceps', color: 'var(--cobalt)',
       gym: [
         { name: 'Puxador frontal' },
         { name: 'Remada unilateral com halter' },
@@ -369,7 +369,7 @@ export const SPLITS: Record<SplitKey, WorkoutDay[]> = {
   // ── 5 dias ────────────────────────────────────────────────────────────────
   '5_M': [
     {
-      label: 'A', name: 'Peito', color: '#059669',
+      label: 'A', name: 'Peito', color: 'var(--teal-d)',
       gym: [
         { name: 'Supino reto com barra' },
         { name: 'Supino inclinado com halteres' },
@@ -386,7 +386,7 @@ export const SPLITS: Record<SplitKey, WorkoutDay[]> = {
       ],
     },
     {
-      label: 'B', name: 'Costas', color: '#7C3AED',
+      label: 'B', name: 'Costas', color: 'var(--cobalt)',
       gym: [
         { name: 'Barra fixa (pull-up)' },
         { name: 'Remada curvada com barra' },
@@ -403,7 +403,7 @@ export const SPLITS: Record<SplitKey, WorkoutDay[]> = {
       ],
     },
     {
-      label: 'C', name: 'Pernas', color: '#0EA5E9',
+      label: 'C', name: 'Pernas', color: 'var(--navy)',
       gym: [
         { name: 'Agachamento livre com barra' },
         { name: 'Leg press 45°' },
@@ -420,7 +420,7 @@ export const SPLITS: Record<SplitKey, WorkoutDay[]> = {
       ],
     },
     {
-      label: 'D', name: 'Ombros', color: '#F59E0B',
+      label: 'D', name: 'Ombros', color: 'var(--ink-2)',
       gym: [
         { name: 'Desenvolvimento militar com barra' },
         { name: 'Elevação lateral com halteres' },
@@ -437,7 +437,7 @@ export const SPLITS: Record<SplitKey, WorkoutDay[]> = {
       ],
     },
     {
-      label: 'E', name: 'Bíceps + Tríceps', color: '#DC2626',
+      label: 'E', name: 'Bíceps + Tríceps', color: 'var(--cobalt)',
       gym: [
         { name: 'Rosca direta com barra' },
         { name: 'Rosca concentrada com halter' },
@@ -456,7 +456,7 @@ export const SPLITS: Record<SplitKey, WorkoutDay[]> = {
   ],
   '5_F': [
     {
-      label: 'A', name: 'Glúteos', color: '#EC4899',
+      label: 'A', name: 'Glúteos', color: 'var(--ink-2)',
       gym: [
         { name: 'Hip thrust com barra', tip: '2s no topo' },
         { name: 'Agachamento profundo com barra' },
@@ -473,7 +473,7 @@ export const SPLITS: Record<SplitKey, WorkoutDay[]> = {
       ],
     },
     {
-      label: 'B', name: 'Pernas', color: '#0EA5E9',
+      label: 'B', name: 'Pernas', color: 'var(--navy)',
       gym: [
         { name: 'Leg press (pegada alta)' },
         { name: 'Cadeira flexora deitada' },
@@ -490,7 +490,7 @@ export const SPLITS: Record<SplitKey, WorkoutDay[]> = {
       ],
     },
     {
-      label: 'C', name: 'Peito + Costas', color: '#7C3AED',
+      label: 'C', name: 'Peito + Costas', color: 'var(--cobalt)',
       gym: [
         { name: 'Supino inclinado com halteres' },
         { name: 'Puxador frontal' },
@@ -507,7 +507,7 @@ export const SPLITS: Record<SplitKey, WorkoutDay[]> = {
       ],
     },
     {
-      label: 'D', name: 'Glúteos 2 + Isquios', color: '#F97316',
+      label: 'D', name: 'Glúteos 2 + Isquios', color: 'var(--ink-2)',
       gym: [
         { name: 'Levantamento terra romeno' },
         { name: 'Cadeira flexora deitada' },
@@ -524,7 +524,7 @@ export const SPLITS: Record<SplitKey, WorkoutDay[]> = {
       ],
     },
     {
-      label: 'E', name: 'Ombros + Braços + Core', color: '#059669',
+      label: 'E', name: 'Ombros + Braços + Core', color: 'var(--teal-d)',
       gym: [
         { name: 'Desenvolvimento com halteres' },
         { name: 'Elevação lateral com halteres' },
@@ -545,9 +545,9 @@ export const SPLITS: Record<SplitKey, WorkoutDay[]> = {
 
 // ── Day icon map ─────────────────────────────────────────────────────────────
 export const DAY_ICON_MAP: Record<string, React.ReactNode> = {
-  A: <Dumbbell  size={18} strokeWidth={2} />,
-  B: <Activity  size={18} strokeWidth={2} />,
-  C: <ArrowDown size={18} strokeWidth={2} />,
-  D: <Zap       size={18} strokeWidth={2} />,
-  E: <Sparkles  size={18} strokeWidth={2} />,
+  A: <Dumbbell  size={18} strokeWidth={1.75} />,
+  B: <Activity  size={18} strokeWidth={1.75} />,
+  C: <ArrowDown size={18} strokeWidth={1.75} />,
+  D: <Zap       size={18} strokeWidth={1.75} />,
+  E: <Sparkles  size={18} strokeWidth={1.75} />,
 }

@@ -65,12 +65,12 @@ export default function Calculator({ profile }: Props) {
       {/* Disclaimer obrigatório */}
       <div style={{
         padding: '12px 14px',
-        background: 'rgba(245,158,11,0.07)',
-        border: '1px solid rgba(245,158,11,0.22)',
+        background: 'var(--amber-bg)',
+        border: '1px solid var(--amber-line)',
         borderRadius: '12px',
         display: 'flex', alignItems: 'flex-start', gap: '10px',
       }}>
-        <AlertTriangle size={15} strokeWidth={2} style={{ color: '#F59E0B', flexShrink: 0, marginTop: '1px' }} />
+        <AlertTriangle size={15} strokeWidth={2} style={{ color: 'var(--amber)', flexShrink: 0, marginTop: '1px' }} />
         <p style={{ fontSize: '12px', color: 'var(--text-secondary)', margin: 0, lineHeight: 1.6 }}>
           <strong style={{ color: 'var(--warn-text)' }}>Uso educativo.</strong> Esta calculadora converte mg em unidades de seringa (UI) para fins de referência. O resultado NÃO substitui a orientação do médico ou farmacêutico responsável pelo seu protocolo. Confirme sempre a dose com o profissional que prescreveu o medicamento.
         </p>

@@ -50,7 +50,7 @@ export default function LoginScreen({ onAccessGranted, onLegal }: Props) {
         borderRadius: '24px',
         border: '1px solid var(--border)',
         padding: '36px 28px 32px',
-        boxShadow: '0 8px 40px rgba(15,23,42,0.08), 0 2px 8px rgba(15,23,42,0.04)',
+        boxShadow: '0 8px 40px rgba(var(--shadow-rgb),0.08), 0 2px 8px rgba(var(--shadow-rgb),0.04)',
       }}>
 
         {/* Logo + título */}
@@ -63,7 +63,7 @@ export default function LoginScreen({ onAccessGranted, onLegal }: Props) {
               borderRadius: '20px',
               objectFit: 'contain',
               marginBottom: '16px',
-              boxShadow: '0 4px 16px rgba(37,99,235,0.18)',
+              boxShadow: '0 4px 16px rgba(var(--shadow-rgb),0.18)',
             }}
           />
           <h1 style={{
@@ -93,7 +93,7 @@ export default function LoginScreen({ onAccessGranted, onLegal }: Props) {
               position: 'absolute', left: '14px', top: '50%', transform: 'translateY(-50%)',
               color: 'var(--text-muted)', pointerEvents: 'none',
             }}>
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round">
                 <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/>
                 <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
               </svg>
@@ -134,7 +134,7 @@ export default function LoginScreen({ onAccessGranted, onLegal }: Props) {
               fontSize: '13px', color: 'var(--error)',
               margin: 0, display: 'flex', alignItems: 'center', gap: '6px',
             }}>
-              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                 <circle cx="12" cy="12" r="10"/>
                 <line x1="12" y1="8" x2="12" y2="12"/>
                 <line x1="12" y1="16" x2="12.01" y2="16"/>
@@ -152,7 +152,7 @@ export default function LoginScreen({ onAccessGranted, onLegal }: Props) {
               padding: '14px',
               borderRadius: '14px',
               border: 'none',
-              background: 'linear-gradient(135deg, #1D4ED8 0%, #3B82F6 100%)',
+              background: 'var(--g-cta)',
               color: '#fff',
               fontSize: '15px',
               fontWeight: 700,
@@ -163,7 +163,7 @@ export default function LoginScreen({ onAccessGranted, onLegal }: Props) {
               alignItems: 'center',
               justifyContent: 'center',
               gap: '8px',
-              boxShadow: '0 4px 14px rgba(37,99,235,0.35)',
+              boxShadow: '0 4px 14px rgba(var(--shadow-rgb),0.28)',
               transition: 'opacity 0.15s',
             }}
           >
@@ -181,7 +181,7 @@ export default function LoginScreen({ onAccessGranted, onLegal }: Props) {
             ) : (
               <>
                 Acessar
-                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                   <polyline points="9 18 15 12 9 6"/>
                 </svg>
               </>

@@ -88,7 +88,7 @@ export default function StockControl({ profile, onUpdateProfile }: Props) {
             { label: 'Doses por ampola',         value: `${dosesPerAmpoule} aplicações`, color: 'var(--text-primary)' },
             { label: 'Total de doses no estoque', value: `${totalDoses} aplicações`,     color: 'var(--primary)' },
             { label: 'Semanas de tratamento',     value: `${weeksRemaining} semanas`,    color: 'var(--accent)' },
-            { label: 'Previsão de término',       value: endDate ?? '--',                color: stockOk ? 'var(--text-primary)' : '#EF4444' },
+            { label: 'Previsão de término',       value: endDate ?? '--',                color: stockOk ? 'var(--text-primary)' : 'var(--red)' },
           ].map(r => (
             <div key={r.label} style={{
               display: 'flex', justifyContent: 'space-between', alignItems: 'center',

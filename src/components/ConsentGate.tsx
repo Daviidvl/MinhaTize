@@ -221,12 +221,12 @@ export default function ConsentGate({ onAccept }: Props) {
         {/* Aviso médico em destaque */}
         <div style={{
           padding: '14px 16px',
-          background: 'rgba(239,68,68,0.08)',
-          border: '1px solid rgba(239,68,68,0.25)',
+          background: 'var(--red-bg)',
+          border: '1px solid var(--red-line)',
           borderRadius: '14px',
           display: 'flex', alignItems: 'flex-start', gap: '12px',
         }}>
-          <AlertTriangle size={18} strokeWidth={2} style={{ color: '#F87171', flexShrink: 0, marginTop: '1px' }} />
+          <AlertTriangle size={18} strokeWidth={1.75} style={{ color: 'var(--red)', flexShrink: 0, marginTop: '1px' }} />
           <div>
             <p style={{ fontSize: '12px', fontWeight: 700, color: 'var(--danger-text)', margin: '0 0 4px', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
               Aviso Médico Importante
@@ -294,7 +294,7 @@ export default function ConsentGate({ onAccept }: Props) {
                 display: 'flex', alignItems: 'center', justifyContent: 'center',
                 transition: 'all 0.15s', marginTop: '1px',
               }}>
-                {item.checked && <Check size={11} strokeWidth={3} style={{ color: '#fff' }} />}
+                {item.checked && <Check size={11} strokeWidth={2.5} style={{ color: '#fff' }} />}
               </div>
               <span style={{ fontSize: '12px', color: 'var(--text-secondary)', lineHeight: 1.55 }}>
                 {item.label}
@@ -310,7 +310,7 @@ export default function ConsentGate({ onAccept }: Props) {
           style={{
             width: '100%', padding: '15px',
             background: allChecked
-              ? 'linear-gradient(135deg, var(--primary), #0D9488)'
+              ? 'var(--g-cta)'
               : 'var(--surface-2)',
             border: allChecked ? 'none' : '1px solid var(--border)',
             borderRadius: '13px', cursor: allChecked ? 'pointer' : 'not-allowed',
