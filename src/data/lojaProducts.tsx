@@ -1,4 +1,4 @@
-import { Syringe, Pill, Dumbbell, Sparkles, Scale } from 'lucide-react'
+import { Syringe, Pill, Dumbbell, Scale } from 'lucide-react'
 
 // ── Loja: categorias e produtos ──────────────────────────────────────────────
 export interface LojaProduct {
@@ -125,25 +125,6 @@ export const LOJA_CATEGORIES: Record<string, LojaCategory> = {
           { name: 'Peptistrong 2,4g + Peptan 150g Limão — Dhermativos', description: 'Suplemento em pó com Peptistrong e Peptan, 30 doses.', price: 'R$ 256,00', originalPrice: 'R$ 320,00', discountPercent: 20, priceNote: 'R$ 230,40 no Pix com cupom', url: shopee('70KVqueNEr'), image: 'https://down-br.img.susercontent.com/file/br-11134207-81z1k-mhqcht80w2de8f@resize_w900_nl.webp' },
           { name: 'Cindura 800mg 30 doses', description: 'Extratos vegetais para a rotina de treinos de força e resistência.', price: 'R$ 151,05', url: shopee('8KptRQ2oav'), image: 'https://down-br.img.susercontent.com/file/br-11134207-820le-mnzziyu0pix089@resize_w900_nl.webp' },
           { name: 'Cindura HMB + Turkesterone', description: 'Combinação de HMB e turkesterone para a rotina de treino.', price: 'R$ 126,35', url: shopee('7ptcqZ32A8'), image: 'https://down-br.img.susercontent.com/file/sg-11134201-822x2-mi96yswlmkug6c@resize_w900_nl.webp' },
-        ],
-      },
-    ],
-  },
-  pele: {
-    title: 'Pele & Corpo',
-    sub: 'Cuidados durante o emagrecimento',
-    gradient: 'var(--g-midnight)',
-    shadowColor: 'rgba(var(--shadow-rgb),0.28)',
-    accent: 'var(--cobalt)',
-    icon: (color, size) => <Sparkles size={size} strokeWidth={1.75} color={color} />,
-    groups: [
-      {
-        // Produtos de exemplo — ainda sem links reais
-        label: 'Produtos selecionados',
-        products: [
-          { name: 'Creme Firmador Corporal', price: 'R$ 54,90', originalPrice: 'R$ 69,90', discountPercent: 21, priceNote: 'R$18,30 em 3x sem juros' },
-          { name: 'Óleo Corporal Hidratante', price: 'R$ 44,90', originalPrice: 'R$ 54,90', discountPercent: 18, priceNote: 'R$22,45 em 2x sem juros' },
-          { name: 'Escova de Massagem Anticelulite', price: 'R$ 34,90', originalPrice: 'R$ 44,90', discountPercent: 22, priceNote: 'R$17,45 em 2x sem juros' },
         ],
       },
     ],

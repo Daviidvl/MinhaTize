@@ -290,14 +290,14 @@ function WaterWidget({ weight, onNavigate }: { weight: number; onNavigate: (t: T
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '12px' }}>
           <div style={{ minWidth: 0 }}>
             {/* Texto em --ink: o --ink-2 perde contraste sobre o azul do degradê */}
-            <p style={{ fontSize: '9px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.10em', margin: '0 0 5px', color: 'var(--ink)', opacity: 0.72 }}>
+            <p style={{ fontSize: '9px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.10em', margin: '0 0 5px', color: 'var(--ink)', opacity: 0.8 }}>
               Água hoje
             </p>
             <p className="num-display" style={{ fontSize: '30px', color: 'var(--ink)', margin: '0 0 2px' }}>
               {formatMl(total)}
-              <span style={{ fontSize: '13px', fontWeight: 600, opacity: 0.65, marginLeft: '5px', letterSpacing: '0.02em' }}>ml</span>
+              <span style={{ fontSize: '13px', fontWeight: 600, opacity: 0.75, marginLeft: '5px', letterSpacing: '0.02em' }}>ml</span>
             </p>
-            <p style={{ fontSize: '11px', fontWeight: 600, margin: 0, display: 'flex', alignItems: 'center', gap: '4px', color: 'var(--ink)', opacity: total >= goal ? 1 : 0.72 }}>
+            <p style={{ fontSize: '11px', fontWeight: 600, margin: 0, display: 'flex', alignItems: 'center', gap: '4px', color: 'var(--ink)', opacity: total >= goal ? 1 : 0.8 }}>
               {total >= goal
                 ? <><Check size={12} strokeWidth={2.5} style={{ flexShrink: 0, color: 'var(--teal-d)' }} />Meta de {formatMl(goal)} ml atingida</>
                 : `de ${formatMl(goal)} ml · faltam ${formatMl(goal - total)} ml`}
@@ -594,9 +594,8 @@ export default function Dashboard({ profile, onNavigate, onUpdateProfile }: Prop
       )}
 
       {/* ── Stats ── */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '10px' }}>
+      <div style={{ display: 'grid', gridTemplateColumns: '4fr 3fr', gap: '10px' }}>
         <StatTile
-          style={{ gridColumn: 'span 2' }}
           label="IMC"
           value={imc ? imc.toFixed(1) : '—'}
           sub={imcInfo?.label}
@@ -604,8 +603,8 @@ export default function Dashboard({ profile, onNavigate, onUpdateProfile }: Prop
           icon={<svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><path d="M20.84 4.61a5.5 5.5 0 00-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 00-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 000-7.78z"/></svg>}
         />
 
-        {/* Tile de Dose */}
-        <div className="stat-card" style={{ position: 'relative', overflow: 'hidden', aspectRatio: '1', gridColumn: 'span 1' }}>
+        {/* Tile de Dose — 4/3 mantém a altura da linha de quando o tile era quadrado em 1/3 da largura */}
+        <div className="stat-card" style={{ position: 'relative', overflow: 'hidden', aspectRatio: '4 / 3' }}>
           <div style={{ position: 'absolute', top: '14px', right: '14px', opacity: 0.10 }}>
             <Zap size={36} strokeWidth={1.5} />
           </div>

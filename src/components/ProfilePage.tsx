@@ -2,7 +2,7 @@ import { useState } from 'react'
 import {
   Award, Calendar, Package, Settings, Zap, BarChart2, Scale, Flame, Dumbbell,
   Target, Lightbulb, AlertTriangle, Check, ChevronLeft, ChevronRight, Shield,
-  MessageCircle, Utensils, Syringe, Pill, Sparkles, Heart,
+  MessageCircle, Utensils, Syringe, Pill, Heart,
 } from 'lucide-react'
 import { UserProfile, Medication, Sex, MEDICATION_LABELS, DOSE_OPTIONS, WEEK_DAYS_FULL } from '../types'
 import StockControl from './StockControl'
@@ -194,20 +194,19 @@ function CategoryBanner({ iconBg, icon, label, sub, onClick }: {
       gridColumn: '1 / -1', display: 'flex', alignItems: 'center', gap: '14px',
       padding: '18px 20px', borderRadius: '22px', textAlign: 'left', cursor: 'pointer',
       background: iconBg, border: 'none', position: 'relative', overflow: 'hidden',
-      boxShadow: '0 8px 24px rgba(var(--shadow-rgb),0.18), 0 2px 6px rgba(var(--shadow-rgb),0.14)',
+      boxShadow: 'inset 0 0 0 1px var(--line), 0 8px 22px rgba(var(--shadow-rgb),0.10), 0 2px 6px rgba(var(--shadow-rgb),0.08)',
       fontFamily: 'Inter, -apple-system, sans-serif',
     }}>
-      <div style={{ position: 'absolute', top: '-28px', right: '-28px', width: '100px', height: '100px', borderRadius: '50%', background: 'rgba(255,255,255,0.08)', pointerEvents: 'none' }} />
-      <div style={{ position: 'absolute', bottom: '-24px', left: '30%', width: '70px', height: '70px', borderRadius: '50%', background: 'rgba(255,255,255,0.04)', pointerEvents: 'none' }} />
+      <div style={{ position: 'absolute', top: '-28px', right: '-28px', width: '100px', height: '100px', borderRadius: '50%', background: 'rgba(255,255,255,0.10)', pointerEvents: 'none' }} />
       <div style={{
         width: '48px', height: '48px', borderRadius: '14px', flexShrink: 0, position: 'relative',
-        background: 'rgba(255,255,255,0.16)', display: 'flex', alignItems: 'center', justifyContent: 'center',
+        background: 'var(--ice)', display: 'flex', alignItems: 'center', justifyContent: 'center',
       }}>{icon}</div>
       <div style={{ flex: 1, minWidth: 0, position: 'relative' }}>
-        <p style={{ fontSize: '15px', fontWeight: 800, color: '#fff', margin: '0 0 2px', letterSpacing: '-0.3px' }}>{label}</p>
-        <p style={{ fontSize: '11px', color: 'rgba(255,255,255,0.65)', fontWeight: 600, margin: 0 }}>{sub}</p>
+        <p style={{ fontSize: '15px', fontWeight: 800, color: 'var(--ink)', margin: '0 0 2px', letterSpacing: '-0.3px' }}>{label}</p>
+        <p style={{ fontSize: '11px', color: 'var(--text-muted)', fontWeight: 600, margin: 0 }}>{sub}</p>
       </div>
-      <ChevronRight size={18} strokeWidth={1.75} style={{ color: 'rgba(255,255,255,0.65)', flexShrink: 0, position: 'relative' }} />
+      <ChevronRight size={18} strokeWidth={1.75} style={{ color: 'var(--text-muted)', flexShrink: 0, position: 'relative' }} />
     </button>
   )
 }
@@ -776,29 +775,23 @@ export default function ProfilePage({ profile, onUpdateProfile, onBack, initialS
         <SLabel>Categorias</SLabel>
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(6, 1fr)', gap: '10px' }}>
           <CategoryBanner
-            iconBg="var(--g-midnight)"
-            icon={<Syringe size={22} strokeWidth={1.75} color="#fff" />}
+            iconBg="var(--surface)"
+            icon={<Syringe size={22} strokeWidth={1.75} color="var(--cobalt)" />}
             label="Aplicação & Insumos"
             sub="Agulhas, seringas e descarte"
             onClick={() => { setLojaCategoria('aplicacao'); setSection('loja-categoria') }}
           />
           <CategoryTile
-            span={4} minHeight="150px"
+            span={6} minHeight="150px"
             gradient="var(--surface)" shadowColor="rgba(var(--shadow-rgb),0.10)"
             icon={<Pill size={22} strokeWidth={1.75} color="var(--cobalt)" />} label="Suplementos & Vitaminas"
             onClick={() => { setLojaCategoria('suplementos'); setSection('loja-categoria') }}
           />
           <CategoryTile
-            span={2} minHeight="150px"
-            gradient="var(--surface)" shadowColor="rgba(var(--shadow-rgb),0.10)"
-            icon={<Dumbbell size={17} strokeWidth={1.75} color="var(--cobalt)" />} label="Treino & Bem-estar"
-            onClick={() => { setLojaCategoria('treino'); setSection('loja-categoria') }}
-          />
-          <CategoryTile
             span={3} minHeight="132px"
             gradient="var(--surface)" shadowColor="rgba(var(--shadow-rgb),0.10)"
-            icon={<Sparkles size={19} strokeWidth={1.75} color="var(--cobalt)" />} label="Pele & Corpo"
-            onClick={() => { setLojaCategoria('pele'); setSection('loja-categoria') }}
+            icon={<Dumbbell size={19} strokeWidth={1.75} color="var(--cobalt)" />} label="Treino & Bem-estar"
+            onClick={() => { setLojaCategoria('treino'); setSection('loja-categoria') }}
           />
           <CategoryTile
             span={3} minHeight="132px"

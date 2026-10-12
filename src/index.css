@@ -46,12 +46,13 @@
     --g-cta:      linear-gradient(135deg, #17458F 0%, #1E5BB8 100%);
     --g-progress: linear-gradient(90deg,  #3A86E0 0%, #19B5A5 100%);
     --g-ring:     linear-gradient(135deg, #8FBDF0 0%, #2BD4C0 100%);
-    --g-water:    linear-gradient(135deg, var(--ice-strong) 0%, var(--teal-l) 100%); /* widget de água: fundo claro, usar sobre --surface */
+    --g-water:    linear-gradient(135deg, var(--sky-soft) 0%, var(--teal-soft) 100%); /* widget de água: azul → verde-água, usar sobre --surface */
 
     /* ─ Derivados: sempre calculados a partir dos tokens acima */
     --line-strong:   color-mix(in srgb, var(--ink-2) 32%, var(--surface)); /* borda tracejada e contorno de botão fantasma */
     --amber-line:    color-mix(in srgb, var(--amber-fill) 40%, var(--surface)); /* borda de alerta */
-    --ice-strong:    color-mix(in srgb, var(--sky) 40%, var(--ice)); /* azul claro mais presente: início do --g-water (texto só em --ink) */
+    --sky-soft:      color-mix(in srgb, var(--sky) 85%, var(--ice)); /* azul mais visível: início do --g-water (texto só em --ink) */
+    --teal-soft:     color-mix(in srgb, var(--teal) 35%, var(--teal-l)); /* verde-água mais visível: fim do --g-water (texto só em --ink) */
     --shadow-rgb:    11, 37, 69; /* navy das sombras: usar como rgba(var(--shadow-rgb), alpha) */
     --scrim:         rgba(var(--shadow-rgb), 0.55); /* véu atrás de modais */
     --track-on-dark: rgba(255,255,255,0.22); /* trilha de barra/anel sobre fundo escuro */
@@ -206,7 +207,8 @@
     --red-line:   rgba(239,68,68,0.30);
     --line-strong: rgba(200,220,255,0.12);
     --amber-line:  rgba(224,138,18,0.30);
-    --ice-strong:  rgba(79,133,245,0.26);
+    --sky-soft:    rgba(79,133,245,0.42);
+    --teal-soft:   rgba(43,212,192,0.30);
     --shadow-rgb:  0, 0, 0;
   }
 

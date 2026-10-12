@@ -41,7 +41,7 @@ export default function Footer({ onLegal }: Props) {
       </div>
 
       <p style={{ fontSize: '10px', color: 'var(--text-faint)', textAlign: 'center', margin: 0 }}>
-        &copy; {new Date().getFullYear()} MinhaTize &middot; v1.0
+        &copy; {new Date().getFullYear()} MinhaTize &middot; v1.1
       </p>
     </footer>
   )
