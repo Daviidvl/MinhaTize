@@ -1,10 +1,11 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node'
 
-export const ALLOWED_ORIGINS = [
-  'https://minhatize.vercel.app',
-  'http://localhost:3000',
-  'http://localhost:5173',
-]
+// localhost só entra fora de produção (preview da Vercel e `vercel dev`)
+const DEV_ORIGINS = process.env.VERCEL_ENV === 'production'
+  ? []
+  : ['http://localhost:3000', 'http://localhost:5173']
+
+export const ALLOWED_ORIGINS = ['https://minhatize.vercel.app', ...DEV_ORIGINS]
 
 export function setCors(req: VercelRequest, res: VercelResponse, methods: string, allowHeaders?: string) {
   const origin = (req.headers.origin as string) ?? ''

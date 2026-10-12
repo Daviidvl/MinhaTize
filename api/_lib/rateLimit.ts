@@ -46,11 +46,18 @@ export interface RateLimitResult {
 }
 
 // ─── Fallback em memória (comportamento anterior, preservado) ─────────────────
+const MEMORY_SWEEP_THRESHOLD = 5_000
+
 function createMemoryLimiter(max: number, windowMs: number) {
   const hits = new Map<string, { count: number; reset: number }>()
 
   return function check(key: string): RateLimitResult {
     const now = Date.now()
+    // Janelas vencidas nunca mais são lidas; sem esta limpeza o Map cresceria
+    // com cada IP novo enquanto a instância serverless ficasse viva.
+    if (hits.size >= MEMORY_SWEEP_THRESHOLD) {
+      for (const [k, e] of hits) if (now > e.reset) hits.delete(k)
+    }
     const entry = hits.get(key)
     if (!entry || now > entry.reset) {
       hits.set(key, { count: 1, reset: now + windowMs })
