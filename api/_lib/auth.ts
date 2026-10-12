@@ -32,15 +32,41 @@ export async function isActiveToken(token: string): Promise<boolean> {
 // por causa de uma instabilidade).
 export type TokenStatus = 'active' | 'inactive' | 'error'
 
+// A coluna expires_at vem de uma migration aplicada à mão
+// (supabase/migrations/20260901_add_token_expiration.sql). Se o código for
+// publicado antes dela, o Postgres responde 42703 (undefined_column) e, sem
+// este tratamento, NENHUM token validaria. Sem a coluna não existe expiração a
+// respeitar, então a consulta é refeita sem ela.
+const UNDEFINED_COLUMN = '42703'
+// Depois de detectar a ausência, evita a consulta dupla por alguns minutos e
+// então tenta de novo — assim a migration passa a valer sem precisar de deploy.
+const MISSING_COLUMN_RECHECK_MS = 5 * 60_000
+let expiresAtMissingUntil = 0
+
+type TokenRow = { id: unknown; expires_at?: string | null }
+
+async function findActiveToken(token: string, columns: string) {
+  return getSupabaseAdmin()
+    .from('tokens')
+    .select(columns)
+    .eq('token', token)
+    .eq('active', true)
+    .maybeSingle<TokenRow>()
+}
+
 export async function checkToken(token: string): Promise<TokenStatus> {
   try {
-    const supabase = getSupabaseAdmin()
-    const { data, error } = await supabase
-      .from('tokens')
-      .select('id, expires_at')
-      .eq('token', token)
-      .eq('active', true)
-      .maybeSingle()
+    const skipExpiry = Date.now() < expiresAtMissingUntil
+    let { data, error } = await findActiveToken(token, skipExpiry ? 'id' : 'id, expires_at')
+
+    if (error && !skipExpiry && (error.code === UNDEFINED_COLUMN || /expires_at.*does not exist/i.test(error.message ?? ''))) {
+      console.warn(
+        '[auth] Coluna tokens.expires_at ausente — validando sem expiração. ' +
+        'Rode supabase/migrations/20260901_add_token_expiration.sql.'
+      )
+      expiresAtMissingUntil = Date.now() + MISSING_COLUMN_RECHECK_MS
+      ;({ data, error } = await findActiveToken(token, 'id'))
+    }
 
     if (error) {
       console.error('[auth] Erro ao validar token:', error.message)

@@ -54,7 +54,7 @@ As migrations ficam em `supabase/migrations/` e são aplicadas **manualmente**
 
 | Migration | O que faz | Ordem em relação ao código |
 |---|---|---|
-| `20260901_add_token_expiration.sql` | coluna `tokens.expires_at` | **antes** do deploy — sem a coluna, a validação de token falha para todos |
+| `20260901_add_token_expiration.sql` | coluna `tokens.expires_at` | antes ou depois. Sem a coluna o app funciona, mas nenhum token expira e o log registra `[auth] Coluna tokens.expires_at ausente`; depois de rodar a migration, a expiração passa a valer em até 5 minutos, sem novo deploy |
 | `20261012_unique_order_id.sql` | um token por pedido (`UNIQUE` parcial em `order_id`) | antes ou depois; confira duplicatas antes (instruções no arquivo) |
 
 Confira também, a cada mudança de schema:
