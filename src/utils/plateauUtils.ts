@@ -1,6 +1,7 @@
 import {
   PlateauEvaluation, PlateauNewUserAnswers, PlateauStatus, PlateauTracking, UserProfile, WeightEntry,
 } from '../types'
+import { todayStr } from './dateUtils'
 
 // Fonte única de análise de tendência de peso e status de platô — nenhuma outra
 // tela deve reimplementar este cálculo ou ler profile.plateau diretamente.
@@ -94,7 +95,7 @@ export function evaluateNewUser(answers: PlateauNewUserAnswers): 'possivel_estag
 }
 
 export function evaluateReassessment(profile: UserProfile, tracking: PlateauTracking): ReassessmentVerdict {
-  const today = new Date().toISOString().split('T')[0]
+  const today = todayStr()
   const points = pointsInWindow(allPoints(profile), 9999, today).filter(
     p => toDayMs(p.date) >= toDayMs(tracking.startDate)
   )

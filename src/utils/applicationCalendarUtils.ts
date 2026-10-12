@@ -1,6 +1,7 @@
 import { UserProfile } from '../types'
+import { toDateStr } from './dateUtils'
 
-export function toDateStr(d: Date) { return d.toISOString().split('T')[0] }
+export { toDateStr }
 
 export function getLog(profile: UserProfile): string[] {
   if (profile.applicationLog) return profile.applicationLog
@@ -50,12 +51,16 @@ export function calcAdherence(confirmed: Set<string>, appDay: number, todayStr: 
   const today = new Date(todayStr + 'T12:00:00')
   const offset = (today.getDay() - appDay + 7) % 7
   let scheduled = 0, done = 0
+  // Primeiro dia da janela de `weeks` semanas que termina hoje
+  const windowStart = new Date(today)
+  windowStart.setDate(today.getDate() - weeks * 7 + 1)
+  const windowStartStr = toDateStr(windowStart)
   for (let w = 0; w < weeks; w++) {
     const d = new Date(today)
     d.setDate(today.getDate() - offset - w * 7)
     const s = toDateStr(d)
     if (s > todayStr) continue
-    if (s < new Date(new Date(todayStr).setDate(new Date(todayStr).getDate() - weeks * 7 + 1)).toISOString().split('T')[0]) continue
+    if (s < windowStartStr) continue
     scheduled++
     if (confirmed.has(s)) done++
   }

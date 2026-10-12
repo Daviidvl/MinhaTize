@@ -5,42 +5,48 @@ import {
   ChevronUp, Info, X, Plus, User,
 } from 'lucide-react'
 import { UserProfile } from '../types'
+import Hydration from './Hydration'
+import WeekCard from './WeekCard'
 import { readJSON, writeJSON } from '../utils/storage'
 import { STORAGE_KEYS } from '../utils/storageKeys'
 import {
-  type IconComp, type DietSex, type MealOption,
+  type IconComp, type DietSex, type MealOption, type FoodView,
   DIET_KCAL, MEAL_SHARES, MEAL_PROTEIN, MEAL_COLOR, MEAL_ICON,
-  DIET_F, INFO_F, DIET_M, INFO_M,
+  DIET_F, INFO_F, DIET_M, INFO_M, FOOD_VIEWS,
 } from '../data/foodPlans'
+import { toDateStr } from '../utils/exerciseUtils'
+import {
+  type DayLog, type FoodLog, type WaterLog,
+  waterGoalMl, waterTotal, formatMl, mealDays, waterDays, countThisWeek, calcDayStreak,
+} from '../utils/foodUtils'
 import { alpha } from '../utils/color'
 
 interface Props {
   profile: UserProfile
   onUpdateProfile: (p: UserProfile) => void
+  view: FoodView | null  // null = tela inicial (resumo do dia + atalhos)
+  onViewChange: (v: FoodView | null) => void
 }
 
-// ── Types ─────────────────────────────────────────────────────────────────────
-interface ManualItem { id: string; name: string; kcal: number }
-interface DayLog     { meals: string[]; manual: ManualItem[] }
-type FoodLog   = Record<string, DayLog>
-type ActiveTab = 'hoje' | 'plano' | 'pouca-fome'
-
 // ── Storage ───────────────────────────────────────────────────────────────────
-const LOG_KEY  = STORAGE_KEYS.foodLog
-const DIET_KEY = STORAGE_KEYS.dietProfile
-function toDateStr(d = new Date()) { return d.toISOString().split('T')[0] }
+const LOG_KEY   = STORAGE_KEYS.foodLog
+const DIET_KEY  = STORAGE_KEYS.dietProfile
+const WATER_KEY = STORAGE_KEYS.waterLog
 
 // ── Componente principal ──────────────────────────────────────────────────────
-export default function FoodGuide({ profile }: Props) {
+export default function FoodGuide({ profile, view, onViewChange }: Props) {
   const rawSex     = profile.sex
   const detectedSex: DietSex | null = rawSex === 'female' ? 'F' : rawSex === 'male' ? 'M' : null
 
-  const [sex, setSex]             = useState<DietSex | null>(detectedSex)
-  const [activeTab, setActiveTab] = useState<ActiveTab>('hoje')
-  const [log, setLog]             = useState<FoodLog>(() => readJSON(LOG_KEY, {}))
+  // O plano já escolhido vale mais que o sexo do perfil (o componente remonta a cada troca de tela)
+  const [sex, setSex] = useState<DietSex | null>(
+    () => readJSON<{ sex: DietSex } | null>(DIET_KEY, null)?.sex ?? detectedSex
+  )
+  const [log, setLog]     = useState<FoodLog>(() => readJSON(LOG_KEY, {}))
+  const [water, setWater] = useState<WaterLog>(() => readJSON(WATER_KEY, {}))
 
-  const today  = toDateStr()
-  const dayLog = log[today] ?? { meals: [], manual: [] }
+  const today  = toDateStr(new Date())
+  const dayLog: DayLog = log[today] ?? { meals: [], manual: [] }
 
   const [manualName, setManualName] = useState('')
   const [manualKcal, setManualKcal] = useState('')
@@ -77,8 +83,17 @@ export default function FoodGuide({ profile }: Props) {
     saveLog({ ...dayLog, manual: dayLog.manual.filter(m => m.id !== id) })
   }
 
+  function saveWater(entries: number[]) {
+    const updated = { ...water, [today]: entries }
+    setWater(updated)
+    writeJSON(WATER_KEY, updated)
+  }
+
   function toggleExpanded(id: string) {
-    const next = new Set(expanded); next.has(id) ? next.delete(id) : next.add(id); setExpanded(next)
+    const next = new Set(expanded)
+    if (next.has(id)) next.delete(id)
+    else next.add(id)
+    setExpanded(next)
   }
 
   function selectSex(s: DietSex) {
@@ -96,11 +111,19 @@ export default function FoodGuide({ profile }: Props) {
   const remaining       = Math.max(0, dailyKcal - consumed)
   const proteinEst      = sex ? dayLog.meals.reduce((s, id) => s + (MEAL_PROTEIN[sex][id] ?? 0), 0) : 0
   const proteinGoal     = `${Math.round(1.6 * profile.goalWeight)}–${Math.round(2.0 * profile.goalWeight)} g`
-  const currentW        = profile.weightHistory.at(-1)?.weight ?? profile.startWeight
+  const currentW        = profile.weightHistory.at(-1)?.weight ?? profile.currentWeight ?? profile.startWeight
   const waterGoal       = `${(currentW * 35 / 1000).toFixed(1)}–${(currentW * 40 / 1000).toFixed(1)} L`
+  const goalMl          = waterGoalMl(currentW)
+  const waterToday      = waterTotal(water[today])
+  const waterPct        = Math.min(100, Math.round((waterToday / goalMl) * 100))
+  const mealsDone       = mealDays(log, diet.filter(m => m.required).map(m => m.id))
+  const waterDone       = waterDays(water, goalMl)
+  const mealsWeek       = countThisWeek(mealsDone)
+  const mealsStreak     = calcDayStreak(mealsDone)
 
   // ── Seletor de sexo ───────────────────────────────────────────────────────
-  if (!sex) {
+  // A hidratação não depende do plano: o widget do Início abre direto nela
+  if (!sex && view !== 'hydration') {
     return (
       <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
         <div>
@@ -141,53 +164,33 @@ export default function FoodGuide({ profile }: Props) {
     )
   }
 
-  // ── Tabs ──────────────────────────────────────────────────────────────────
-  const TABS: { id: ActiveTab; label: string }[] = [
-    { id: 'hoje', label: 'Hoje' }, { id: 'plano', label: 'Cardápio' }, { id: 'pouca-fome', label: 'Pouca Fome' },
-  ]
   const accentColor = 'var(--cobalt)'
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
 
-      {/* Header */}
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-        <div>
-          <h2 style={{ fontSize: '22px', fontWeight: 800, color: 'var(--text-primary)', margin: '0 0 3px', letterSpacing: '-0.3px' }}>
-            Alimentação
-          </h2>
-          <p style={{ fontSize: '11px', fontWeight: 700, color: 'var(--text-muted)', margin: 0, textTransform: 'uppercase', letterSpacing: '0.07em' }}>
-            Plano {sex === 'F' ? 'Feminino' : 'Masculino'} · 30 dias · {dailyKcal} kcal
-          </p>
-        </div>
-        <button onClick={() => setSex(null)} style={{
-          padding: '5px 10px', borderRadius: '8px', fontSize: '11px', fontWeight: 700,
-          background: 'var(--surface-2)', border: '1px solid var(--border)',
-          color: 'var(--text-muted)', cursor: 'pointer', fontFamily: 'Inter, sans-serif',
-        }}>
-          Trocar
-        </button>
-      </div>
-
-      {/* Tabs */}
-      <div style={{ display: 'flex', gap: '4px', background: 'var(--surface-2)', borderRadius: '14px', padding: '4px' }}>
-        {TABS.map(t => (
-          <button key={t.id} onClick={() => setActiveTab(t.id)} style={{
-            flex: 1, padding: '8px 6px', borderRadius: '10px', border: 'none', cursor: 'pointer',
-            fontSize: '12px', fontWeight: 700,
-            background: activeTab === t.id ? 'var(--surface)' : 'transparent',
-            color: activeTab === t.id ? 'var(--text-primary)' : 'var(--text-muted)',
-            boxShadow: activeTab === t.id ? 'var(--shadow-xs)' : 'none',
-            transition: 'all 0.15s', fontFamily: 'Inter, sans-serif',
-          }}>
-            {t.label}
-          </button>
-        ))}
-      </div>
-
-      {/* ── TAB: HOJE ─────────────────────────────────────────────────── */}
-      {activeTab === 'hoje' && (
+      {/* ── TELA INICIAL ──────────────────────────────────────────────── */}
+      {view === null && (
         <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+
+          {/* Header */}
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+            <div>
+              <h2 style={{ fontSize: '22px', fontWeight: 800, color: 'var(--text-primary)', margin: '0 0 3px', letterSpacing: '-0.3px' }}>
+                Alimentação
+              </h2>
+              <p style={{ fontSize: '11px', fontWeight: 700, color: 'var(--text-muted)', margin: 0, textTransform: 'uppercase', letterSpacing: '0.07em' }}>
+                Plano {sex === 'F' ? 'Feminino' : 'Masculino'} · 30 dias · {dailyKcal} kcal
+              </p>
+            </div>
+            <button onClick={() => setSex(null)} style={{
+              padding: '5px 10px', borderRadius: '8px', fontSize: '11px', fontWeight: 700,
+              background: 'var(--surface-2)', border: '1px solid var(--border)',
+              color: 'var(--text-muted)', cursor: 'pointer', fontFamily: 'Inter, sans-serif',
+            }}>
+              Trocar
+            </button>
+          </div>
 
           {/* Metas */}
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '8px' }}>
@@ -209,6 +212,74 @@ export default function FoodGuide({ profile }: Props) {
               </div>
             ))}
           </div>
+
+          {/* Hoje */}
+          <div className="card" style={{ padding: '14px 16px', display: 'flex', flexDirection: 'column', gap: '12px' }}>
+            <p style={{ fontSize: '12px', fontWeight: 700, color: 'var(--text-primary)', margin: 0 }}>Hoje</p>
+            {[
+              { label: 'Refeições', value: `${consumed} de ${dailyKcal} kcal`, pct },
+              { label: 'Água',      value: `${formatMl(waterToday)} de ${formatMl(goalMl)} ml`, pct: waterPct },
+            ].map(row => (
+              <div key={row.label}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: '6px' }}>
+                  <p style={{ fontSize: '12px', fontWeight: 600, color: 'var(--text-secondary)', margin: 0 }}>{row.label}</p>
+                  <p style={{ fontSize: '12px', fontWeight: 700, color: 'var(--text-primary)', margin: 0 }}>{row.value}</p>
+                </div>
+                <div style={{ background: 'var(--surface-2)', borderRadius: '99px', height: '5px', overflow: 'hidden' }}>
+                  <div style={{
+                    width: `${row.pct}%`, height: '100%', background: 'var(--g-progress)',
+                    borderRadius: '99px', transition: 'width 0.6s cubic-bezier(0.22,1,0.36,1)',
+                  }} />
+                </div>
+              </div>
+            ))}
+          </div>
+
+          {/* Refeições / Hidratação / Cardápio / Pouca fome */}
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
+            {FOOD_VIEWS.map(v => (
+              <button
+                key={v.id}
+                onClick={() => onViewChange(v.id)}
+                style={{
+                  padding: '14px 10px', borderRadius: '16px', cursor: 'pointer',
+                  display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '8px',
+                  fontFamily: "Inter, -apple-system, sans-serif",
+                  border: '1.5px solid var(--border)', background: 'var(--surface)',
+                  boxShadow: 'var(--shadow-card)', transition: 'transform 0.15s ease',
+                }}
+                onMouseDown={e => (e.currentTarget.style.transform = 'scale(0.97)')}
+                onMouseUp={e => (e.currentTarget.style.transform = 'scale(1)')}
+                onTouchStart={e => (e.currentTarget.style.transform = 'scale(0.97)')}
+                onTouchEnd={e => (e.currentTarget.style.transform = 'scale(1)')}
+              >
+                <span style={{
+                  width: '44px', height: '44px', borderRadius: '12px',
+                  background: 'var(--ice)', color: 'var(--cobalt)',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                }}>
+                  <v.Icon size={20} strokeWidth={1.75} />
+                </span>
+                <span>
+                  <span style={{ display: 'block', fontSize: '13px', fontWeight: 800, color: 'var(--text-primary)' }}>{v.label}</span>
+                  <span style={{ display: 'block', fontSize: '10px', color: 'var(--text-muted)', marginTop: '2px' }}>{v.sub}</span>
+                </span>
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {view === 'hydration' && (
+        <Hydration
+          entries={water[today] ?? []} goalMl={goalMl} goalRange={waterGoal} weight={currentW}
+          doneDays={waterDone} onChange={saveWater}
+        />
+      )}
+
+      {/* ── REFEIÇÕES ─────────────────────────────────────────────────── */}
+      {view === 'meals' && (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
 
           {/* Progresso kcal */}
           <div style={{ background: 'var(--surface)', borderRadius: '20px', border: '1px solid var(--border)', padding: '16px 18px', boxShadow: 'var(--shadow-card)' }}>
@@ -233,6 +304,25 @@ export default function FoodGuide({ profile }: Props) {
               </p>
             </div>
           </div>
+
+          <WeekCard title="Semana de refeições" done={mealsDone} doneLabel="refeições principais registradas" pendingLabel="refeições principais em aberto">
+            <p style={{ fontSize: '11px', color: 'var(--text-muted)', margin: 0 }}>
+              <span style={{ fontWeight: 700, color: 'var(--text-primary)' }}>{mealsWeek}</span>
+              {mealsWeek === 1 ? ' dia completo' : ' dias completos'} essa semana
+              {mealsStreak > 1 && (
+                <>
+                  {' · '}
+                  <span style={{ fontWeight: 700, color: 'var(--teal-d)' }}>{mealsStreak}</span>
+                  {' dias seguidos'}
+                </>
+              )}
+            </p>
+          </WeekCard>
+
+          {/* Como registrar */}
+          <p style={{ fontSize: '11px', color: 'var(--text-muted)', lineHeight: 1.5, margin: '0 4px' }}>
+            Marque cada refeição ao terminar. Quando café da manhã, almoço e jantar estiverem marcados, o dia de hoje entra na sua semana de refeições.
+          </p>
 
           {/* Dica de ordem */}
           <div style={{ display: 'flex', gap: '8px', alignItems: 'flex-start', padding: '10px 14px', borderRadius: '12px', background: 'var(--primary-light)', border: '1px solid var(--primary-glow)' }}>
@@ -359,8 +449,8 @@ export default function FoodGuide({ profile }: Props) {
         </div>
       )}
 
-      {/* ── TAB: PLANO ───────────────────────────────────────────────── */}
-      {activeTab === 'plano' && (
+      {/* ── CARDÁPIO ─────────────────────────────────────────────────── */}
+      {view === 'menu' && (
         <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
 
           <ExpandCard id="principios" Icon={Activity} iconColor="var(--cobalt)" label="Princípios do Plano" expanded={expanded} onToggle={toggleExpanded}>
@@ -403,19 +493,6 @@ export default function FoodGuide({ profile }: Props) {
             </div>
           </ExpandCard>
 
-          <ExpandCard id="hidratacao" Icon={Droplets} iconColor="var(--cobalt)" label="Hidratação" expanded={expanded} onToggle={toggleExpanded}>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-              <p style={{ fontSize: '13px', color: 'var(--text-secondary)', margin: 0, lineHeight: 1.5 }}>
-                <strong>Meta: 35–40 ml de água por kg de peso corporal.</strong>
-              </p>
-              <div style={{ padding: '10px 14px', borderRadius: '12px', background: 'var(--ice)', border: '1px solid var(--sky)' }}>
-                <p style={{ fontSize: '12px', fontWeight: 700, color: 'var(--cobalt)', margin: 0 }}>
-                  Seu peso: {currentW} kg → {waterGoal} por dia
-                </p>
-              </div>
-            </div>
-          </ExpandCard>
-
           {diet.map(meal => (
             <ExpandCard key={meal.id} id={`meal-${meal.id}`} Icon={meal.Icon} iconColor={meal.color} label={meal.label} badge={meal.required ? undefined : 'OPCIONAL'} note={meal.note} expanded={expanded} onToggle={toggleExpanded}>
               <OptionsBlock options={meal.options} accentColor={accentColor} />
@@ -437,8 +514,8 @@ export default function FoodGuide({ profile }: Props) {
         </div>
       )}
 
-      {/* ── TAB: POUCA FOME ──────────────────────────────────────────── */}
-      {activeTab === 'pouca-fome' && (
+      {/* ── POUCA FOME ───────────────────────────────────────────────── */}
+      {view === 'low-appetite' && (
         <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
 
           {/* Banner */}

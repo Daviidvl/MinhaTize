@@ -16,6 +16,10 @@ const DOCS: { id: LegalDoc; label: string; icon: React.ReactNode }[] = [
   { id: 'cookies',      label: 'Armazenamento',         icon: <Database   size={14} strokeWidth={2} /> },
 ]
 
+export function isLegalDoc(value: unknown): value is LegalDoc {
+  return DOCS.some(d => d.id === value)
+}
+
 // ─── Helpers de formatação ────────────────────────────────────────────────────
 const s = {
   section: { marginBottom: '28px' } as React.CSSProperties,
@@ -204,7 +208,7 @@ function Privacidade() {
   return (
     <>
       <div style={{ ...s.info, marginBottom: '20px' }}>
-        <strong>Versão 1.0 — Junho de 2026</strong><br />
+        <strong>Versão 1.1 — Outubro de 2026</strong><br />
         Em conformidade com a Lei Geral de Proteção de Dados (Lei 13.709/2018 — LGPD).
       </div>
 
@@ -245,7 +249,7 @@ function Privacidade() {
         <h3 style={s.h3}>2.3 Dados coletados automaticamente</h3>
         <ul style={{ paddingLeft: '16px', margin: '0 0 10px' }}>
           {[
-            'Endereço IP (processado temporariamente para segurança — rate limiting)',
+            'Endereço IP e identificação do navegador — usados para segurança (limite de requisições) e registrados junto com o seu aceite destes termos, como comprovação do consentimento',
             'Endereço de e-mail (coletado na compra, armazenado no banco de tokens)',
             'Token de acesso único',
             'Data e versão do consentimento LGPD',
@@ -304,7 +308,9 @@ function Privacidade() {
             'Supabase Inc. (EUA) — armazenamento do token de acesso e consentimento',
             'Resend Inc. (EUA) — envio do e-mail de boas-vindas',
             'Anthropic PBC (EUA) — geração do relatório educativo (sem dados identificadores)',
+            'Upstash Inc. (EUA) — contador temporário de limite de requisições por endereço IP',
             'Wiven / Hotmart — processamento do pagamento (sujeito às políticas de cada plataforma)',
+            'Shopee — ao abrir a Loja, as imagens dos produtos são carregadas dos servidores da Shopee, que recebem o endereço IP do seu aparelho. Os links de compra são de afiliado: o MinhaTize pode receber comissão, sem custo adicional para você',
           ].map((item, i) => (
             <li key={i} style={s.li}>{item}</li>
           ))}
@@ -327,7 +333,7 @@ function Privacidade() {
             'Dados locais: sob controle exclusivo do usuário; permanecem no dispositivo até serem apagados.',
             'Token de acesso: mantido pelo período de vigência do acesso adquirido.',
             'Registro de consentimento: mantido pelo prazo exigido pela LGPD (enquanto o consentimento for necessário para a relação).',
-            'Logs de IP: não são retidos após o processamento da requisição.',
+            'Endereço IP: o contador de limite de requisições é descartado em até 1 hora; o IP registrado junto com o aceite dos termos segue o prazo do registro de consentimento.',
           ].map((item, i) => (
             <li key={i} style={s.li}>{item}</li>
           ))}
@@ -629,6 +635,7 @@ function Cookies() {
             { chave: 'tizetrack_consent', desc: 'Data e versão do aceite dos Termos de Uso (LGPD)' },
             { chave: 'tizetrack_diet', desc: 'Configuração do plano alimentar (sexo, kcal diária)' },
             { chave: 'tizetrack_food_log', desc: 'Log de refeições registradas' },
+            { chave: 'tizetrack_water_log', desc: 'Log de água registrada' },
             { chave: 'tizetrack_antiplato', desc: 'Plano e respostas do módulo anti-platô' },
             { chave: 'tizetrack_workout', desc: 'Treinos cadastrados' },
             { chave: 'tizetrack_workout_log', desc: 'Log de treinos realizados' },

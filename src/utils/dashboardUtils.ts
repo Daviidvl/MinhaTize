@@ -1,5 +1,6 @@
 import { readJSON } from './storage'
 import { STORAGE_KEYS } from './storageKeys'
+import { toDateStr } from './exerciseUtils'
 
 export function daysSince(d: string) {
   return Math.floor((Date.now() - new Date(d).getTime()) / 864e5)
@@ -35,8 +36,6 @@ export function getMotivation(lost: number, toGoal: number, weeks: number, days:
 
 // ── Helpers de dieta ─────────────────────────────────────────────────────────
 
-function getTodayStr() { return new Date().toISOString().split('T')[0] }
-
 const FIXED_MEAL_SHARES: Record<string, number> = {
   'cafe': 0.25, 'lanche-m': 0.10, 'almoco': 0.30,
   'lanche-t': 0.10, 'jantar': 0.20, 'ceia': 0.05,
@@ -46,7 +45,7 @@ export function getCalorieStatus(): { consumed: number; target: number; pct: num
   const diet = readJSON<{ dailyKcal: number } | null>(STORAGE_KEYS.dietProfile, null)
   if (!diet?.dailyKcal) return null
   const log = readJSON<Record<string, { meals: string[]; manual: { kcal: number }[] }>>(STORAGE_KEYS.foodLog, {})
-  const day = log[getTodayStr()] ?? { meals: [], manual: [] }
+  const day = log[toDateStr(new Date())] ?? { meals: [], manual: [] }
   const mealKcal   = day.meals.reduce((s: number, id: string) => s + Math.round(diet.dailyKcal * (FIXED_MEAL_SHARES[id] ?? 0)), 0)
   const manualKcal = day.manual.reduce((s: number, m: { kcal: number }) => s + m.kcal, 0)
   const consumed   = mealKcal + manualKcal

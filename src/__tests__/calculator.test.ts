@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { calculateDose, generateGuidance, isValidCombination } from '../utils/calculator'
+import { calculateDose, generateGuidance, getSyringeGuidance, getSyringeScale, isValidCombination } from '../utils/calculator'
 
 describe('Calculator - calculateDose', () => {
   it('should calculate correct dose for 15mg/0.5mL ampola with 7.5mg dose', () => {
@@ -104,6 +104,55 @@ describe('Calculator - generateGuidance', () => {
       const guidance = generateGuidance(num)
       expect(guidance).toBeTruthy()
     })
+  })
+})
+
+describe('Calculator - getSyringeGuidance', () => {
+  it('counts 1 UI per traço on 30 and 50 UI syringes', () => {
+    for (const capacity of [30, 50]) {
+      expect(getSyringeGuidance(17, capacity)).toMatchObject({ exact: true, text: 'Localize o número 15 e avance 2 traços.' })
+      expect(getSyringeGuidance(25, capacity)).toMatchObject({ exact: true, text: 'Localize o número 25.' })
+    }
+  })
+
+  it('counts 2 UI per traço and uses numbers every 10 on the 100 UI syringe', () => {
+    expect(getSyringeGuidance(42, 100)).toMatchObject({ exact: true, text: 'Localize o número 40 e avance 1 traço.' })
+    expect(getSyringeGuidance(50, 100)).toMatchObject({ exact: true, text: 'Localize o número 50.' })
+    expect(getSyringeGuidance(8, 100)).toMatchObject({ exact: true, text: 'A partir do zero, avance 4 traços.' })
+  })
+
+  it('never cites a number that is not printed on the 100 UI scale', () => {
+    for (let ui = 2; ui <= 100; ui += 2) {
+      const cited = getSyringeGuidance(ui, 100).text.match(/número (\d+)/)
+      if (cited) expect(Number(cited[1]) % 10).toBe(0)
+    }
+  })
+
+  it('reaches exactly the calculated dose on every syringe when the guidance is exact', () => {
+    for (const capacity of [30, 50, 100]) {
+      const { unitsPerMark } = getSyringeScale(capacity)
+      for (let ui = 1; ui <= capacity; ui++) {
+        const g = getSyringeGuidance(ui, capacity)
+        if (!g.exact) continue
+        const base  = Number(g.text.match(/número (\d+)/)?.[1] ?? 0)
+        const steps = Number(g.text.match(/avance (\d+)/)?.[1] ?? 0)
+        expect(base + steps * unitsPerMark).toBe(ui)
+      }
+    }
+  })
+
+  it('warns instead of instructing when the dose falls between two traços (odd UI on 100 UI)', () => {
+    const g = getSyringeGuidance(17, 100)
+    expect(g.exact).toBe(false)
+    expect(g.text).not.toMatch(/Localize|avance/)
+    expect(g.text).toContain('16 e 18')
+    expect(g.text).toContain('seringa de 30 ou 50 UI')
+  })
+
+  it('only suggests a smaller syringe that actually fits the dose', () => {
+    expect(getSyringeGuidance(33, 100).text).toContain('seringa de 50 UI')
+    expect(getSyringeGuidance(33, 100).text).not.toContain('30 ou 50')
+    expect(getSyringeGuidance(67, 100).text).not.toMatch(/Use uma seringa/)
   })
 })
 

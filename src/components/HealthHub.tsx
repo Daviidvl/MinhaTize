@@ -13,6 +13,8 @@ import {
   SECTION_ICON_MAP, SECTION_ICON_SM, SYMPTOM_ICON_MAP, SUPP_ICON_MAP,
   SYMPTOM_TIPS, SUPP_LEVELS, getMondayOf, SECTION_CARDS,
 } from '../data/healthHubContent'
+import { type ExerciseView, EXERCISE_VIEWS } from '../data/exercisePlans'
+import { type FoodView, FOOD_VIEWS } from '../data/foodPlans'
 
 interface Props {
   profile: UserProfile
@@ -22,9 +24,25 @@ interface Props {
 }
 // ── Component ─────────────────────────────────────────────────────────────────
 export default function HealthHub({ profile, onUpdateProfile, initialSection, onNavigate }: Props) {
+  // initialSection pode trazer a tela interna da alimentação, ex.: "food:hydration"
+  const [section, sub] = (initialSection ?? '').split(':')
   const [activeSection, setActiveSection] = useState<HealthTab | null>(
-    (initialSection as HealthTab) ?? null
+    (section as HealthTab) || null
   )
+  const [exerciseView, setExerciseView] = useState<ExerciseView | null>(null)
+  const [foodView, setFoodView] = useState<FoodView | null>(
+    section === 'food' && sub ? (sub as FoodView) : null
+  )
+
+  function changeExerciseView(v: ExerciseView | null) {
+    setExerciseView(v)
+    window.scrollTo({ top: 0, behavior: 'instant' })
+  }
+
+  function changeFoodView(v: FoodView | null) {
+    setFoodView(v)
+    window.scrollTo({ top: 0, behavior: 'instant' })
+  }
 
   const thisWeek       = getMondayOf(new Date())
   const currentEntry   = profile.sideEffects?.find(e => e.date === thisWeek)
@@ -42,6 +60,16 @@ export default function HealthHub({ profile, onUpdateProfile, initialSection, on
   const calmWeek = maxIntensity < 2
 
   const currentCard = SECTION_CARDS.find(c => c.id === activeSection)
+  // Tela interna do exercício ou da alimentação: o cabeçalho passa a voltar para a seção
+  const subView =
+    activeSection === 'exercise' ? EXERCISE_VIEWS.find(v => v.id === exerciseView)
+    : activeSection === 'food' ? FOOD_VIEWS.find(v => v.id === foodView)
+    : undefined
+
+  function closeSubView() {
+    if (activeSection === 'exercise') changeExerciseView(null)
+    else changeFoodView(null)
+  }
 
   // ── Section view ────────────────────────────────────────────────────────────
   if (activeSection !== null) {
@@ -59,7 +87,7 @@ export default function HealthHub({ profile, onUpdateProfile, initialSection, on
           {/* Breadcrumb */}
           <div style={{ display: 'flex', alignItems: 'center', gap: '4px', marginBottom: '10px' }}>
             <button
-              onClick={() => setActiveSection(null)}
+              onClick={() => (subView ? closeSubView() : setActiveSection(null))}
               style={{
                 display: 'flex', alignItems: 'center', gap: '4px',
                 background: 'none', border: 'none', cursor: 'pointer', padding: 0,
@@ -67,11 +95,11 @@ export default function HealthHub({ profile, onUpdateProfile, initialSection, on
               }}
             >
               <ChevronLeft size={14} strokeWidth={2} />
-              <span style={{ fontSize: '13px', fontWeight: 600 }}>Saúde</span>
+              <span style={{ fontSize: '13px', fontWeight: 600 }}>{subView ? currentCard?.title : 'Saúde'}</span>
             </button>
             <ChevronRight size={12} strokeWidth={2} color="var(--text-muted)" />
             <span style={{ fontSize: '13px', fontWeight: 600, color: 'var(--text-muted)' }}>
-              {currentCard?.title}
+              {subView?.label ?? currentCard?.title}
             </span>
           </div>
 
@@ -83,21 +111,23 @@ export default function HealthHub({ profile, onUpdateProfile, initialSection, on
               display: 'flex', alignItems: 'center', justifyContent: 'center',
               color: currentCard?.accentColor,
             }}>
-              {activeSection && SECTION_ICON_SM[activeSection]}
+              {subView
+                ? <subView.Icon size={18} strokeWidth={1.75} />
+                : activeSection && SECTION_ICON_SM[activeSection]}
             </div>
             <div style={{ minWidth: 0 }}>
               <h2 style={{ fontSize: '18px', fontWeight: 800, color: 'var(--text-primary)', margin: 0, lineHeight: 1.2 }}>
-                {currentCard?.title}
+                {subView?.label ?? currentCard?.title}
               </h2>
               <p style={{ fontSize: '11px', color: 'var(--text-muted)', margin: 0, marginTop: '2px' }}>
-                {currentCard?.subtitle}
+                {subView?.sub ?? currentCard?.subtitle}
               </p>
             </div>
           </div>
         </div>
 
         {/* Section content */}
-        <div key={activeSection} className="fade-in">
+        <div key={subView?.id ?? activeSection} className="fade-in">
 
           {/* ── SINTOMAS ───────────────────────────────────────────────── */}
           {activeSection === 'symptoms' && (
@@ -198,12 +228,14 @@ export default function HealthHub({ profile, onUpdateProfile, initialSection, on
                   </p>
                 </div>
               )}
-              <FoodGuide profile={profile} onUpdateProfile={onUpdateProfile} />
+              <FoodGuide profile={profile} onUpdateProfile={onUpdateProfile} view={foodView} onViewChange={changeFoodView} />
             </div>
           )}
 
           {/* ── EXERCÍCIO ──────────────────────────────────────────────── */}
-          {activeSection === 'exercise' && <Exercise />}
+          {activeSection === 'exercise' && (
+            <Exercise userProfile={profile} view={exerciseView} onViewChange={changeExerciseView} />
+          )}
 
           {/* ── DESMAME ────────────────────────────────────────────────── */}
           {activeSection === 'weaning' && (

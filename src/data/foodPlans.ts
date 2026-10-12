@@ -1,6 +1,23 @@
 import {
-  Sun, Droplets, Utensils, Moon, Fish, Zap, Package, Leaf, type LucideIcon,
+  Sun, Droplets, Utensils, Moon, Fish, Zap, Package, Leaf, GlassWater, CupSoda, Milk, BookOpen, Soup, type LucideIcon,
 } from 'lucide-react'
+
+// Atalhos de registro de água (tela de Hidratação e widget do Início)
+export const WATER_QUICK_ADD: { ml: number; label: string; Icon: LucideIcon }[] = [
+  { ml: 200, label: 'Copo',        Icon: GlassWater },
+  { ml: 300, label: 'Copo grande', Icon: CupSoda },
+  { ml: 500, label: 'Garrafa',     Icon: Milk },
+]
+
+// Telas internas da seção de alimentação
+export type FoodView = 'meals' | 'hydration' | 'menu' | 'low-appetite'
+
+export const FOOD_VIEWS: { id: FoodView; label: string; sub: string; Icon: LucideIcon }[] = [
+  { id: 'meals',        label: 'Refeições',  sub: 'Registro do dia',      Icon: Utensils },
+  { id: 'hydration',    label: 'Hidratação', sub: 'Registro de água',     Icon: GlassWater },
+  { id: 'menu',         label: 'Cardápio',   sub: 'Opções por refeição',  Icon: BookOpen },
+  { id: 'low-appetite', label: 'Pouca fome', sub: 'Refeições menores',    Icon: Soup },
+]
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 export type IconComp = LucideIcon

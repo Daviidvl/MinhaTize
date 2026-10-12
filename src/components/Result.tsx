@@ -1,6 +1,6 @@
 import { AlertTriangle, Syringe, BarChart2, ChevronDown } from 'lucide-react'
 import { CalculationResult } from '../types'
-import { generateGuidance } from '../utils/calculator'
+import { getSyringeGuidance } from '../utils/calculator'
 
 interface Props {
   result: CalculationResult
@@ -27,7 +27,7 @@ export default function Result({ result, syringeCapacity }: Props) {
     )
   }
 
-  const guidance = generateGuidance(result.ui)
+  const guidance = getSyringeGuidance(result.ui, syringeCapacity)
   const fillPct  = Math.min(100, (result.ui / syringeCapacity) * 100)
   const nearLimit = fillPct > 80
 
@@ -93,14 +93,28 @@ export default function Result({ result, syringeCapacity }: Props) {
       </div>
 
       {/* Como aspirar */}
-      <div className="card" style={{ padding: '1rem 1.25rem' }}>
-        <p className="label-base" style={{ color: 'var(--primary)', marginBottom: '8px', display: 'flex', alignItems: 'center', gap: '6px' }}>
-          <Syringe size={13} strokeWidth={2} />Como aspirar
-        </p>
-        <p style={{ fontSize: '15px', fontWeight: 600, color: 'var(--text-primary)', lineHeight: 1.5 }}>
-          {guidance}
-        </p>
-      </div>
+      {guidance.exact ? (
+        <div className="card" style={{ padding: '1rem 1.25rem' }}>
+          <p className="label-base" style={{ color: 'var(--primary)', marginBottom: '8px', display: 'flex', alignItems: 'center', gap: '6px' }}>
+            <Syringe size={13} strokeWidth={2} />Como aspirar
+          </p>
+          <p style={{ fontSize: '15px', fontWeight: 600, color: 'var(--text-primary)', lineHeight: 1.5 }}>
+            {guidance.text}
+          </p>
+          <p style={{ fontSize: '11px', color: 'var(--text-muted)', marginTop: '8px', lineHeight: 1.5 }}>
+            {guidance.scaleNote}
+          </p>
+        </div>
+      ) : (
+        <div className="card-warning">
+          <p className="label-base" style={{ color: 'var(--warn-text)', marginBottom: '8px', display: 'flex', alignItems: 'center', gap: '6px' }}>
+            <AlertTriangle size={13} strokeWidth={2} />Dose entre dois traços
+          </p>
+          <p style={{ fontSize: '13px', fontWeight: 600, color: 'var(--warn-text)', lineHeight: 1.5 }} role="alert">
+            {guidance.text}
+          </p>
+        </div>
+      )}
 
       {/* Detalhes */}
       <details className="card" style={{ padding: '1rem 1.25rem' }}>

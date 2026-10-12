@@ -39,7 +39,7 @@ self.addEventListener('fetch', (event) => {
   if (request.method !== 'GET') return
   if (url.pathname.startsWith('/api/')) return
 
-  // Requests cross-origin (Google Fonts, CDNs): deixar passar sem cache
+  // Requests cross-origin (imagens da Loja, CDNs): deixar passar sem cache
   if (url.origin !== self.location.origin) return
 
   // Assets com hash no nome (JS/CSS do Vite): cache-first (não mudam após gerados)

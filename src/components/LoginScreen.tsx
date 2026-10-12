@@ -1,5 +1,8 @@
 import { useState } from 'react'
-import { validateToken, saveToken, extractToken } from '../utils/token'
+import {
+  checkToken, saveToken, extractToken,
+  belongsToAnotherToken, claimLocalData, wipeLocalUserData,
+} from '../utils/token'
 
 interface Props {
   onAccessGranted: () => void
@@ -10,6 +13,23 @@ export default function LoginScreen({ onAccessGranted, onLegal }: Props) {
   const [value, setValue]   = useState('')
   const [loading, setLoading] = useState(false)
   const [error, setError]   = useState('')
+  // Token já validado, aguardando o usuário confirmar a troca de dono dos dados
+  const [pendingToken, setPendingToken] = useState<string | null>(null)
+
+  async function enter(token: string) {
+    saveToken(token)
+    await claimLocalData(token)
+    onAccessGranted()
+  }
+
+  async function replaceOwnerAndEnter() {
+    if (!pendingToken) return
+    wipeLocalUserData()
+    saveToken(pendingToken)
+    await claimLocalData(pendingToken)
+    // O App mantém o perfil antigo em memória; recarregar garante que nada dele sobra
+    window.location.reload()
+  }
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
@@ -20,11 +40,20 @@ export default function LoginScreen({ onAccessGranted, onLegal }: Props) {
     }
     setLoading(true)
     setError('')
-    const valid = await validateToken(token)
+    const result = await checkToken(token)
+    if (result === 'valid') {
+      // Aparelho com dados de outro token: pede confirmação antes de apagar
+      if (await belongsToAnotherToken(token)) {
+        setLoading(false)
+        setPendingToken(token)
+        return
+      }
+      await enter(token)
+      return
+    }
     setLoading(false)
-    if (valid) {
-      saveToken(token)
-      onAccessGranted()
+    if (result === 'unknown') {
+      setError('Não foi possível verificar agora. Confira sua conexão e tente novamente em instantes.')
     } else {
       setError('Token inválido ou expirado. Verifique o e-mail e tente novamente.')
     }
@@ -84,8 +113,30 @@ export default function LoginScreen({ onAccessGranted, onLegal }: Props) {
           </p>
         </div>
 
+        {/* Aparelho com dados de outro acesso */}
+        {pendingToken && (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+            <div className="card-warning" role="alert">
+              <p style={{ fontSize: '13px', fontWeight: 700, color: 'var(--warn-text)', margin: '0 0 6px' }}>
+                Este aparelho tem dados de outro acesso
+              </p>
+              <p style={{ fontSize: '12px', color: 'var(--warn-text)', margin: 0, lineHeight: 1.55 }}>
+                Perfil, pesagens e exames salvos aqui foram registrados com outro token. Para proteger a
+                privacidade de quem os registrou, eles serão apagados ao entrar com este token. Se os dados
+                são seus, cancele, entre com o token anterior e exporte-os em Perfil → Legal & Privacidade.
+              </p>
+            </div>
+            <button className="btn-primary" style={{ width: '100%' }} onClick={replaceOwnerAndEnter}>
+              Apagar dados e entrar
+            </button>
+            <button className="btn-ghost" style={{ width: '100%' }} onClick={() => setPendingToken(null)}>
+              Cancelar
+            </button>
+          </div>
+        )}
+
         {/* Form */}
-        <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+        <form onSubmit={handleSubmit} style={{ display: pendingToken ? 'none' : 'flex', flexDirection: 'column', gap: '12px' }}>
 
           {/* Input */}
           <div style={{ position: 'relative' }}>
@@ -216,7 +267,7 @@ export default function LoginScreen({ onAccessGranted, onLegal }: Props) {
               onClick={() => onLegal(link.id)}
               style={{
                 background: 'none', border: 'none', cursor: 'pointer', padding: 0,
-                fontSize: '11px', color: 'rgba(255,255,255,0.28)',
+                fontSize: '11px', color: 'var(--text-muted)',
                 fontFamily: 'Inter, sans-serif',
                 textDecoration: 'underline',
               }}

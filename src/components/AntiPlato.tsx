@@ -17,6 +17,7 @@ import {
   hasUsableHistory, getWeightTrend, evaluateNewUser, evaluateReassessment, writePlateauStatus,
 } from '../utils/plateauUtils'
 import { alpha } from '../utils/color'
+import { todayStr } from '../utils/dateUtils'
 
 const CHECK_ICON: Record<string, React.ReactNode> = {
   water:    <Droplets      size={16} strokeWidth={1.75} />,
@@ -358,7 +359,7 @@ function ReassessmentView({ profile, onUpdateProfile, tracking, onOpenHabits, on
     onUpdateProfile(writePlateauStatus(profile, {
       status: config.nextStatus,
       tracking: undefined,
-      lastCycleResult: { date: new Date().toISOString().split('T')[0], status: config.nextStatus, note: config.msg },
+      lastCycleResult: { date: todayStr(), status: config.nextStatus, note: config.msg },
     }))
   }
 
@@ -419,7 +420,7 @@ function ScreeningFlow({ profile, onUpdateProfile, onDone, onCancel }: {
     onUpdateProfile(writePlateauStatus(profile, {
       status: 'em_acompanhamento_14dias',
       screeningAnswers: answers,
-      tracking: { startDate: new Date().toISOString().split('T')[0], origin: 'com_historico', baselineWeight: lastWeight },
+      tracking: { startDate: todayStr(), origin: 'com_historico', baselineWeight: lastWeight },
     }))
     onDone()
   }
@@ -512,7 +513,7 @@ function NewUserFlow({ profile, onUpdateProfile, onDone, onCancel, onGoProgress 
   function submit() {
     const verdict = evaluateNewUser(answers)
     const w = parseFloat(answers.currentWeight)
-    const entry = { date: new Date().toISOString().split('T')[0], weight: w }
+    const entry = { date: todayStr(), weight: w }
     const alreadyToday = profile.weightHistory.some(e => e.date === entry.date)
     const nextHistory = alreadyToday ? profile.weightHistory : [...profile.weightHistory, entry]
 
@@ -687,7 +688,7 @@ function HabitsWizard({ profile, onUpdateProfile, onBack }: {
   function handleStartPlan() {
     const w    = parseFloat(answers.currentWeight) || 0
     const newPlan: PlanData = {
-      startDate:  new Date().toISOString().split('T')[0],
+      startDate:  todayStr(),
       checks:     {},
       weighIns:   {},
       proteinMin: w > 0 ? Math.round(w * 1.2) : 0,

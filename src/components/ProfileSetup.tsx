@@ -3,6 +3,7 @@ import { Pill, Syringe, FlaskConical, PenLine, Lock, ChevronLeft, ChevronRight, 
 import { DOSE_OPTIONS, MEDICATION_LABELS, Medication, Sex, UserProfile, WEEK_DAYS_FULL } from '../types'
 import { calcIMC } from '../utils/bmiUtils'
 import { DoseMode } from '../utils/medicationUtils'
+import { todayStr } from '../utils/dateUtils'
 
 interface Props {
   onComplete: (profile: UserProfile) => void
@@ -66,10 +67,19 @@ function heightWarn(val: string): string | null {
   return null
 }
 
+// A idade é opcional, mas quando informada precisa ser válida: os Termos de Uso
+// restringem o app a maiores de 18 anos.
+function ageBlock(val: string): string | null {
+  if (!val || val.trim() === '') return null
+  const a = Number(val)
+  if (!Number.isInteger(a) || a <= 0 || a > 120) return 'Informe uma idade válida.'
+  if (a < 18) return 'O MinhaTize é destinado a maiores de 18 anos.'
+  return null
+}
+
 function ageWarn(val: string): string | null {
   const a = parseInt(val)
   if (!val || isNaN(a)) return null
-  if (a < 14)  return 'Idade muito baixa. Confirme o valor informado.'
   if (a > 110) return 'Idade muito alta. Confirme o valor informado.'
   return null
 }
@@ -143,7 +153,7 @@ export default function ProfileSetup({ onComplete }: Props) {
     customDose:      '',
     presentationMg:  '',
     presentationMl:  '',
-    startDate:       new Date().toISOString().split('T')[0],
+    startDate:       todayStr(),
     applicationDay:  new Date().getDay(),
   })
 
@@ -171,16 +181,23 @@ export default function ProfileSetup({ onComplete }: Props) {
   const wBlock     = weightBlock(form.startWeight)
   const wWarn      = !wBlock ? weightWarn(form.startWeight) : null
   const cohErr     = coherenceBlock(form.height, form.startWeight)
-  const aWarn      = ageWarn(form.age)
+  const aBlock     = ageBlock(form.age)
+  const aWarn      = !aBlock ? ageWarn(form.age) : null
+  // Peso atual é opcional; se preenchido, vale a mesma faixa do peso inicial
+  const cwBlock    = form.currentWeight ? weightBlock(form.currentWeight) : null
+  const cwWarn     = form.currentWeight && !cwBlock ? weightWarn(form.currentWeight) : null
+  const dateBlock  = !form.startDate
+    ? 'Informe a data de início do protocolo.'
+    : form.startDate > todayStr() ? 'A data de início não pode ser no futuro.' : null
   const refWeight  = form.currentWeight || form.startWeight
   const gWarn      = goalWarn(refWeight, form.goalWeight)
 
   function canAdvance() {
-    if (step === 1) return form.name.trim().length >= 2
+    if (step === 1) return form.name.trim().length >= 2 && !aBlock
     if (step === 2) {
       const heightOk = parseFloat(form.height) >= 80 && !hBlock
       const weightOk = parseFloat(form.startWeight) >= 20 && !wBlock
-      return heightOk && weightOk && !cohErr
+      return heightOk && weightOk && !cohErr && !cwBlock && !dateBlock
     }
     if (step === 3) {
       const g = parseFloat(form.goalWeight), s = parseFloat(refWeight)
@@ -213,7 +230,7 @@ export default function ProfileSetup({ onComplete }: Props) {
       startDate:      form.startDate,
       applicationDay: form.applicationDay,
       weightHistory:  form.currentWeight
-        ? [{ date: new Date().toISOString().split('T')[0], weight: parseFloat(form.currentWeight) }]
+        ? [{ date: todayStr(), weight: parseFloat(form.currentWeight) }]
         : [],
       diary:       [],
       sideEffects: [],
@@ -310,7 +327,8 @@ export default function ProfileSetup({ onComplete }: Props) {
               <div>
                 <label className="label-base">Idade (opcional)</label>
                 <input type="number" className="input-field" placeholder="Ex: 35"
-                  value={form.age} onChange={e => set('age', e.target.value)} min={10} max={120} />
+                  value={form.age} onChange={e => set('age', e.target.value)} min={18} max={120} />
+                {aBlock && <BlockMsg msg={aBlock} />}
                 {aWarn && <WarnMsg msg={aWarn} />}
               </div>
 
@@ -349,18 +367,16 @@ export default function ProfileSetup({ onComplete }: Props) {
                 <label className="label-base">Peso atual (kg) <span style={{ fontWeight: 400, textTransform: 'none', letterSpacing: 0 }}>— se diferente do inicial</span></label>
                 <input type="number" className="input-field" placeholder="Ex: 88.5"
                   value={form.currentWeight} onChange={e => set('currentWeight', e.target.value)} min={20} max={500} step={0.1} />
-                {form.currentWeight && weightBlock(form.currentWeight) && <BlockMsg msg={weightBlock(form.currentWeight)!} />}
-                {form.currentWeight && !weightBlock(form.currentWeight) && weightWarn(form.currentWeight) && <WarnMsg msg={weightWarn(form.currentWeight)!} />}
+                {cwBlock && <BlockMsg msg={cwBlock} />}
+                {cwWarn  && <WarnMsg  msg={cwWarn}  />}
               </div>
 
               <div>
                 <label className="label-base">Início do protocolo</label>
                 <input type="date" className="input-field"
                   value={form.startDate} onChange={e => set('startDate', e.target.value)}
-                  max={new Date().toISOString().split('T')[0]} />
-                {form.startDate > new Date().toISOString().split('T')[0] && (
-                  <BlockMsg msg="A data de início não pode ser no futuro." />
-                )}
+                  max={todayStr()} />
+                {dateBlock && <BlockMsg msg={dateBlock} />}
               </div>
             </div>
           )}
@@ -534,6 +550,7 @@ export default function ProfileSetup({ onComplete }: Props) {
           )}
           <button
             className="btn-primary"
+            disabled={!ok}
             style={{
               flex: 1, opacity: ok ? 1 : 0.4, cursor: ok ? 'pointer' : 'not-allowed',
               display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: '6px',

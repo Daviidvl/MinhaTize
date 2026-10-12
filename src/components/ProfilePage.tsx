@@ -12,6 +12,7 @@ import { USER_DATA_KEYS } from '../utils/storageKeys'
 import { exportAllData } from '../utils/dataExport'
 import { getAppsLeft, getDoseLabel, getMedicationLabel, resolveDoseMode } from '../utils/medicationUtils'
 import { LOJA_CATEGORIES, LojaProduct } from '../data/lojaProducts'
+import { todayStr } from '../utils/dateUtils'
 
 interface Props {
   profile: UserProfile
@@ -46,6 +47,11 @@ function buildAchievements(profile: UserProfile): Achievement[] {
     { id: 'goal',   icon: <Target size={26} strokeWidth={1.75} />,    title: 'Meta atingida!', phrase: 'Meta atingida. Você é um exemplo de dedicação.',           unlocked: reachedGoal },
   ]
 }
+
+// Os links da Loja são de afiliado — o usuário precisa saber disso antes de comprar
+const LOJA_AFFILIATE_NOTICE =
+  'Os links desta loja são de afiliado: o MinhaTize pode receber uma comissão pelas compras, sem custo adicional para você. ' +
+  'Preços e disponibilidade são definidos pela loja parceira e podem mudar.'
 
 // ── WhatsApp ──────────────────────────────────────────────────────────────────
 const WA = '5588988583366'
@@ -336,10 +342,15 @@ export default function ProfilePage({ profile, onUpdateProfile, onBack, initialS
   function canSave() {
     if (form.medication === 'outro' && form.medicationName.trim().length < 2) return false
     if (form.doseMode === 'custom' && !(parseFloat(form.customDose) > 0)) return false
+    // Mesmas faixas do cadastro inicial (ProfileSetup)
+    const inRange = (v: string, min: number, max: number) => { const n = parseFloat(v); return n >= min && n <= max }
+    const age = Number(form.age)
+    if (form.age && !(Number.isInteger(age) && age >= 18 && age <= 120)) return false
+    if (!form.startDate || form.startDate > todayStr()) return false
     return form.name.trim().length >= 2
-      && parseFloat(form.height) > 0
-      && parseFloat(form.startWeight) > 0
-      && parseFloat(form.goalWeight) > 0
+      && inRange(form.height, 80, 280)
+      && inRange(form.startWeight, 20, 500)
+      && inRange(form.goalWeight, 20, 500)
   }
   function handleSave() {
     if (!canSave()) return
@@ -500,7 +511,7 @@ export default function ProfilePage({ profile, onUpdateProfile, onBack, initialS
           </div>
           <div>
             <label className="label-base">Início do protocolo</label>
-            <input type="date" className="input-field" value={form.startDate} onChange={e => setF('startDate', e.target.value)} max={new Date().toISOString().split('T')[0]} style={{ fontSize: '12px' }} />
+            <input type="date" className="input-field" value={form.startDate} onChange={e => setF('startDate', e.target.value)} max={todayStr()} style={{ fontSize: '12px' }} />
           </div>
           <div>
             <label className="label-base">Peso inicial (kg)</label>
@@ -797,6 +808,9 @@ export default function ProfilePage({ profile, onUpdateProfile, onBack, initialS
           />
         </div>
       </div>
+      <p style={{ fontSize: '11px', color: 'var(--text-muted)', textAlign: 'center', lineHeight: 1.5, margin: 0 }}>
+        {LOJA_AFFILIATE_NOTICE}
+      </p>
     </div>
   )
 
@@ -839,6 +853,9 @@ export default function ProfilePage({ profile, onUpdateProfile, onBack, initialS
             </div>
           </div>
         ))}
+        <p style={{ fontSize: '11px', color: 'var(--text-muted)', textAlign: 'center', lineHeight: 1.5, margin: 0 }}>
+          {LOJA_AFFILIATE_NOTICE}
+        </p>
       </div>
     )
   }

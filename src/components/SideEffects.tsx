@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { Waves, AlertCircle, ArrowDown, Droplets, Flame, Battery, RotateCcw, Circle, Minus, X, Activity } from 'lucide-react'
 import { SideEffectEntry, UserProfile } from '../types'
 import { alpha } from '../utils/color'
+import { toDateStr } from '../utils/dateUtils'
 
 interface Props {
   profile: UserProfile
@@ -46,7 +47,7 @@ function getMondayOf(date: Date): string {
   const day = d.getDay()
   const diff = d.getDate() - day + (day === 0 ? -6 : 1)
   d.setDate(diff)
-  return d.toISOString().split('T')[0]
+  return toDateStr(d)
 }
 
 function formatWeek(mondayStr: string): string {

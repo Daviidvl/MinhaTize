@@ -79,27 +79,71 @@ export function calculateDose(
 }
 
 /**
- * Gera instrução de orientação baseada na quantidade de UI
- * 
- * Regras:
- * - Se é múltiplo de 5: usa marcações
- * - Senão: arredonda para o mais próximo múltiplo de 5
- * 
- * @param ui - Quantidade de unidades
- * @returns String com a orientação
+ * Escala impressa na seringa, que muda com a capacidade:
+ * - 30 e 50 UI: um traço a cada 1 UI, números de 5 em 5
+ * - 100 UI:     um traço a cada 2 UI, números de 10 em 10
+ *
+ * É a graduação mais comum no mercado; modelos específicos podem variar
+ * (ex.: 30 UI com traços de 0,5 UI), por isso a tela mostra a escala
+ * assumida para o usuário conferir na própria seringa.
  */
-export function generateGuidance(ui: number): string {
-  // Se é um múltiplo de 5
-  if (ui % 5 === 0) {
-    return `Localize o número ${ui}.`
+export function getSyringeScale(syringeCapacity: number): { unitsPerMark: number; labelEvery: number } {
+  return syringeCapacity >= 100
+    ? { unitsPerMark: 2, labelEvery: 10 }
+    : { unitsPerMark: 1, labelEvery: 5 }
+}
+
+export interface SyringeGuidance {
+  text: string
+  // false quando a dose cai entre dois traços e não pode ser medida nessa seringa
+  exact: boolean
+  scaleNote: string
+}
+
+/**
+ * Orientação de aspiração para a dose (em UI) na seringa escolhida.
+ * Nunca arredonda a dose: se ela não coincide com um traço da seringa,
+ * devolve `exact: false` com um aviso em vez de uma instrução.
+ */
+export function getSyringeGuidance(ui: number, syringeCapacity: number): SyringeGuidance {
+  const { unitsPerMark, labelEvery } = getSyringeScale(syringeCapacity)
+  const scaleNote =
+    `Escala considerada para a seringa de ${syringeCapacity} UI: cada traço vale ${unitsPerMark} UI ` +
+    `e os números aparecem de ${labelEvery} em ${labelEvery}. Confira na sua seringa antes de aspirar.`
+
+  if (ui % unitsPerMark !== 0) {
+    const smaller = [30, 50].filter(c => c < syringeCapacity && ui <= c)
+    const alternative = smaller.length > 0
+      ? `Use uma seringa de ${smaller.join(' ou ')} UI (1 UI por traço) para medir essa dose`
+      : 'Essa dose não pode ser medida com precisão nesta seringa'
+    return {
+      exact: false,
+      scaleNote,
+      text:
+        `Na seringa de ${syringeCapacity} UI cada traço vale ${unitsPerMark} UI, então ${ui} UI fica entre dois traços ` +
+        `(${ui - 1} e ${ui + 1}) e não pode ser medido com exatidão. ${alternative}, ` +
+        `ou confirme com seu médico ou farmacêutico como proceder.`,
+    }
   }
 
-  // Se não é múltiplo de 5, encontrar o mais próximo
-  const baseNumber = Math.floor(ui / 5) * 5
-  const steps = ui - baseNumber
-  const stepText = steps === 1 ? 'traço' : 'traços'
+  if (ui % labelEvery === 0) {
+    return { exact: true, scaleNote, text: `Localize o número ${ui}.` }
+  }
 
-  return `Localize o número ${baseNumber} e avance ${steps} ${stepText}.`
+  const baseNumber = Math.floor(ui / labelEvery) * labelEvery
+  const steps = (ui - baseNumber) / unitsPerMark
+  const stepText = steps === 1 ? 'traço' : 'traços'
+  const start = baseNumber === 0 ? 'A partir do zero, avance' : `Localize o número ${baseNumber} e avance`
+
+  return { exact: true, scaleNote, text: `${start} ${steps} ${stepText}.` }
+}
+
+/**
+ * Texto da orientação de aspiração. Sem informar a seringa, assume a escala
+ * de 1 UI por traço (30/50 UI).
+ */
+export function generateGuidance(ui: number, syringeCapacity = 50): string {
+  return getSyringeGuidance(ui, syringeCapacity).text
 }
 
 /**

@@ -28,13 +28,6 @@ export function hasPresentation(profile: UserProfile): boolean {
     && typeof profile.presentationMl === 'number' && profile.presentationMl > 0
 }
 
-export function getPresentationLabel(profile: UserProfile): string | null {
-  if (!hasPresentation(profile)) return null
-  const mg = profile.presentationMg!.toString().replace('.', ',')
-  const ml = profile.presentationMl!.toString().replace('.', ',')
-  return `${mg}mg/${ml}mL`
-}
-
 export function getAppsLeft(profile: UserProfile): number | null {
   const dose = getDoseValue(profile)
   if (dose == null || !profile.stock) return null
