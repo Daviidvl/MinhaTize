@@ -5,7 +5,7 @@
   "type": "module",
   "description": "Calculadora web para usuários de Tirzepatida com seringa de insulina",
   "author": "David",
-  "license": "MIT",
+  "license": "UNLICENSED",
   "scripts": {
     "dev": "vite",
     "build": "tsc -b && vite build",
@@ -13,10 +13,11 @@
     "test": "vitest",
     "test:ui": "vitest --ui",
     "test:coverage": "vitest --coverage",
-    "lint": "eslint src --ext ts,tsx",
-    "type-check": "tsc --noEmit"
+    "lint": "eslint src api",
+    "type-check": "tsc --noEmit && tsc --noEmit -p tsconfig.api.json"
   },
   "dependencies": {
+    "@fontsource/inter": "5.3.0",
     "@supabase/supabase-js": "^2.108.1",
     "lucide-react": "^1.17.0",
     "react": "^18.3.1",
@@ -27,6 +28,7 @@
     "undici": "^8.10.1"
   },
   "devDependencies": {
+    "@eslint/js": "^9.39.5",
     "@testing-library/jest-dom": "^6.1.5",
     "@testing-library/react": "^14.1.2",
     "@testing-library/user-event": "^14.5.1",
@@ -38,10 +40,14 @@
     "@vitest/coverage-v8": "^1.1.0",
     "@vitest/ui": "^1.1.0",
     "autoprefixer": "^10.4.16",
+    "eslint": "^9.39.5",
+    "eslint-plugin-react-hooks": "^5.2.0",
+    "globals": "^17.13.0",
     "jsdom": "^23.0.1",
     "postcss": "^8.4.32",
     "tailwindcss": "^3.4.1",
     "typescript": "^5.3.3",
+    "typescript-eslint": "^8.71.2",
     "vite": "^5.0.10",
     "vitest": "^1.1.0"
   }

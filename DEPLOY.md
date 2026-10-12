@@ -1,138 +1,79 @@
-# 🚀 Checklist de Deploy - Minha Tize
+# Deploy — MinhaTize
 
-Use este checklist antes de fazer deploy para produção.
+O app é uma SPA (Vite) com quatro funções serverless em `api/`, publicado na Vercel.
+A `main` é a produção: todo push nela gera um deploy.
 
-## ✅ Pré-Deploy
-
-- [ ] Todos os testes passam: `npm test`
-- [ ] Sem warnings de TypeScript: `npm run type-check`
-- [ ] Build local sucesso: `npm run build`
-- [ ] Nenhuma console.log de debug no código
-- [ ] Nenhuma variável de ambiente sensível no código
-- [ ] README.md atualizado
-- [ ] Ícone e PWA manifest verificados
-- [ ] Service Worker funcionando
-- [ ] Testado em mobile (iPhone e Android)
-
-## 🌐 Deploy no Vercel
-
-### Primeira vez
-
-1. Fazer login em [vercel.com](https://vercel.com)
-2. Conectar repositório GitHub
-3. Vercel detecta automaticamente:
-   - Framework: React
-   - Build Command: `npm run build`
-   - Output Directory: `dist`
-
-### Cada Push
-
-- [ ] Fazer commit com mensagem clara
-- [ ] Push para GitHub
-- [ ] Vercel automaticamente faz deploy
-- [ ] Verificar URL do deploy nos emails
-
-### Configurações Recomendadas
-
-- **Framework**: React (autodetectado)
-- **Build Command**: `npm run build`
-- **Output Directory**: `dist`
-- **Install Command**: `npm ci`
-
-## 🔐 Segurança
-
-- [ ] HTTPS ativado (automático no Vercel)
-- [ ] Headers de segurança configurados (`vercel.json`)
-- [ ] Sem dados sensíveis em `.env`
-- [ ] `.env` adicionado ao `.gitignore`
-
-## 📊 Pós-Deploy
-
-### Verificações
-
-- [ ] Acessar URL do Vercel
-- [ ] Testar em mobile
-- [ ] Testar offline (PWA)
-- [ ] Verificar ícone
-- [ ] Verificar manifest.json
-- [ ] Testar calculadora com todos os valores
-
-### Performance
-
-- [ ] Vercel Analytics ativado (opcional)
-- [ ] Lighthouse score verificado
-- [ ] Bundle size aceitável
-
-### PWA
-
-- [ ] Ícone aparece na tela inicial
-- [ ] Aplicativo funciona offline
-- [ ] Manifest carrega corretamente
-- [ ] Service Worker registrado
-
-## 🐛 Troubleshooting
-
-### Build falha
+## Antes de cada deploy
 
 ```bash
-# Limpar cache local
-rm -rf node_modules package-lock.json
-npm install
+npm run type-check     # src e api
+npm run lint
+npm test -- --run
 npm run build
 ```
 
-### Erro de deploy
+O CI (`.github/workflows/ci.yml`) roda os mesmos passos em cada pull request.
 
-1. Verificar logs no Vercel Dashboard
-2. Verificar `.env` e `.env.local`
-3. Verificar Node.js version
-4. Redeployar do Vercel Dashboard
+## Variáveis de ambiente (Vercel → Settings → Environment Variables)
 
-### PWA não funciona
+A lista completa, com descrição, está em [.env.example](.env.example). Nenhuma leva
+prefixo `VITE_` — todas são lidas só no servidor.
 
-1. Verificar `/public/manifest.json`
-2. Verificar `/public/sw.js`
-3. Verificar `/public/icon-*.png` existem
-4. Verificar `index.html` link para manifest
+| Variável | Obrigatória | Sem ela |
+|---|---|---|
+| `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY` | sim | login e API não funcionam |
+| `WIVEN_WEBHOOK_SECRET` | sim | o webhook recusa todas as compras (401) |
+| `RESEND_API_KEY`, `EMAIL_FROM` | sim | o token não chega ao comprador (o webhook responde 502) |
+| `ANTHROPIC_API_KEY` | sim | o relatório anti-platô responde 500 |
+| `APP_URL` | recomendada | usa `https://minhatize.vercel.app` |
+| `UPSTASH_REDIS_REST_URL`, `UPSTASH_REDIS_REST_TOKEN` | **recomendadas** | o limite de requisições fica em memória por instância e não vale entre instâncias |
+| `WIVEN_REVOKE_EVENTS` | recomendada | reembolso e chargeback não revogam o token |
+| `ANTHROPIC_MODEL` | opcional | usa `claude-haiku-5-5` |
+| `PDF_URL` | opcional | usa `APP_URL/guia-instalacao.pdf` |
 
-## 📝 Versionamento
+### Upstash Redis (rate limit)
 
-Usar [Semantic Versioning](https://semver.org/):
+1. Crie um banco Redis em [console.upstash.com](https://console.upstash.com) (o plano gratuito basta).
+2. Copie `UPSTASH_REDIS_REST_URL` e `UPSTASH_REDIS_REST_TOKEN` da aba **REST API**.
+3. Cadastre as duas na Vercel (Production e Preview) e faça um novo deploy.
 
-- `1.0.0` - Release inicial
-- `1.0.1` - Bug fixes
-- `1.1.0` - Nova feature
-- `2.0.0` - Breaking changes
+Com as variáveis presentes, se o Upstash ficar fora do ar as requisições são
+**negadas** (fail-closed) — veja `api/_lib/rateLimit.ts`.
 
-## 📧 Comunicação
+### Revogação por reembolso (`WIVEN_REVOKE_EVENTS`)
 
-Após deploy bem-sucedido:
+O webhook só conhece o evento `TRANSACTION_PAID`. Para revogar o acesso em
+reembolso/chargeback, informe os nomes exatos dos eventos que a Wiven envia,
+separados por vírgula. Para descobri-los: faça um reembolso de teste e procure
+`[webhook] Evento ignorado: <NOME>` nos logs da função na Vercel.
 
-- [ ] Testar em produção
-- [ ] Confirmar funcionamento
-- [ ] Notificar usuários (se houver mailing)
+## Banco de dados (Supabase)
 
-## 🔄 Processo Contínuo
+As migrations ficam em `supabase/migrations/` e são aplicadas **manualmente**
+(SQL Editor do Supabase), em ordem de data:
 
-### Rollback (se necessário)
+| Migration | O que faz | Ordem em relação ao código |
+|---|---|---|
+| `20260901_add_token_expiration.sql` | coluna `tokens.expires_at` | **antes** do deploy — sem a coluna, a validação de token falha para todos |
+| `20261012_unique_order_id.sql` | um token por pedido (`UNIQUE` parcial em `order_id`) | antes ou depois; confira duplicatas antes (instruções no arquivo) |
 
-1. Ir para Vercel Dashboard
-2. Deployments → Select version
-3. Click "Redeploy"
+Confira também, a cada mudança de schema:
 
-### Monitor em Produção
+- **RLS habilitado** em `tokens` e `consents`, sem policy para `anon`/`authenticated`
+  (o app só acessa o banco pelo servidor, com a `service_role`).
+- Backups automáticos ativos no projeto.
 
-- Verificar Vercel Analytics
-- Monitorar erro de usuários
-- Coletar feedback
+## Depois do deploy
 
-## 📚 Links Úteis
+- Abrir o app, entrar com um token válido e conferir o console do navegador
+  (não deve haver erro de CSP).
+- Gerar um relatório anti-platô.
+- Laboratório → **Baixar PDF**.
+- Loja → as imagens dos produtos aparecem.
+- Reenviar um webhook de teste pela Wiven e conferir a chegada do e-mail.
 
-- [Vercel Docs](https://vercel.com/docs)
-- [Vite Production Build](https://vitejs.dev/guide/build.html)
-- [PWA Best Practices](https://web.dev/progressive-web-apps/)
+## Rollback
 
----
-
-**Criado em**: Junho 2026
-**Última revisão**: Junho 2026
+Vercel → Deployments → escolha o deploy anterior → **Promote to Production**.
+Migrations não são revertidas pelo rollback do código; as duas acima são
+aditivas e compatíveis com a versão anterior.
