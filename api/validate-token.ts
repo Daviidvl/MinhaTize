@@ -1,15 +1,17 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node'
 import { setCors } from './_lib/cors.js'
 import { createRateLimiter } from './_lib/rateLimit.js'
-import { getClientIp, UUID_RE } from './_lib/auth.js'
-import { getSupabaseAdmin } from './_lib/supabaseAdmin.js'
+import { getClientIp, extractBearerToken, checkToken, UUID_RE } from './_lib/auth.js'
 
 const checkRateLimit = createRateLimiter('validate-token', 30, 60_000) // máx 30 tentativas por minuto
 
+// Contrato com o app (src/utils/token.ts):
+//   200 { valid: true|false } → resposta definitiva sobre o token
+//   429 / 503                 → não foi possível verificar; o app mantém a sessão
 export default async function handler(req: VercelRequest, res: VercelResponse) {
-  setCors(req, res, 'GET,OPTIONS')
+  setCors(req, res, 'GET,POST,OPTIONS', 'Content-Type,Authorization')
   if (req.method === 'OPTIONS') return res.status(200).end()
-  if (req.method !== 'GET') return res.status(405).end()
+  if (req.method !== 'GET' && req.method !== 'POST') return res.status(405).end()
 
   // ── Rate limit ────────────────────────────────────────────────────────────
   const ip = getClientIp(req) || 'unknown'
@@ -20,7 +22,10 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   }
 
   // ── Validar formato UUID ──────────────────────────────────────────────────
-  const raw = req.query.token
+  // POST com Authorization: Bearer é o caminho atual (o token não aparece em
+  // URL nem em log de acesso). GET ?token= continua aceito para as versões do
+  // app que ainda estão em cache nos aparelhos.
+  const raw = req.method === 'POST' ? extractBearerToken(req) : req.query?.token
   if (!raw || typeof raw !== 'string') {
     return res.status(200).json({ valid: false })
   }
@@ -30,24 +35,9 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   }
 
   // ── Consultar Supabase ────────────────────────────────────────────────────
-  try {
-    const supabase = getSupabaseAdmin()
-
-    const { data, error } = await supabase
-      .from('tokens')
-      .select('id')
-      .eq('token', token)
-      .eq('active', true)
-      .maybeSingle()
-
-    if (error) {
-      console.error('[validate-token] Supabase error:', error.message)
-      return res.status(200).json({ valid: false })
-    }
-
-    return res.status(200).json({ valid: !!data })
-  } catch (err) {
-    console.error('[validate-token] Unexpected error:', err)
-    return res.status(200).json({ valid: false })
+  const status = await checkToken(token)
+  if (status === 'error') {
+    return res.status(503).json({ valid: false })
   }
+  return res.status(200).json({ valid: status === 'active' })
 }

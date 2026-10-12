@@ -36,6 +36,16 @@ interface WivenPayload {
   }[]
 }
 
+// Eventos que revogam o acesso (reembolso, chargeback, cancelamento). Os nomes
+// vêm do painel da Wiven e são configurados em WIVEN_REVOKE_EVENTS, separados
+// por vírgula. Sem a variável, nenhum evento revoga (comportamento anterior).
+function revokeEvents(): string[] {
+  return (process.env.WIVEN_REVOKE_EVENTS ?? '').split(',').map(s => s.trim()).filter(Boolean)
+}
+
+// Código do Postgres para violação de UNIQUE
+const UNIQUE_VIOLATION = '23505'
+
 // ─── Verificação de autenticidade (timing-safe) ───────────────────────────────
 function isValidRequest(body: WivenPayload): boolean {
   const secret = process.env.WIVEN_WEBHOOK_SECRET
@@ -83,25 +93,46 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     return res.status(401).json({ error: 'Unauthorized' })
   }
 
-  // 2. Verificar evento
+  const transactionId = body.transaction?.id ?? ''
+
+  // 2. Reembolso / chargeback: revoga o token daquela transação
+  if (body.event && revokeEvents().includes(body.event)) {
+    if (!transactionId) {
+      console.error('[webhook] Evento de revogação sem transaction.id:', body.event)
+      return res.status(400).json({ error: 'Missing transaction id' })
+    }
+    const { error: revokeError } = await getSupabaseAdmin()
+      .from('tokens')
+      .update({ active: false })
+      .eq('order_id', transactionId)
+    if (revokeError) {
+      console.error('[webhook] Erro ao revogar token:', revokeError.message)
+      return res.status(500).json({ error: 'Database error' })
+    }
+    console.log('[webhook] Acesso revogado:', body.event, transactionId)
+    return res.status(200).json({ success: true, action: 'revoked' })
+  }
+
+  // 3. Demais eventos são ignorados. O nome fica no log para facilitar descobrir
+  //    quais eventos a Wiven envia (ex.: ao configurar WIVEN_REVOKE_EVENTS).
   if (body.event !== 'TRANSACTION_PAID') {
+    console.log('[webhook] Evento ignorado:', String(body.event).slice(0, 60))
     return res.status(200).json({ received: true, action: 'ignored — not TRANSACTION_PAID' })
   }
 
-  // 3. Extrair dados do comprador
+  // 4. Extrair dados do comprador
   const email       = body.client?.email ?? ''
   const name        = body.client?.name  ?? ''
-  const transactionId = body.transaction?.id ?? ''
 
   if (!email) {
     console.error('[webhook] E-mail do cliente ausente')
     return res.status(400).json({ error: 'Missing customer email' })
   }
 
-  // 4. Conectar ao Supabase
+  // 5. Conectar ao Supabase
   const supabase = getSupabaseAdmin()
 
-  // 5. Evitar duplicatas — mesmo transaction.id não gera dois tokens
+  // 6. Evitar duplicatas — mesmo transaction.id não gera dois tokens
   if (transactionId) {
     const { data: existing } = await supabase
       .from('tokens')
@@ -111,15 +142,18 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
     if (existing) {
       console.log('[webhook] Transação já processada, reenviando e-mail:', transactionId)
-      await sendEmail(existing.token, email, name)
+      if (!(await sendEmail(existing.token, email, name))) {
+        console.error('[webhook] Reenvio de e-mail falhou para a transação:', transactionId)
+        return res.status(502).json({ error: 'Email delivery failed' })
+      }
       return res.status(200).json({ success: true, duplicate: true })
     }
   }
 
-  // 6. Gerar token único de acesso
+  // 7. Gerar token único de acesso
   const token = randomUUID()
 
-  // 7. Salvar no banco
+  // 8. Salvar no banco
   const { error: dbError } = await supabase.from('tokens').insert({
     token,
     email,
@@ -128,15 +162,36 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     active:        true,
   })
 
+  // Duas entregas simultâneas do mesmo pedido passam juntas pelo passo 6; a
+  // UNIQUE(order_id) do banco barra a segunda aqui. Nesse caso o token que vale
+  // é o que já foi gravado — reenviamos esse, em vez de responder erro.
+  if (dbError?.code === UNIQUE_VIOLATION && transactionId) {
+    const { data: winner } = await supabase
+      .from('tokens')
+      .select('token')
+      .eq('order_id', transactionId)
+      .maybeSingle()
+    if (winner) {
+      if (!(await sendEmail(winner.token, email, name))) {
+        console.error('[webhook] Reenvio de e-mail falhou para a transação:', transactionId)
+        return res.status(502).json({ error: 'Email delivery failed' })
+      }
+      return res.status(200).json({ success: true, duplicate: true })
+    }
+  }
+
   if (dbError) {
     console.error('[webhook] Erro ao salvar token:', dbError.message)
     return res.status(500).json({ error: 'Database error' })
   }
 
-  // 8. Enviar e-mail com link de acesso
+  // 9. Enviar e-mail com link de acesso
+  // Se o e-mail não sair, respondemos 502 para o gateway reentregar o webhook:
+  // a reentrega cai no passo 6 (token já existe) e só reenvia o e-mail.
   const emailSent = await sendEmail(token, email, name)
   if (!emailSent) {
-    console.error('[webhook] Token salvo mas e-mail falhou para:', email)
+    console.error('[webhook] Token salvo mas e-mail falhou para a transação:', transactionId || '(sem id)')
+    return res.status(502).json({ error: 'Email delivery failed' })
   }
 
   return res.status(200).json({ success: true })
@@ -152,12 +207,18 @@ async function sendEmail(token: string, email: string, name: string): Promise<bo
     // Link limpo, sem token na URL: o app sempre pede o token na tela de entrada.
     const accessLink = appUrl
 
-    await resend.emails.send({
+    // O SDK do Resend não lança exceção em erro de API (domínio não verificado,
+    // chave inválida, destinatário rejeitado): devolve { data: null, error }.
+    const { error } = await resend.emails.send({
       from:    `MinhaTize <${fromEmail}>`,
       to:      email,
       subject: 'Seu acesso ao MinhaTize está pronto',
       html:    buildEmailHtml({ name, accessLink, pdfUrl, appUrl, token }),
     })
+    if (error) {
+      console.error('[sendEmail] Resend recusou o envio:', error.name, error.message)
+      return false
+    }
     return true
   } catch (err) {
     console.error('[sendEmail] Erro:', err)

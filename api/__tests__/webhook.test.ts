@@ -14,10 +14,9 @@ vi.mock('../_lib/supabaseAdmin', () => ({
   }),
 }))
 
+// Classe (e não vi.fn) para sobreviver ao vi.restoreAllMocks() do afterEach
 vi.mock('resend', () => ({
-  Resend: vi.fn().mockImplementation(() => ({
-    emails: { send: sendMock },
-  })),
+  Resend: class { emails = { send: sendMock } },
 }))
 
 function makeReq(overrides: Partial<VercelRequest> = {}): VercelRequest {

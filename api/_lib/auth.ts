@@ -23,19 +23,34 @@ export function extractBearerToken(req: VercelRequest): string {
 // produto separada; esta função só passa a respeitar a data quando ela for
 // setada manualmente em algum token.
 export async function isActiveToken(token: string): Promise<boolean> {
-  const supabase = getSupabaseAdmin()
-  const { data, error } = await supabase
-    .from('tokens')
-    .select('id, expires_at')
-    .eq('token', token)
-    .eq('active', true)
-    .maybeSingle()
+  return (await checkToken(token)) === 'active'
+}
 
-  if (error) {
-    console.error('[auth] Erro ao validar token:', error.message)
-    return false
+// Mesma verificação, mas distinguindo "token recusado" de "não deu para
+// consultar o banco" — quem chama decide o que responder em cada caso
+// (ex.: validate-token devolve 503 em 'error' para o app não deslogar ninguém
+// por causa de uma instabilidade).
+export type TokenStatus = 'active' | 'inactive' | 'error'
+
+export async function checkToken(token: string): Promise<TokenStatus> {
+  try {
+    const supabase = getSupabaseAdmin()
+    const { data, error } = await supabase
+      .from('tokens')
+      .select('id, expires_at')
+      .eq('token', token)
+      .eq('active', true)
+      .maybeSingle()
+
+    if (error) {
+      console.error('[auth] Erro ao validar token:', error.message)
+      return 'error'
+    }
+    if (!data) return 'inactive'
+    if (data.expires_at && new Date(data.expires_at).getTime() <= Date.now()) return 'inactive'
+    return 'active'
+  } catch (err) {
+    console.error('[auth] Erro inesperado ao validar token:', err)
+    return 'error'
   }
-  if (!data) return false
-  if (data.expires_at && new Date(data.expires_at).getTime() <= Date.now()) return false
-  return true
 }
