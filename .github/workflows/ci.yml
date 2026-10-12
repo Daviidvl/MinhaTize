@@ -1,0 +1,34 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - run: npm ci
+
+      # Frontend (src) e funções serverless (api)
+      - run: npm run type-check
+
+      - run: npm run lint
+
+      - run: npm run test:coverage -- --run
+
+      - run: npm run build
+
+      # Só as dependências que vão para produção bloqueiam o merge
+      - run: npm audit --omit=dev --audit-level=high
