@@ -1,4 +1,12 @@
-import { Dumbbell, Activity, ArrowDown, Zap, Sparkles } from 'lucide-react'
+import { Dumbbell, Activity, ArrowDown, Zap, Sparkles, TrendingUp, type LucideIcon } from 'lucide-react'
+
+// Telas internas da seção de exercício
+export type ExerciseView = 'workout' | 'evolution'
+
+export const EXERCISE_VIEWS: { id: ExerciseView; label: string; sub: string; Icon: LucideIcon }[] = [
+  { id: 'workout',   label: 'Treino',   sub: 'Seu plano da semana', Icon: Dumbbell },
+  { id: 'evolution', label: 'Evolução', sub: 'Peso e constância',   Icon: TrendingUp },
+]
 
 export type Sex = 'M' | 'F'
 export type Level = 'beginner' | 'intermediate' | 'advanced'
@@ -9,8 +17,7 @@ export interface WorkoutProfile {
   sex: Sex
   level: Level
   location: Location
-  days: WorkoutDays
-  preferredDays: number[]  // 0=Dom … 6=Sáb
+  days: WorkoutDays  // nº de treinos da divisão (2 = A/B … 5 = ABCDE); também é a meta semanal
 }
 
 export interface ExItem {

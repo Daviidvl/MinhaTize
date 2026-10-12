@@ -5,7 +5,10 @@ import { readJSON, writeJSON } from '../utils/storage'
 import { STORAGE_KEYS } from '../utils/storageKeys'
 
 export const CONSENT_KEY     = STORAGE_KEYS.consent
-export const CONSENT_VERSION = '1.0'
+// 1.1 (out/2026): a Política de Privacidade passou a descrever o registro de IP
+// e navegador junto com o aceite, a Loja (imagens e links de afiliado da Shopee)
+// e o Upstash. Mudar a versão faz todos os usuários aceitarem os termos de novo.
+export const CONSENT_VERSION = '1.1'
 
 export function hasConsent(): boolean {
   const parsed = readJSON<{ version?: string } | null>(CONSENT_KEY, null)
@@ -128,7 +131,7 @@ function TermsContent() {
 function PrivacyContent() {
   return (
     <>
-      <P><strong style={{ color: 'var(--text-primary)' }}>Versão 1.0 — Junho de 2026</strong></P>
+      <P><strong style={{ color: 'var(--text-primary)' }}>Versão 1.1 — Outubro de 2026</strong></P>
       <P>Em conformidade com a Lei Geral de Proteção de Dados (Lei 13.709/2018 — LGPD).</P>
 
       <H>1. Controlador dos Dados</H>
@@ -138,11 +141,11 @@ function PrivacyContent() {
       <H>2. Dados Coletados</H>
       <P><strong style={{ color: 'var(--text-primary)' }}>Dados fornecidos por você (perfil):</strong> nome/apelido, idade, sexo, altura, peso, meta de peso, medicamento em uso, dosagem, data de início, dia de aplicação.</P>
       <P><strong style={{ color: 'var(--danger-text)' }}>Dados de saúde sensíveis (Art. 11 LGPD):</strong> resultados de exames laboratoriais (quando inseridos voluntariamente), registro de efeitos colaterais, diário pessoal de saúde.</P>
-      <P><strong style={{ color: 'var(--text-primary)' }}>Dados coletados automaticamente:</strong> endereço IP (processado temporariamente para segurança), endereço de e-mail e token de acesso (coletados na compra).</P>
+      <P><strong style={{ color: 'var(--text-primary)' }}>Dados coletados automaticamente:</strong> endereço IP e identificação do navegador (usados para segurança e registrados junto com o seu aceite destes termos, como comprovação do consentimento); nome, endereço de e-mail e token de acesso (coletados na compra).</P>
 
       <H>3. Onde os Dados Ficam Armazenados</H>
       <P><strong style={{ color: 'var(--text-primary)' }}>Dados do perfil, histórico, exames e diário:</strong> armazenados LOCALMENTE no seu dispositivo (localStorage). Esses dados NÃO são enviados aos nossos servidores e ficam sob seu controle exclusivo.</P>
-      <P><strong style={{ color: 'var(--text-primary)' }}>E-mail e token de acesso:</strong> armazenados em banco de dados Supabase (servidores nos EUA) com criptografia em trânsito e em repouso.</P>
+      <P><strong style={{ color: 'var(--text-primary)' }}>Nome, e-mail, token de acesso e registro de consentimento:</strong> armazenados em banco de dados Supabase (servidores nos EUA) com criptografia em trânsito e em repouso.</P>
       <P><strong style={{ color: 'var(--text-primary)' }}>Relatório Anti-Platô:</strong> ao gerar o relatório, os dados do questionário são enviados de forma anônima à API da Anthropic (EUA) para geração do texto. Nenhum dado identificador (nome, e-mail) é transmitido.</P>
 
       <H>4. Finalidade e Base Legal</H>
@@ -151,17 +154,18 @@ function PrivacyContent() {
       <P>IP: prevenção de abuso e segurança — base legal: legítimo interesse (Art. 7, IX, LGPD).</P>
 
       <H>5. Compartilhamento de Dados</H>
-      <P>Não vendemos dados a terceiros. Compartilhamos apenas com: Supabase Inc. (armazenamento do token), Resend Inc. (envio de e-mail), Anthropic PBC (geração do relatório educativo, sem dados identificadores), e plataformas de pagamento utilizadas na compra (Wiven, Hotmart).</P>
+      <P>Não vendemos dados a terceiros. Compartilhamos apenas com: Supabase Inc. (armazenamento do token), Resend Inc. (envio de e-mail), Anthropic PBC (geração do relatório educativo, sem dados identificadores), Upstash Inc. (contador temporário de limite de requisições por endereço IP) e plataformas de pagamento utilizadas na compra (Wiven, Hotmart).</P>
+      <P><strong style={{ color: 'var(--text-primary)' }}>Loja:</strong> as imagens dos produtos são carregadas dos servidores da Shopee, que recebem o endereço IP do seu aparelho quando você abre a Loja. Os links de compra são de afiliado: o MinhaTize pode receber comissão, sem custo adicional para você.</P>
 
       <H>6. Retenção de Dados</H>
-      <P>Dados locais (perfil, saúde): permanecem no dispositivo até você apagá-los ou limpar o armazenamento do navegador. Token de acesso: mantido pelo período de vigência do seu acesso. Logs de IP: não são retidos após o processamento.</P>
+      <P>Dados locais (perfil, saúde): permanecem no dispositivo até você apagá-los ou limpar o armazenamento do navegador. Token de acesso e registro de consentimento (data, versão, IP e navegador): mantidos pelo período de vigência do seu acesso, até a exclusão dos seus dados. Contador de limite de requisições por IP: descartado em até 1 hora.</P>
 
       <H>7. Seus Direitos (Art. 18 LGPD)</H>
       <P>Você tem direito a: confirmação da existência de tratamento; acesso aos dados; correção; exclusão; portabilidade; revogação do consentimento; e informação sobre compartilhamento. Para exercer seus direitos, envie e-mail para <strong style={{ color: 'var(--text-primary)' }}>privacidade@minhatize.com.br</strong>. Responderemos em até 15 dias úteis.</P>
       <P>Para excluir todos os seus dados locais, utilize a opção "Resetar todos os dados" na aba de perfil do app. Para solicitar a exclusão do token/e-mail do nosso banco, envie e-mail com seu endereço de e-mail cadastrado.</P>
 
       <H>8. Segurança</H>
-      <P>Adotamos: comunicação criptografada (HTTPS/TLS), headers de segurança, rate limiting, tokens únicos não reutilizáveis e acesso restrito ao banco de dados.</P>
+      <P>Adotamos: comunicação criptografada (HTTPS/TLS), headers de segurança, rate limiting, token de acesso único por compra e acesso restrito ao banco de dados.</P>
 
       <H>9. Menores de Idade</H>
       <P>O MinhaTize não é destinado a menores de 18 anos. Não coletamos intencionalmente dados de menores. Se identificarmos dados de menor, procederemos à exclusão imediata.</P>

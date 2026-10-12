@@ -220,7 +220,7 @@ export default function ApplicationCalendar({ profile, onUpdateProfile, compact 
                   </div>
 
                   {/* Date */}
-                  <p style={{ fontSize: '26px', fontWeight: 900, color: 'var(--text-primary)', margin: 0, letterSpacing: '-0.8px', lineHeight: 1.15, textTransform: 'capitalize' }}>
+                  <p className="cap-first" style={{ fontSize: '26px', fontWeight: 900, color: 'var(--text-primary)', margin: 0, letterSpacing: '-0.8px', lineHeight: 1.15 }}>
                     {fmtDateShort(selectedDay)}
                   </p>
                   <p style={{ fontSize: '13px', color: 'var(--text-muted)', margin: '3px 0 0', fontWeight: 500 }}>
@@ -346,7 +346,7 @@ export default function ApplicationCalendar({ profile, onUpdateProfile, compact 
                   Sua próxima aplicação está programada para:
                 </p>
                 <div style={{ padding: '12px 16px', borderRadius: '14px', background: 'var(--amber-bg)', border: '1px solid var(--amber-line)', marginBottom: '12px' }}>
-                  <p style={{ fontSize: '15px', fontWeight: 800, color: 'var(--amber)', margin: 0, textTransform: 'capitalize' }}>
+                  <p className="cap-first" style={{ fontSize: '15px', fontWeight: 800, color: 'var(--amber)', margin: 0 }}>
                     {nextAppGlobal ? fmtDateShort(nextAppGlobal) : '—'}
                   </p>
                 </div>
@@ -371,7 +371,7 @@ export default function ApplicationCalendar({ profile, onUpdateProfile, compact 
                 <p style={{ fontSize: '20px', fontWeight: 900, color: 'var(--text-primary)', margin: '0 0 10px', letterSpacing: '-0.5px' }}>Remover aplicação?</p>
                 <p style={{ fontSize: '13px', color: 'var(--text-secondary)', lineHeight: 1.65, margin: '0 0 12px' }}>Você está prestes a remover o registro de:</p>
                 <div style={{ padding: '12px 16px', borderRadius: '14px', background: 'var(--red-bg)', border: '1px solid var(--red-line)', marginBottom: '12px' }}>
-                  <p style={{ fontSize: '15px', fontWeight: 800, color: 'var(--red)', margin: 0, textTransform: 'capitalize' }}>{fmtDateShort(selectedDay)}</p>
+                  <p className="cap-first" style={{ fontSize: '15px', fontWeight: 800, color: 'var(--red)', margin: 0 }}>{fmtDateShort(selectedDay)}</p>
                 </div>
                 <p style={{ fontSize: '12px', color: 'var(--text-muted)', lineHeight: 1.65, margin: '0 0 24px' }}>Esta ação não pode ser desfeita.</p>
                 <div style={{ display: 'flex', gap: '10px' }}>
@@ -420,7 +420,7 @@ export default function ApplicationCalendar({ profile, onUpdateProfile, compact 
                 ? <><Check size={11} strokeWidth={2.5} style={{ verticalAlign: '-1px', marginRight: '4px' }} />Aplicação de hoje</>
                 : nextAppGlobal === todayStr ? 'Aplicar hoje' : 'Próxima aplicação'}
             </p>
-            <p style={{ fontSize: '15px', fontWeight: 800, color: confirmed.has(todayStr) ? 'var(--teal-d)' : 'var(--primary)', margin: 0, textTransform: 'capitalize' }}>
+            <p className="cap-first" style={{ fontSize: '15px', fontWeight: 800, color: confirmed.has(todayStr) ? 'var(--teal-d)' : 'var(--primary)', margin: 0 }}>
               {fmtDateShort(nextAppGlobal)}
             </p>
           </div>
@@ -452,7 +452,7 @@ export default function ApplicationCalendar({ profile, onUpdateProfile, compact 
           color: 'var(--text-secondary)',
         }}><IcoChevLeft /></button>
 
-        <p style={{ fontWeight: 700, fontSize: '13px', color: 'var(--text-primary)', textTransform: 'capitalize', margin: 0 }}>
+        <p className="cap-first" style={{ fontWeight: 700, fontSize: '13px', color: 'var(--text-primary)', margin: 0 }}>
           {monthName}
         </p>
 

@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react'
 import LoginScreen from './components/LoginScreen'
-import { getStoredToken, clearToken, validateToken } from './utils/token'
+import { getStoredToken, clearToken, checkToken, claimLocalData } from './utils/token'
 import Header from './components/Header'
 import Dashboard from './components/Dashboard'
 import ProgressHub from './components/ProgressHub'
@@ -10,12 +10,13 @@ import Laboratory from './components/Laboratory'
 import ProfilePage from './components/ProfilePage'
 import ProfileSetup from './components/ProfileSetup'
 import ConsentGate, { hasConsent } from './components/ConsentGate'
-import LegalPage, { type LegalDoc } from './components/LegalPage'
+import LegalPage, { isLegalDoc, type LegalDoc } from './components/LegalPage'
 import Footer from './components/Footer'
 import { useDarkMode } from './hooks/useDarkMode'
-import { readJSON, writeJSON } from './utils/storage'
+import { readJSON, writeJSON, readRaw } from './utils/storage'
 import { STORAGE_KEYS } from './utils/storageKeys'
 import { Tab, UserProfile } from './types'
+import { todayStr } from './utils/dateUtils'
 
 const DEFAULT_PROFILE: UserProfile = {
   name: '',
@@ -23,7 +24,7 @@ const DEFAULT_PROFILE: UserProfile = {
   startWeight: 90,
   goalWeight: 70,
   height: 170,
-  startDate: new Date().toISOString().split('T')[0],
+  startDate: todayStr(),
   currentDose: 2.5,
   applicationDay: new Date().getDay(),
   weightHistory: [],
@@ -105,7 +106,7 @@ export default function App() {
   const [consentGiven, setConsentGiven] = useState<boolean>(hasConsent)
   const [legalDoc, setLegalDoc]       = useState<LegalDoc | null>(() => {
     const p = new URLSearchParams(window.location.search).get('legal')
-    return (p as LegalDoc | null)
+    return isLegalDoc(p) ? p : null
   })
   const prevTabRef   = useRef<Tab>('dashboard')
   const navRef       = useRef<HTMLElement>(null)
@@ -116,9 +117,16 @@ export default function App() {
     async function checkAccess() {
       const stored = getStoredToken()
       if (stored) {
-        const valid = await validateToken(stored)
+        const result = await checkToken(stored)
         if (cancelled) return
-        if (valid) { setTokenStatus('valid'); return }
+        // Só uma recusa explícita do servidor encerra a sessão. Sem internet ou
+        // com a API instável ('unknown') o token salvo continua valendo — o app
+        // é um PWA e os dados ficam todos no aparelho.
+        if (result !== 'invalid') {
+          if (result === 'valid' && !readRaw(STORAGE_KEYS.owner)) await claimLocalData(stored)
+          if (!cancelled) setTokenStatus('valid')
+          return
+        }
         clearToken()
       }
       if (!cancelled) setTokenStatus('invalid')
@@ -199,7 +207,7 @@ export default function App() {
   }
 
   if (tokenStatus === 'invalid') {
-    return <LoginScreen onAccessGranted={() => setTokenStatus('valid')} onLegal={doc => setLegalDoc(doc as LegalDoc)} />
+    return <LoginScreen onAccessGranted={() => setTokenStatus('valid')} onLegal={doc => { if (isLegalDoc(doc)) setLegalDoc(doc) }} />
   }
 
   if (!consentGiven) {

@@ -11,6 +11,7 @@ import {
   STATUS_LABEL, STATUS_COLOR, STATUS_BG, STATUS_BORDER,
 } from '../data/labExams'
 import { alpha } from '../utils/color'
+import { todayStr } from '../utils/dateUtils'
 
 // Paleta dos PDFs: a janela de impressão é outro documento e não enxerga as variáveis CSS,
 // então os valores de src/index.css (tema claro) são repetidos aqui, e só aqui.
@@ -25,8 +26,8 @@ interface Props {
   onUpdateProfile: (p: UserProfile) => void
 }
 
-// Os relatórios abaixo são montados com template strings e injetados via
-// document.write — qualquer valor de origem do usuário precisa passar por
+// Os relatórios abaixo são montados com template strings e abertos como
+// documento HTML — qualquer valor de origem do usuário precisa passar por
 // aqui antes de entrar no HTML.
 function escapeHtml(str: string): string {
   return str
@@ -35,6 +36,16 @@ function escapeHtml(str: string): string {
     .replace(/>/g, '&gt;')
     .replace(/"/g, '&quot;')
     .replace(/'/g, '&#39;')
+}
+
+// Abre o relatório em uma nova aba a partir de um Blob. window.open('', …,
+// 'noopener') devolve null (não há como escrever na janela), então o HTML vai
+// pronto na própria URL. O documento não tem script — só HTML e <style>.
+function openPrintable(html: string) {
+  const url = URL.createObjectURL(new Blob([html], { type: 'text/html;charset=utf-8' }))
+  window.open(url, '_blank', 'noopener')
+  // A aba já carregou o conteúdo bem antes disso; libera a memória do Blob
+  setTimeout(() => URL.revokeObjectURL(url), 60_000)
 }
 
 // ── Main component ───────────────────────────────────────────────────────────
@@ -60,7 +71,7 @@ export default function Laboratory({ profile, onUpdateProfile }: Props) {
     if (!raw || isNaN(value)) {
       onUpdateProfile({ ...profile, labResults: rest })
     } else {
-      const date = new Date().toISOString().split('T')[0]
+      const date = todayStr()
       onUpdateProfile({ ...profile, labResults: [...rest, { examId, value, date }] })
     }
   }
@@ -155,16 +166,12 @@ export default function Laboratory({ profile, onUpdateProfile }: Props) {
   <p class="sub">Gerado em ${today} – Leve ao seu médico, nutricionista ou laboratório</p>
   ${sections}
   <div class="disc">
-    <strong>Aviso importante:</strong> Os valores de referência são gerais, baseados em literatura científica, e podem variar entre laboratórios, métodos analíticos, equipamentos, sexo, idade e contexto clínico. Sempre que houver divergência entre a plataforma e o laudo laboratorial, prevalece o valor de referência informado pelo laboratório. Esta plataforma fornece apenas orientação educativa – não realiza diagnóstico, não sugere tratamento, não sugere medicamentos e não sugere suplementação específica.
+    <strong>Aviso importante:</strong> Os valores de referência são gerais, baseados em literatura científica, e podem variar entre laboratórios, métodos analíticos, equipamentos, sexo, idade e contexto clínico. Sempre que houver divergência entre a plataforma e o laudo laboratorial, prevalece o valor de referência informado pelo laboratório. Esta plataforma fornece apenas orientação educativa – não realiza diagnóstico e não prescreve tratamento, medicamentos ou suplementação.
   </div>
 </body>
 </html>`
 
-    const win = window.open('', '_blank', 'noopener')
-    if (win) {
-      win.document.write(html)
-      win.document.close()
-    }
+    openPrintable(html)
   }
 
   // ── PDF: resultados (disponível quando há exames preenchidos) ────────────
@@ -235,16 +242,12 @@ export default function Laboratory({ profile, onUpdateProfile }: Props) {
   <p class="sub">Gerado em ${today} – ${filledCount} exame${filledCount !== 1 ? 's' : ''} preenchido${filledCount !== 1 ? 's' : ''}</p>
   ${sections}
   <div class="disc">
-    <strong>Aviso importante:</strong> A Minha Tize não substitui avaliação médica. Os valores de referência são gerais, baseados em literatura científica, e podem variar entre laboratórios, métodos analíticos, equipamentos, sexo, idade e contexto clínico. Sempre que houver divergência entre a plataforma e o laudo laboratorial, prevalece o valor de referência informado pelo laboratório. Esta plataforma fornece apenas orientação educativa – não realiza diagnóstico, não sugere tratamento, não sugere medicamentos e não sugere suplementação específica.
+    <strong>Aviso importante:</strong> A Minha Tize não substitui avaliação médica. Os valores de referência são gerais, baseados em literatura científica, e podem variar entre laboratórios, métodos analíticos, equipamentos, sexo, idade e contexto clínico. Sempre que houver divergência entre a plataforma e o laudo laboratorial, prevalece o valor de referência informado pelo laboratório. Esta plataforma fornece apenas orientação educativa – não realiza diagnóstico e não prescreve tratamento, medicamentos ou suplementação.
   </div>
 </body>
 </html>`
 
-    const win = window.open('', '_blank', 'noopener')
-    if (win) {
-      win.document.write(html)
-      win.document.close()
-    }
+    openPrintable(html)
   }
 
   // ── Toggle category ──────────────────────────────────────────────────────

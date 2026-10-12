@@ -11,12 +11,12 @@ export default defineConfig({
     coverage: {
       provider: 'v8',
       reporter: ['text', 'json', 'html'],
-      lines: 80,
-      functions: 80,
-      branches: 80,
-      statements: 80,
-      include: ['src/**/*.{ts,tsx}'],
-      exclude: ['src/**/*.test.{ts,tsx}', 'src/__tests__/**'],
+      include: ['src/**/*.{ts,tsx}', 'api/**/*.ts'],
+      exclude: ['**/*.test.{ts,tsx}', '**/__tests__/**', 'src/vite-env.d.ts'],
+      // PISO, não meta: valores logo abaixo da cobertura medida em out/2026, para
+      // `npm run test:coverage` acusar regressão. Suba-os conforme os componentes
+      // ganharem testes.
+      thresholds: { lines: 40, statements: 40, functions: 36, branches: 65 },
     },
   },
   resolve: {

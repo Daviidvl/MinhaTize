@@ -4,6 +4,7 @@ import {
   Flame, Battery, RotateCcw, Circle, Minus, X,
   Zap, Moon, Sun, Heart, Shield, Fish, Sparkles, Feather,
 } from 'lucide-react'
+import { toDateStr } from '../utils/dateUtils'
 
 export type HealthTab = 'symptoms' | 'food' | 'exercise' | 'weaning' | 'supplementation' | 'antiplato' | 'storage'
 
@@ -79,7 +80,7 @@ export const SYMPTOM_TIPS: Record<string, { title: string; tips: string[] }> = {
   constipation: {
     title: 'Constipação',
     tips: [
-      'Beba pelo menos 2L de água por dia é fundamental',
+      'Beba pelo menos 2L de água por dia — fundamental',
       'Ameixa, mamão e kiwi são aliados do trânsito intestinal',
       'Caminhadas leves de 20–30 min estimulam o intestino',
       'Aveia e fibras solúveis regularizam sem agravar desconforto',
@@ -163,8 +164,8 @@ export const SUPP_LEVELS = [
     iconBg: 'var(--ice)',
     iconColor: 'var(--cobalt)',
     items: [
-      { name: 'Proteína Adequada',  detail: 'Whey, caseína ou fontes alimentares é 1,2–1,6g/kg' },
-      { name: 'Creatina',           detail: '3–5g/dia é preserva e aumenta massa muscular' },
+      { name: 'Proteína Adequada',  detail: 'Whey, caseína ou fontes alimentares — 1,2–1,6g/kg' },
+      { name: 'Creatina',           detail: '3–5g/dia — preserva e aumenta massa muscular' },
       { name: 'Multivitamínico',    detail: 'Suporte geral de micronutrientes na restrição calórica' },
       { name: 'Magnésio',           detail: 'Qualidade do sono, cãibras e função muscular' },
     ],
@@ -213,7 +214,7 @@ export function getMondayOf(d: Date) {
   const date = new Date(d)
   const day  = date.getDay()
   date.setDate(date.getDate() - day + (day === 0 ? -6 : 1))
-  return date.toISOString().split('T')[0]
+  return toDateStr(date)
 }
 
 // ── Section card definitions ──────────────────────────────────────────────────

@@ -1,10 +1,11 @@
 import { useState, useRef, useEffect } from 'react'
-import { TrendingUp, TrendingDown, Minus, BarChart2, ClipboardList } from 'lucide-react'
+import { TrendingUp, TrendingDown, Minus, BarChart2, ClipboardList, X } from 'lucide-react'
 import { UserProfile, WeightEntry } from '../types'
 import { calcIMC, imcLabel } from '../utils/bmiUtils'
 import { getDoseLabel } from '../utils/medicationUtils'
 import { getPlateauStatus, getPlateauStatusMeta } from '../utils/plateauUtils'
 import { alpha } from '../utils/color'
+import { todayStr } from '../utils/dateUtils'
 
 interface Props {
   profile: UserProfile
@@ -33,6 +34,8 @@ export default function ProgressHub({ profile, onUpdateProfile }: Props) {
   const [tab, setTab]             = useState<InnerTab>('evolution')
   const [newWeight, setNewWeight] = useState('')
   const [weightSaved, setWeightSaved] = useState(false)
+  // Índice da pesagem aguardando confirmação de remoção
+  const [confirmRemove, setConfirmRemove] = useState<number | null>(null)
   const savedTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   useEffect(() => () => { if (savedTimerRef.current) clearTimeout(savedTimerRef.current) }, [])
@@ -53,7 +56,8 @@ export default function ProgressHub({ profile, onUpdateProfile }: Props) {
   const maxW  = Math.max(...chartPoints.map(e => e.weight))
   const minW  = Math.min(...chartPoints.map(e => e.weight))
   const range = maxW - minW || 1
-  const history = [...profile.weightHistory].reverse().slice(0, 16)
+  // `index` é a posição no weightHistory original — usada para remover a pesagem certa
+  const history = profile.weightHistory.map((entry, index) => ({ ...entry, index })).reverse().slice(0, 16)
 
   // Weekly comparison: last 2 entries
   const prev2   = profile.weightHistory.at(-2)?.weight ?? firstWeight
@@ -65,12 +69,21 @@ export default function ProgressHub({ profile, onUpdateProfile }: Props) {
   function addWeight() {
     const w = parseFloat(newWeight)
     if (!w || wBlocked) return
-    const entry: WeightEntry = { date: new Date().toISOString().split('T')[0], weight: w }
-    onUpdateProfile({ ...profile, weightHistory: [...profile.weightHistory, entry] })
+    // Uma pesagem por dia: salvar de novo no mesmo dia corrige o valor em vez
+    // de criar uma segunda entrada com a mesma data.
+    const entry: WeightEntry = { date: todayStr(), weight: w }
+    const others = profile.weightHistory.filter(e => e.date !== entry.date)
+    onUpdateProfile({ ...profile, weightHistory: [...others, entry] })
+    setConfirmRemove(null)
     setNewWeight('')
     setWeightSaved(true)
     if (savedTimerRef.current) clearTimeout(savedTimerRef.current)
     savedTimerRef.current = setTimeout(() => setWeightSaved(false), 2000)
+  }
+
+  function removeWeight(index: number) {
+    onUpdateProfile({ ...profile, weightHistory: profile.weightHistory.filter((_, i) => i !== index) })
+    setConfirmRemove(null)
   }
 
   const imc = calcIMC(lastWeight, profile.height)
@@ -227,6 +240,7 @@ export default function ProgressHub({ profile, onUpdateProfile }: Props) {
                     type="number" className="input-field" placeholder="Ex: 84.5"
                     style={{ flex: 1 }}
                     value={newWeight} onChange={e => setNewWeight(e.target.value)}
+                    onKeyDown={e => e.key === 'Enter' && addWeight()}
                     min={20} max={500} step={0.1} inputMode="decimal"
                   />
                   {(() => {
@@ -270,7 +284,7 @@ export default function ProgressHub({ profile, onUpdateProfile }: Props) {
                     const prev = history[i + 1]
                     const diff = prev ? entry.weight - prev.weight : null
                     return (
-                      <div key={entry.date + i} style={{
+                      <div key={entry.date + entry.index} style={{
                         display: 'flex', justifyContent: 'space-between', alignItems: 'center',
                         padding: '9px 12px', borderRadius: '10px', background: 'var(--surface-2)',
                       }}>
@@ -296,6 +310,27 @@ export default function ProgressHub({ profile, onUpdateProfile }: Props) {
                           <span style={{ fontSize: '14px', fontWeight: 800, color: 'var(--text-primary)' }}>
                             {entry.weight}kg
                           </span>
+                          {confirmRemove === entry.index ? (
+                            <button onClick={() => removeWeight(entry.index)} style={{
+                              padding: '3px 9px', borderRadius: '8px', cursor: 'pointer',
+                              background: 'var(--red-bg)', border: '1px solid var(--red-line)',
+                              color: 'var(--red)', fontWeight: 700, fontSize: '11px',
+                              fontFamily: 'Inter, -apple-system, sans-serif',
+                            }}>
+                              Remover
+                            </button>
+                          ) : (
+                            <button
+                              onClick={() => setConfirmRemove(entry.index)}
+                              aria-label={`Remover pesagem de ${entry.weight}kg`}
+                              style={{
+                                background: 'none', border: 'none', cursor: 'pointer', padding: '2px',
+                                color: 'var(--text-muted)', display: 'flex', alignItems: 'center',
+                              }}
+                            >
+                              <X size={14} strokeWidth={2} />
+                            </button>
+                          )}
                         </div>
                       </div>
                     )

@@ -58,7 +58,8 @@ describe('Calculator Component', () => {
     render(<Calculator />)
 
     // The component should render guidance
-    const guidance = screen.queryByText(/Localize/i)
+    // Dose padrão na seringa de 100 UI começa do zero ("A partir do zero, avance N traços")
+    const guidance = screen.queryByText(/Localize o número|avance \d+ traço/i)
     expect(guidance).toBeInTheDocument()
   })
 

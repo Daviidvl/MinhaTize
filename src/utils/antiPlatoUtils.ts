@@ -1,3 +1,4 @@
+import { todayStr } from './dateUtils'
 export const FOOD_ITEMS = [
   'Café com açúcar',
   'Molhos (maionese, ketchup, etc.)',
@@ -113,13 +114,13 @@ export function computeDiagnosis(a: Answers): PriorityItem[] {
 
 export function getDayNumber(startDate: string): number {
   const startMs = new Date(startDate).getTime()
-  const todayMs = new Date(new Date().toISOString().split('T')[0]).getTime()
+  const todayMs = new Date(todayStr()).getTime()
   const diff    = Math.round((todayMs - startMs) / 86400000)
   return Math.min(14, Math.max(1, diff + 1))
 }
 
 export function getRawDay(startDate: string): number {
   const startMs = new Date(startDate).getTime()
-  const todayMs = new Date(new Date().toISOString().split('T')[0]).getTime()
+  const todayMs = new Date(todayStr()).getTime()
   return Math.round((todayMs - startMs) / 86400000) + 1
 }

@@ -1,9 +1,9 @@
-import type { ReactNode, CSSProperties } from 'react'
-import { Package, AlertTriangle, ChevronRight, Moon, Zap, Search, ShoppingBag, Target } from 'lucide-react'
+import { useState, type ReactNode, type CSSProperties } from 'react'
+import { Package, AlertTriangle, ChevronRight, Moon, Zap, Search, ShoppingBag, Target, GlassWater, Check } from 'lucide-react'
 import { UserProfile, Tab } from '../types'
 import ApplicationCalendar from './ApplicationCalendar'
 import { calcIMC, imcLabel } from '../utils/bmiUtils'
-import { readJSON } from '../utils/storage'
+import { readJSON, writeJSON } from '../utils/storage'
 import { alpha } from '../utils/color'
 import { STORAGE_KEYS } from '../utils/storageKeys'
 import { getAppsLeft, getDoseValue, getMedicationLabel } from '../utils/medicationUtils'
@@ -12,6 +12,9 @@ import {
   daysSince, getGreeting, getFormattedDate, DOSE_PHASE, getMotivation, getCalorieStatus,
   SPLIT_INFO, WORKOUT_SCHEDULE, LEVEL_LABEL, getMealNow,
 } from '../utils/dashboardUtils'
+import { toDateStr } from '../utils/exerciseUtils'
+import { type WaterLog, waterGoalMl, waterTotal, formatMl } from '../utils/foodUtils'
+import { WATER_QUICK_ADD } from '../data/foodPlans'
 
 interface Props {
   profile: UserProfile
@@ -28,7 +31,7 @@ function WorkoutWidget({ onNavigate }: { onNavigate: (t: Tab, s?: string) => voi
   const splits   = SPLIT_INFO[key]
   const today    = new Date()
   const todayDay = today.getDay()
-  const todayStr = today.toISOString().split('T')[0]
+  const todayStr = toDateStr(today)
   const schedule = wp ? (WORKOUT_SCHEDULE[wp.days] ?? []) : []
   const idx      = schedule.indexOf(todayDay)
   const workout  = splits && idx !== -1 ? splits[idx] : null
@@ -39,7 +42,7 @@ function WorkoutWidget({ onNavigate }: { onNavigate: (t: Tab, s?: string) => voi
   monday.setDate(today.getDate() - ((todayDay + 6) % 7))
   const weekDots = Array.from({ length: 7 }, (_, i) => {
     const d = new Date(monday); d.setDate(monday.getDate() + i)
-    const ds = d.toISOString().split('T')[0]
+    const ds = toDateStr(d)
     return { ds, isToday: ds === todayStr, done: wLog.includes(ds) }
   })
   const weekDone = weekDots.filter(d => d.done).length
@@ -256,6 +259,92 @@ function MealWidget({ profile, onNavigate }: { profile: UserProfile; onNavigate:
   )
 }
 
+// ── Widget de Água ────────────────────────────────────────────────────────────
+function WaterWidget({ weight, onNavigate }: { weight: number; onNavigate: (t: Tab, s?: string) => void }) {
+  const today = toDateStr(new Date())
+  const [log, setLog] = useState<WaterLog>(() => readJSON(STORAGE_KEYS.waterLog, {}))
+
+  const goal  = waterGoalMl(weight)
+  const total = waterTotal(log[today])
+  const pct   = Math.min(100, Math.round((total / goal) * 100))
+
+  function add(ml: number) {
+    const updated = { ...log, [today]: [...(log[today] ?? []), ml] }
+    setLog(updated)
+    writeJSON(STORAGE_KEYS.waterLog, updated)
+  }
+
+  return (
+    <div style={{
+      borderRadius: '22px', padding: '14px 18px',
+      background: 'var(--g-water), var(--surface)',
+      boxShadow: 'inset 0 0 0 1px var(--line), var(--shadow-card)',
+      fontFamily: 'Inter, -apple-system, sans-serif',
+    }}>
+      {/* Resumo: abre a tela de Hidratação */}
+      <button
+        onClick={() => onNavigate('health', 'food:hydration')}
+        aria-label="Abrir hidratação"
+        style={{ display: 'block', width: '100%', background: 'none', border: 'none', padding: 0, cursor: 'pointer', textAlign: 'left', fontFamily: 'inherit' }}
+      >
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '12px' }}>
+          <div style={{ minWidth: 0 }}>
+            {/* Texto em --ink: o --ink-2 perde contraste sobre o azul do degradê */}
+            <p style={{ fontSize: '9px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.10em', margin: '0 0 5px', color: 'var(--ink)', opacity: 0.72 }}>
+              Água hoje
+            </p>
+            <p className="num-display" style={{ fontSize: '30px', color: 'var(--ink)', margin: '0 0 2px' }}>
+              {formatMl(total)}
+              <span style={{ fontSize: '13px', fontWeight: 600, opacity: 0.65, marginLeft: '5px', letterSpacing: '0.02em' }}>ml</span>
+            </p>
+            <p style={{ fontSize: '11px', fontWeight: 600, margin: 0, display: 'flex', alignItems: 'center', gap: '4px', color: 'var(--ink)', opacity: total >= goal ? 1 : 0.72 }}>
+              {total >= goal
+                ? <><Check size={12} strokeWidth={2.5} style={{ flexShrink: 0, color: 'var(--teal-d)' }} />Meta de {formatMl(goal)} ml atingida</>
+                : `de ${formatMl(goal)} ml · faltam ${formatMl(goal - total)} ml`}
+            </p>
+          </div>
+          <div style={{
+            width: '40px', height: '40px', borderRadius: '12px', flexShrink: 0,
+            background: 'var(--surface)', border: '1px solid var(--line)',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+          }}>
+            <GlassWater size={19} strokeWidth={1.75} color="var(--cobalt)" />
+          </div>
+        </div>
+
+        <div style={{ background: 'var(--surface)', borderRadius: '99px', height: '4px', overflow: 'hidden', margin: '10px 0' }}>
+          <div style={{
+            width: `${pct}%`, height: '100%',
+            background: 'var(--g-progress)',
+            borderRadius: '99px', transition: 'width 0.9s cubic-bezier(0.22,1,0.36,1)',
+          }} />
+        </div>
+      </button>
+
+      {/* Registro rápido */}
+      <div style={{ display: 'flex', gap: '8px' }}>
+        {WATER_QUICK_ADD.map(q => (
+          <button
+            key={q.ml}
+            onClick={() => add(q.ml)}
+            aria-label={`Registrar ${q.ml} ml de água`}
+            className="meal-row"
+            style={{
+              flex: 1, minHeight: '34px', padding: '6px 4px', borderRadius: '10px', cursor: 'pointer',
+              display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '5px',
+              background: 'var(--surface)', border: '1px solid var(--line)',
+              color: 'var(--cobalt)', fontSize: '12px', fontWeight: 800, fontFamily: 'inherit',
+            }}
+          >
+            <q.Icon size={14} strokeWidth={2} />
+            +{q.ml} ml
+          </button>
+        ))}
+      </div>
+    </div>
+  )
+}
+
 // ── Tile de Stat ──────────────────────────────────────────────────────────────
 function StatTile({
   label, value, unit, sub, subColor, icon, style,
@@ -328,10 +417,10 @@ export default function Dashboard({ profile, onNavigate, onUpdateProfile }: Prop
 
       {/* ── Saudação ── */}
       <div data-tour="dash-greeting" style={{ paddingTop: '2px', paddingBottom: '0' }}>
-        <p style={{
+        <p className="cap-first" style={{
           fontSize: '11px', fontWeight: 500, color: 'var(--text-muted)',
           marginBottom: '6px', fontFamily: 'Inter, sans-serif',
-          textTransform: 'capitalize', letterSpacing: '0.01em',
+          letterSpacing: '0.01em',
         }}>
           {getFormattedDate()}
         </p>
@@ -520,7 +609,8 @@ export default function Dashboard({ profile, onNavigate, onUpdateProfile }: Prop
           <div style={{ position: 'absolute', top: '14px', right: '14px', opacity: 0.10 }}>
             <Zap size={36} strokeWidth={1.5} />
           </div>
-          <p className="label-base" style={{ marginBottom: '8px' }}>Dose atual</p>
+          {/* nowrap: em telas de 360px o rótulo quebrava em duas linhas e empurrava a legenda para fora do cartão */}
+          <p className="label-base" style={{ marginBottom: '8px', whiteSpace: 'nowrap' }}>Dose atual</p>
           <p className="num-display" style={{ fontSize: getDoseValue(profile) != null ? '28px' : '16px', color: 'var(--text-primary)', margin: '0 0 6px' }}>
             {getDoseValue(profile) != null ? (
               <>
@@ -549,6 +639,8 @@ export default function Dashboard({ profile, onNavigate, onUpdateProfile }: Prop
           )}
         </div>
       </div>
+
+      <WaterWidget weight={lastWeight} onNavigate={onNavigate} />
 
       {/* ── Widgets diários ── */}
       <div data-tour="dash-widgets" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
