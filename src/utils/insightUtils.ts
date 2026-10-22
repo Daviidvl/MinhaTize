@@ -11,6 +11,9 @@ import { STORAGE_KEYS } from './storageKeys'
 // Avisos do carrossel do Início. Diferente dos lembretes (reminderUtils), que
 // viram notificação num horário, estes olham o histórico de registros e o uso
 // do app para sugerir o próximo passo de cada pessoa. Só aparecem no app.
+//
+// Quando a pessoa faz o que o aviso pedia, ele não some: é trocado por um
+// aviso positivo (tone 'good') reconhecendo o que foi feito hoje.
 
 export type InsightKind = 'application' | 'stock' | 'symptoms' | 'workout' | 'weighIn' | 'progress' | 'water'
 
@@ -28,6 +31,7 @@ export interface Insight {
 
 export interface InsightContext {
   today: string           // YYYY-MM-DD
+  nowMin: number          // minutos desde a meia-noite
   profile: UserProfile
   workoutTarget: number | null // treinos por semana do plano (null = sem plano)
   workoutPlan: WorkoutPlan
@@ -42,6 +46,13 @@ export const MAX_INSIGHTS = 5
 const LATE_APPLICATION_DAYS = 3
 // A partir de quantos dias sem pesagem o app sugere se pesar
 const WEIGH_GAP_DAYS = 8
+// Água de hoje: ritmo esperado entre 8h e 20h; só cobra a partir do meio-dia
+// e quando o atraso passa de um copo
+const WATER_DAY_FROM = 8 * 60
+const WATER_DAY_TO   = 20 * 60
+const WATER_CHECK_FROM = 12 * 60
+const WATER_SLACK_ML = 250
+const WATER_LOOKBACK_DAYS = 14
 
 function diffDays(a: string, b: string): number {
   return Math.round((new Date(a + 'T12:00:00').getTime() - new Date(b + 'T12:00:00').getTime()) / 864e5)
@@ -68,8 +79,18 @@ export function getInsights(ctx: InsightContext): Insight[] {
     const lastScheduled = addDays(today, -offset)
     const doneSince     = log.some(d => d >= lastScheduled && d <= today)
     const dayName       = WEEK_DAYS_FULL[appDay].toLowerCase()
+    const streak        = calcStreak(new Set(log), appDay, today)
 
-    if (offset === 0 && !doneSince) {
+    if (log.includes(today)) {
+      out.push({
+        id: `insight-application-done-${today}`, kind: 'application', tone: 'good', priority: 90,
+        tab: 'progress', cta: 'Ver evolução',
+        title: 'Aplicação de hoje registrada',
+        body: streak >= 2
+          ? `${streak} semanas seguidas em dia. A regularidade é o que sustenta o resultado.`
+          : 'Tudo certo por esta semana. Se sentir algum efeito nos próximos dias, registre em Sintomas.',
+      })
+    } else if (offset === 0 && !doneSince) {
       out.push({
         id: `insight-application-${today}`, kind: 'application', tone: 'info', priority: 100,
         tab: 'dashboard', cta: 'Abrir calendário',
@@ -98,8 +119,7 @@ export function getInsights(ctx: InsightContext): Insight[] {
       })
     }
 
-    const streak = calcStreak(new Set(log), appDay, today)
-    if (doneSince && streak >= 4) {
+    if (doneSince && streak >= 4 && !log.includes(today)) {
       out.push({
         id: `insight-application-streak-${streak}`, kind: 'application', tone: 'good', priority: 20,
         tab: 'progress', cta: 'Ver evolução',
@@ -134,6 +154,13 @@ export function getInsights(ctx: InsightContext): Insight[] {
         title: 'Como você está desde a aplicação?',
         body: 'Anotar enjoo, apetite ou cansaço nos dias seguintes à dose ajuda a entender sua adaptação.',
       })
+    } else if (since >= 1 && since <= 2) {
+      out.push({
+        id: `insight-symptoms-done-${lastApp}`, kind: 'symptoms', tone: 'good', priority: 40,
+        tab: 'health', section: 'symptoms', cta: 'Ver sintomas',
+        title: 'Sintomas da semana registrados',
+        body: 'Com esse histórico fica mais fácil conversar com seu médico sobre a adaptação à dose.',
+      })
     }
   }
 
@@ -154,6 +181,13 @@ export function getInsights(ctx: InsightContext): Insight[] {
         tab: 'health', section: 'exercise', cta: 'Ver treino',
         title: 'Meta de treinos da semana batida',
         body: `${weekDone} de ${target} treinos feitos. Treinar força ajuda a preservar a massa muscular enquanto o peso cai.`,
+      })
+    } else if (doneToday) {
+      out.push({
+        id: `insight-workout-done-${today}`, kind: 'workout', tone: 'good', priority: 48,
+        tab: 'health', section: 'exercise', cta: 'Ver treino',
+        title: 'Treino de hoje concluído',
+        body: `${weekDone} de ${target} treinos nesta semana. ${missing === 1 ? 'Falta só mais um para bater a meta.' : `Faltam ${missing} para bater a meta.`}`,
       })
     } else if (weekDone === 0 && daysElapsed >= 3) {
       const lastText = last ? `Seu último treino foi há ${plural(diffDays(today, last), 'dia', 'dias')}. ` : ''
@@ -201,7 +235,18 @@ export function getInsights(ctx: InsightContext): Insight[] {
     })
   } else {
     const gap = diffDays(today, lastWeigh.date)
-    if (gap >= WEIGH_GAP_DAYS) {
+    if (lastWeigh.date === today) {
+      const prev  = weights.at(-2)
+      const delta = prev ? lastWeigh.weight - prev.weight : 0
+      out.push({
+        id: `insight-weigh-done-${today}`, kind: 'weighIn', tone: 'good', priority: 46,
+        tab: 'progress', cta: 'Ver evolução',
+        title: 'Peso de hoje registrado',
+        body: prev && delta <= -0.1
+          ? `${fmtKg(-delta)} kg a menos desde a última pesagem. Continue assim.`
+          : 'Oscilações de um dia para o outro são normais: o que importa é a tendência das semanas.',
+      })
+    } else if (gap >= WEIGH_GAP_DAYS) {
       out.push({
         id: `insight-weigh-gap-${lastWeigh.date}`, kind: 'weighIn', tone: 'info', priority: 50,
         tab: 'progress', cta: 'Registrar peso',
@@ -228,10 +273,32 @@ export function getInsights(ctx: InsightContext): Insight[] {
   // ── Água ──
   const goal = ctx.waterGoalMl
   if (goal > 0) {
-    const streak = calcDayStreak(waterDays(ctx.waterLog, goal), new Date(today + 'T12:00:00'))
+    const todayMl   = waterTotal(ctx.waterLog[today])
+    const streak    = calcDayStreak(waterDays(ctx.waterLog, goal), new Date(today + 'T12:00:00'))
     const yesterday = addDays(today, -1)
-    const yMl = waterTotal(ctx.waterLog[yesterday])
-    if (streak >= 3) {
+    const yMl       = waterTotal(ctx.waterLog[yesterday])
+    const cutoff    = addDays(today, -WATER_LOOKBACK_DAYS)
+    const logsWater = Object.entries(ctx.waterLog).some(([d, v]) => d >= cutoff && v.length > 0)
+    const dayShare  = (ctx.nowMin - WATER_DAY_FROM) / (WATER_DAY_TO - WATER_DAY_FROM)
+    const expected  = goal * Math.min(1, Math.max(0, dayShare))
+
+    if (todayMl >= goal) {
+      out.push({
+        id: `insight-water-done-${today}`, kind: 'water', tone: 'good', priority: 45,
+        tab: 'health', section: 'food:hydration', cta: 'Ver hidratação',
+        title: 'Meta de água batida hoje',
+        body: streak >= 2
+          ? `${streak} dias seguidos na meta. Continue se hidratando até o fim do dia.`
+          : `${formatMl(todayMl)} ml hoje. Manter a hidratação ajuda a reduzir enjoo e prisão de ventre.`,
+      })
+    } else if (logsWater && ctx.nowMin >= WATER_CHECK_FROM && todayMl < expected - WATER_SLACK_ML) {
+      out.push({
+        id: `insight-water-today-${today}`, kind: 'water', tone: 'info', priority: 58,
+        tab: 'health', section: 'food:hydration', cta: 'Registrar água',
+        title: 'Sua água está abaixo do esperado',
+        body: `Você está em ${formatMl(todayMl)} de ${formatMl(goal)} ml hoje. Beba um copo agora e registre.`,
+      })
+    } else if (streak >= 3) {
       out.push({
         id: `insight-water-streak-${today}`, kind: 'water', tone: 'good', priority: 22,
         tab: 'health', section: 'food:hydration', cta: 'Ver hidratação',
@@ -259,6 +326,7 @@ export function readInsightContext(profile: UserProfile, now = new Date()): Insi
   const plan   = readWorkoutPlan()
   return {
     today: toDateStr(now),
+    nowMin: now.getHours() * 60 + now.getMinutes(),
     profile,
     workoutTarget: wp && Object.keys(plan).length > 0 ? wp.days : null,
     workoutPlan: plan,

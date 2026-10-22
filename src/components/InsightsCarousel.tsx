@@ -125,6 +125,8 @@ export default function InsightsCarousel({ insights, onOpen, onDismiss }: Props)
                   flex: '0 0 100%', minWidth: 0, scrollSnapAlign: 'start', scrollSnapStop: 'always',
                   display: 'flex', gap: '14px', padding: '16px 12px 14px 16px',
                   fontFamily: 'Inter, -apple-system, sans-serif',
+                  // Cada aviso novo (ex.: o positivo que substitui um alerta cumprido) entra suave
+                  animation: 'fade-up 0.45s var(--ease-smooth) both',
                 }}
               >
                 <div style={{

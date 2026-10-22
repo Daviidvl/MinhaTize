@@ -13,7 +13,7 @@ const PLAN = { 1: { label: 'A', name: 'Peito' }, 3: { label: 'B', name: 'Costas'
 
 function ctx(over: Partial<InsightContext> = {}, profile: Partial<UserProfile> = {}): InsightContext {
   return {
-    today: '2026-10-25', workoutTarget: null, workoutPlan: {}, workoutLog: [], waterLog: {}, waterGoalMl: 0,
+    today: '2026-10-25', nowMin: 10 * 60, workoutTarget: null, workoutPlan: {}, workoutLog: [], waterLog: {}, waterGoalMl: 0,
     ...over, profile: { ...PROFILE, ...profile },
   }
 }
@@ -41,7 +41,12 @@ describe('getInsights — aplicação', () => {
 
   it('reconhece semanas seguidas em dia', () => {
     const log = ['2026-10-04', '2026-10-11', '2026-10-18', '2026-10-25']
-    expect(ids(ctx({}, { applicationDay: 0, applicationLog: log }))).toContain('insight-application-streak-4')
+    // No dia da aplicação, a sequência entra no aviso de aplicação registrada
+    const [done] = getInsights(ctx({}, { applicationDay: 0, applicationLog: log }))
+    expect(done.id).toBe('insight-application-done-2026-10-25')
+    expect(done.body).toContain('4 semanas seguidas')
+    // Nos dias seguintes, vira um aviso próprio
+    expect(ids(ctx({ today: '2026-10-27' }, { applicationDay: 0, applicationLog: log }))).toContain('insight-application-streak-4')
   })
 })
 
@@ -84,6 +89,46 @@ describe('getInsights — pesagem, evolução e água', () => {
   })
 
   it('não fala de água com quem não registra', () => {
-    expect(getInsights(ctx({ waterGoalMl: 2000 })).some(i => i.kind === 'water')).toBe(false)
+    expect(getInsights(ctx({ waterGoalMl: 2000, nowMin: 16 * 60 })).some(i => i.kind === 'water')).toBe(false)
+  })
+})
+
+describe('getInsights — alerta cumprido vira positivo', () => {
+  const water = (i: ReturnType<typeof getInsights>) => i.filter(x => x.kind === 'water')
+
+  it('água abaixo do esperado → meta batida', () => {
+    const base = { waterGoalMl: 2000, nowMin: 16 * 60 }
+    const [low] = water(getInsights(ctx({ ...base, waterLog: { '2026-10-25': [250] } })))
+    expect(low.id).toBe('insight-water-today-2026-10-25')
+    expect(low.tone).toBe('info')
+
+    const done = water(getInsights(ctx({ ...base, waterLog: { '2026-10-25': [1000, 1000] } })))
+    expect(done.map(i => [i.id, i.tone])).toEqual([['insight-water-done-2026-10-25', 'good']])
+  })
+
+  it('aplicação do dia → aplicação registrada', () => {
+    const app = getInsights(ctx({}, { applicationDay: 0, applicationLog: ['2026-10-25'] })).filter(i => i.kind === 'application')
+    expect(app.map(i => [i.id, i.tone])).toEqual([['insight-application-done-2026-10-25', 'good']])
+  })
+
+  it('treino pendente → treino de hoje concluído', () => {
+    const w = getInsights(ctx({ today: '2026-10-22', workoutTarget: 3, workoutPlan: PLAN, workoutLog: ['2026-10-22'] }))
+      .filter(i => i.kind === 'workout')
+    expect(w.map(i => i.id)).toEqual(['insight-workout-done-2026-10-22'])
+    expect(w[0].body).toContain('1 de 3')
+  })
+
+  it('pesagem atrasada → peso registrado, com a diferença', () => {
+    const history = [{ date: '2026-10-10', weight: 85 }, { date: '2026-10-25', weight: 84.2 }]
+    const [p] = getInsights(ctx({}, { weightHistory: history })).filter(i => i.kind === 'weighIn')
+    expect(p.id).toBe('insight-weigh-done-2026-10-25')
+    expect(p.body).toContain('0,8 kg a menos')
+  })
+
+  it('sintomas pedidos → sintomas registrados', () => {
+    const s = getInsights(ctx({ today: '2026-10-26' }, {
+      applicationLog: ['2026-10-25'], sideEffects: [{ date: '2026-10-26', symptoms: [], notes: '' }],
+    })).filter(i => i.kind === 'symptoms')
+    expect(s.map(i => [i.id, i.tone])).toEqual([['insight-symptoms-done-2026-10-25', 'good']])
   })
 })
