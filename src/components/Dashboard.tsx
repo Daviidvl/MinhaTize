@@ -15,11 +15,17 @@ import {
 import { toDateStr } from '../utils/exerciseUtils'
 import { type WaterLog, waterGoalMl, waterTotal, formatMl } from '../utils/foodUtils'
 import { WATER_QUICK_ADD } from '../data/foodPlans'
+import RemindersCard from './RemindersCard'
+import PushPrompt, { PUSH_PROMPT_ID } from './PushPrompt'
+import { type Reminder, notifyRemindersChanged } from '../utils/reminderUtils'
 
 interface Props {
   profile: UserProfile
   onNavigate: (tab: Tab, section?: string) => void
   onUpdateProfile: (p: UserProfile) => void
+  reminders?: Reminder[]
+  onDismissReminder?: (id: string) => void
+  pushPromptDismissed?: boolean
 }
 
 // ── Widget de Treino ──────────────────────────────────────────────────────────
@@ -272,6 +278,7 @@ function WaterWidget({ weight, onNavigate }: { weight: number; onNavigate: (t: T
     const updated = { ...log, [today]: [...(log[today] ?? []), ml] }
     setLog(updated)
     writeJSON(STORAGE_KEYS.waterLog, updated)
+    notifyRemindersChanged()
   }
 
   return (
@@ -379,7 +386,7 @@ function StatTile({
 }
 
 // ── Componente principal ──────────────────────────────────────────────────────
-export default function Dashboard({ profile, onNavigate, onUpdateProfile }: Props) {
+export default function Dashboard({ profile, onNavigate, onUpdateProfile, reminders = [], onDismissReminder = () => {}, pushPromptDismissed = true }: Props) {
   const lastWeight  = profile.weightHistory.at(-1)?.weight ?? profile.currentWeight ?? profile.startWeight
   const totalLost   = profile.startWeight - lastWeight
   const toGoal      = lastWeight - profile.goalWeight
@@ -592,6 +599,10 @@ export default function Dashboard({ profile, onNavigate, onUpdateProfile }: Prop
           </div>
         </button>
       )}
+
+      {/* ── Lembretes de hoje ── */}
+      <PushPrompt dismissed={pushPromptDismissed} onDismiss={() => onDismissReminder(PUSH_PROMPT_ID)} />
+      <RemindersCard reminders={reminders} onDismiss={onDismissReminder} onNavigate={onNavigate} />
 
       {/* ── Stats ── */}
       <div style={{ display: 'grid', gridTemplateColumns: '4fr 3fr', gap: '10px' }}>

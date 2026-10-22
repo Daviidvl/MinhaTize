@@ -30,6 +30,39 @@ self.addEventListener('activate', (event) => {
   self.clients.claim()
 })
 
+// ── Notificações push ────────────────────────────────────────────────────────
+// O servidor (api/push-cron.ts) manda { title, body, url, tag } já pronto
+self.addEventListener('push', (event) => {
+  let data = {}
+  try { data = event.data ? event.data.json() : {} } catch { data = {} }
+  const title = data.title || 'MinhaTize'
+  event.waitUntil(
+    self.registration.showNotification(title, {
+      body: data.body || 'Você tem um lembrete. Abra o app para ver.',
+      tag: data.tag || 'minhatize',
+      icon: '/icon-192.png',
+      badge: '/icon-192.png',
+      data: { url: typeof data.url === 'string' && data.url.startsWith('/') ? data.url : '/' },
+    })
+  )
+})
+
+// Tocar no lembrete foca o app já aberto (e pede para ele navegar) ou abre um novo
+self.addEventListener('notificationclick', (event) => {
+  event.notification.close()
+  const url = (event.notification.data && event.notification.data.url) || '/'
+  event.waitUntil(
+    self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then((list) => {
+      const client = list.find((c) => new URL(c.url).origin === self.location.origin)
+      if (client) {
+        client.postMessage({ type: 'navigate', url })
+        return client.focus()
+      }
+      return self.clients.openWindow(url)
+    })
+  )
+})
+
 // ── Fetch ─────────────────────────────────────────────────────────────────────
 self.addEventListener('fetch', (event) => {
   const { request } = event

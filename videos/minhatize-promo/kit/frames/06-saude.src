@@ -1,0 +1,55 @@
+---
+id: 06-saude
+prefix: f06
+duration: 6.17
+title: Saúde completa
+transition: crossfade
+---
+<!--CSS-->
+.mt-copy { position:absolute; left:96px; right:96px; top:200px; }
+.mt-copy .mt-eyebrow { margin-bottom:22px; }
+.mt-copy .mt-h .mt-line { display:block; }
+.mt-k1 { left:44px; top:560px; width:310px; }
+.mt-k2 { left:726px; top:690px; width:310px; }
+.mt-k3 { left:40px; top:960px; width:310px; }
+.mt-k4 { left:730px; top:1110px; width:300px; }
+.mt-k5 { left:64px; top:1340px; width:320px; }
+.mt-fcard .mt-fs.mt-blue { color:#1E5BB8; }
+<!--HTML-->
+{{stagebg}}
+<div class="mt-rings" style="top:1080px"><div class="mt-ring mt-r1"></div><div class="mt-ring mt-r2"></div><div class="mt-ring mt-r3"></div><div class="mt-ring-dot" style="left:-7px;top:373px"></div></div>
+{{dust:46:66}}
+<div class="mt-copy">
+  <div class="mt-eyebrow mt-e">Saúde</div>
+  <div class="mt-h"><span class="mt-line mt-l1">Tudo</span><span class="mt-line mt-l2"><b>acompanhado.</b></span></div>
+</div>
+<div class="mt-pose" data-layout-allow-overflow style="left:230px;top:600px;transform:scale(0.74)">
+  <div class="mt-pshadow"></div>
+  <div class="mt-phone">{{phone:health}}</div>
+</div>
+<div class="mt-fcard mt-k mt-k1"><div class="mt-fi">{{icon:droplet}}</div><div class="mt-fl" data-layout-allow-overlap>Hidratação</div><div class="mt-fv" data-layout-allow-overlap>1,8<small>L</small></div><div class="mt-fs mt-blue" data-layout-allow-overlap>62% da meta de hoje</div></div>
+<div class="mt-fcard mt-k mt-k2"><div class="mt-fi">{{icon:activity}}</div><div class="mt-fl" data-layout-allow-overlap>Sintomas</div><div class="mt-fv" data-layout-allow-overlap>Leves</div><div class="mt-fs" data-layout-allow-overlap>náusea 2 de 10</div></div>
+<div class="mt-fcard mt-k mt-k3"><div class="mt-fi">{{icon:flask}}</div><div class="mt-fl" data-layout-allow-overlap>Exames</div><div class="mt-fv" data-layout-allow-overlap>12<small>de 12</small></div><div class="mt-fs" data-layout-allow-overlap>na referência</div></div>
+<div class="mt-fcard mt-k mt-k4"><div class="mt-fi">{{icon:dumbbell}}</div><div class="mt-fl" data-layout-allow-overlap>Treino</div><div class="mt-fv" data-layout-allow-overlap>3x<small>semana</small></div><div class="mt-fs mt-blue" data-layout-allow-overlap>caminhada + força</div></div>
+<div class="mt-fcard mt-k mt-k5"><div class="mt-fi">{{icon:utensils}}</div><div class="mt-fl" data-layout-allow-overlap>Alimentação</div><div class="mt-fv" data-layout-allow-overlap>92<small>g proteína</small></div><div class="mt-fs mt-blue" data-layout-allow-overlap>meta do dia</div></div>
+<div class="mt-grain"></div><div class="mt-vignette"></div>
+<!--JS-->
+// voice: Hidratação .15 · Sintomas 1.18 · Exames 2.27 · Treino e alimentação 3.21–4.59 · Tudo acompanhado 4.90–6.06
+tl.fromTo(".mt-dust", { y: 20 }, { y: -60, duration: 6.17, ease: "none" }, 0);
+tl.fromTo(".mt-rings", { rotation: -20 }, { rotation: 15, duration: 6.17, ease: "none" }, 0);
+tl.fromTo(".mt-phone", { scale: 1.18, y: -120, rotationY: -8 }, { scale: 1, y: 0, rotationY: 0, duration: 1.3, ease: "power3.inOut" }, 0);
+tl.fromTo(".mt-phone", { rotationX: 0 }, { rotationX: 3, duration: 4.87, ease: "sine.inOut", immediateRender: false }, 1.3);
+tl.fromTo(".mt-h-water", { opacity: 0, y: 20 }, { opacity: 1, y: 0, duration: 0.6, ease: "power3.out" }, 0.3);
+tl.fromTo(".mt-htile", { opacity: 0, y: 20, scale: 0.92 }, { opacity: 1, y: 0, scale: 1, duration: 0.5, ease: "power3.out", stagger: 0.07 }, 0.45);
+const cards = [[".mt-k1", 0.12], [".mt-k2", 1.12], [".mt-k3", 2.2], [".mt-k4", 3.15], [".mt-k5", 3.8]];
+cards.forEach(([c, at], i) => {
+  const fromX = i % 2 === 0 ? 260 : -260;
+  tl.fromTo(c, { opacity: 0, x: fromX, y: 80, scale: 0.35, filter: "blur(10px)" }, { opacity: 1, x: 0, y: 0, scale: 1, filter: "blur(0px)", duration: 0.85, ease: "back.out(1.4)" }, at);
+  tl.fromTo(c, { yPercent: 0 }, { yPercent: i % 2 === 0 ? -8 : 8, duration: 6.17 - at - 0.6, ease: "sine.inOut", immediateRender: false }, at + 0.6);
+});
+tl.fromTo(".mt-e", { opacity: 0, x: -36 }, { opacity: 1, x: 0, duration: 0.9, ease: "power3.out" }, 0.2);
+tl.fromTo(".mt-l1", { opacity: 0, y: 40, filter: "blur(10px)" }, { opacity: 1, y: 0, filter: "blur(0px)", duration: 0.7, ease: "power3.out" }, 4.85);
+tl.fromTo(".mt-l2", { opacity: 0, y: 40, filter: "blur(10px)" }, { opacity: 1, y: 0, filter: "blur(0px)", duration: 0.8, ease: "power3.out" }, 5.15);
+tl.fromTo(".mt-glare", { x: 0 }, { x: 1150, duration: 1.3, ease: "power2.inOut" }, 4.3);
+<!--NOTE-->
+<b>O celular recua para abrir espaço e a tela da Saúde se monta.</b> Cinco cartões (Hidratação, Sintomas, Exames, Treino e Alimentação) saem da tela um por beat, alternando os lados, e ficam flutuando em órbita. Só no fim "Tudo acompanhado." aparece no topo.

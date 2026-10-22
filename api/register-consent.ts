@@ -1,7 +1,7 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node'
 import { setCors } from './_lib/cors.js'
 import { createRateLimiter } from './_lib/rateLimit.js'
-import { extractBearerToken, getClientIp, isActiveToken, UUID_RE } from './_lib/auth.js'
+import { extractBearerToken, getClientIp, resolveToken, UUID_RE } from './_lib/auth.js'
 import { getSupabaseAdmin } from './_lib/supabaseAdmin.js'
 
 
@@ -38,8 +38,10 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   const version = typeof body.version === 'string' ? body.version.trim().slice(0, 20) : '1.0'
 
   // ── Supabase ──────────────────────────────────────────────────────────────────
-  // Verificar token válido
-  if (!(await isActiveToken(token))) {
+  // Verificar token válido. O consentimento guarda só o id do acesso, nunca o
+  // token: um vazamento desta tabela não entrega credenciais.
+  const { status, id: tokenId } = await resolveToken(token)
+  if (status !== 'active' || !tokenId) {
     return res.status(401).json({ error: 'Token inválido.' })
   }
 
@@ -49,7 +51,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   const { data: existing } = await supabase
     .from('consents')
     .select('id')
-    .eq('token', token)
+    .eq('token_id', tokenId)
     .eq('version', version)
     .maybeSingle()
 
@@ -62,7 +64,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   const ua = (req.headers['user-agent'] as string) ?? null
 
   const { error: dbError } = await supabase.from('consents').insert({
-    token,
+    token_id: tokenId,
     version,
     accepted_at: new Date().toISOString(),
     ip_address:  consentIp,

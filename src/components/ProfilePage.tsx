@@ -2,8 +2,10 @@ import { useState } from 'react'
 import {
   Award, Calendar, Package, Settings, Zap, BarChart2, Scale, Flame, Dumbbell,
   Target, Lightbulb, AlertTriangle, Check, ChevronLeft, ChevronRight, Shield,
-  MessageCircle, Utensils, Syringe, Pill, Heart,
+  MessageCircle, Utensils, Syringe, Pill, Heart, Bell,
 } from 'lucide-react'
+import ReminderSettings from './ReminderSettings'
+import { loadReminderSettings } from '../utils/reminderUtils'
 import { UserProfile, Medication, Sex, MEDICATION_LABELS, DOSE_OPTIONS, WEEK_DAYS_FULL } from '../types'
 import StockControl from './StockControl'
 import { CONSENT_KEY } from './ConsentGate'
@@ -21,7 +23,7 @@ interface Props {
   initialSection?: string
 }
 
-type ProfileSection = null | 'achievements' | 'stock' | 'edit' | 'equipe' | 'suporte' | 'legal' | 'loja' | 'loja-categoria'
+type ProfileSection = null | 'achievements' | 'stock' | 'reminders' | 'edit' | 'equipe' | 'suporte' | 'legal' | 'loja' | 'loja-categoria'
 
 const MEDS = Object.entries(MEDICATION_LABELS) as [Medication, string][]
 
@@ -473,6 +475,13 @@ export default function ProfilePage({ profile, onUpdateProfile, onBack, initialS
           </p>
         </div>
       </div>
+    </div>
+  )
+
+  if (section === 'reminders') return (
+    <div className="fade-in" style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+      <SubHeader title="Lembretes" onBack={() => setSection(null)} />
+      <ReminderSettings profile={profile} />
     </div>
   )
 
@@ -929,6 +938,14 @@ export default function ProfilePage({ profile, onUpdateProfile, onBack, initialS
             label="Estoque"
             value={stockLow ? <><AlertTriangle size={12} strokeWidth={2} color="var(--amber)" />Baixo</> : appsLeft != null ? `${appsLeft} aplic.` : undefined}
             onClick={() => setSection('stock')}
+          />
+          <LDivider />
+          <LRow
+            iconBg="var(--ice)"
+            icon={<Bell size={18} strokeWidth={1.75} style={{ color: 'var(--cobalt)' }} />}
+            label="Lembretes"
+            value={loadReminderSettings().notifications ? 'Notificações ativas' : undefined}
+            onClick={() => setSection('reminders')}
           />
         </LGroup>
       </div>

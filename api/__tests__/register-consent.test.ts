@@ -88,10 +88,12 @@ describe('api/register-consent handler', () => {
     await handler(makeReq({ body: { version: '1.0', token: 'outro-token', ip_address: '1.1.1.1', accepted_at: '2000-01-01' } }), res)
     expect(res.body).toEqual({ success: true, stored: true })
     const row = insert.mock.calls[0][0]
-    expect(row.token).toBe(TOKEN)
+    // Referência ao acesso pelo id: a tabela de consentimentos nunca guarda o token
+    expect(row.token_id).toBe('1')
+    expect(JSON.stringify(row)).not.toContain(TOKEN)
     expect(row.ip_address).toBe('9.9.9.9')
     expect(row.accepted_at).not.toBe('2000-01-01')
-    expect(Object.keys(row).sort()).toEqual(['accepted_at', 'ip_address', 'token', 'user_agent', 'version'])
+    expect(Object.keys(row).sort()).toEqual(['accepted_at', 'ip_address', 'token_id', 'user_agent', 'version'])
   })
 
   it('truncates oversized version and user-agent values', async () => {

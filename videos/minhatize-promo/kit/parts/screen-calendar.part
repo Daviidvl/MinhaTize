@@ -1,0 +1,38 @@
+<div class="mt-app">
+  <div class="mt-app-pad">
+    <div class="mt-a-hdr">
+      <div><div class="mt-a-title">Calendário</div><div class="mt-a-sub">Aplicações · Tirzepatida 5 mg</div></div>
+      <div class="mt-a-ico">{{icon:bell}}</div>
+    </div>
+
+    <div class="mt-a-card mt-cal-card" style="padding:16px 14px 12px">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
+        <span style="font-size:15px;font-weight:800;letter-spacing:-.3px">Outubro 2026</span>
+        <span style="display:flex;gap:6px;color:#51657F"><span style="width:26px;height:26px;border-radius:8px;background:#EEF4FC;display:flex;align-items:center;justify-content:center">‹</span><span style="width:26px;height:26px;border-radius:8px;background:#EEF4FC;display:flex;align-items:center;justify-content:center">›</span></span>
+      </div>
+      <div class="mt-cal-grid">{{calendar}}</div>
+      <div style="display:flex;gap:14px;margin-top:10px;font-size:9px;font-weight:600;color:#51657F">
+        <span style="display:flex;align-items:center;gap:4px"><i style="width:8px;height:8px;border-radius:50%;background:#19B5A5;display:block"></i>Aplicada</span>
+        <span style="display:flex;align-items:center;gap:4px"><i style="width:8px;height:8px;border-radius:50%;border:1.5px dashed #3A86E0;display:block"></i>Prevista</span>
+      </div>
+    </div>
+
+    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-top:10px">
+      <div class="mt-a-card mt-cal-s1" style="padding:12px 10px;text-align:center"><div class="mt-a-num" style="font-size:22px">12</div><div style="font-size:9px;font-weight:600;color:#51657F;margin-top:4px">semanas seguidas</div></div>
+      <div class="mt-a-card mt-cal-s2" style="padding:12px 10px;text-align:center"><div class="mt-a-num" style="font-size:22px;color:#0B6F6A"><span class="mt-cal-adh">100</span>%</div><div style="font-size:9px;font-weight:600;color:#51657F;margin-top:4px">aderência</div></div>
+      <div class="mt-a-card mt-cal-s3" style="padding:12px 10px;text-align:center"><div class="mt-a-num" style="font-size:22px">22/10</div><div style="font-size:9px;font-weight:600;color:#51657F;margin-top:4px">próxima</div></div>
+    </div>
+
+    <div class="mt-a-card mt-cal-today" style="margin-top:10px;padding:14px">
+      <div style="display:flex;align-items:center;gap:10px">
+        <div class="mt-a-ico">{{icon:syringe}}</div>
+        <div style="flex:1"><div style="font-size:13px;font-weight:800">Aplicação de hoje</div><div style="font-size:10px;color:#51657F;margin-top:2px">5 mg · Abdômen, lado esquerdo</div></div>
+        <div style="position:relative;width:96px;height:32px">
+          <div class="mt-cal-btn" style="position:absolute;inset:0;border-radius:10px;background:linear-gradient(135deg,#17458F,#1E5BB8);color:#fff;font-size:12px;font-weight:700;display:flex;align-items:center;justify-content:center">Registrar</div>
+          <div class="mt-cal-done" style="position:absolute;inset:0;border-radius:10px;background:#D7F3EF;border:1px solid #19B5A5;color:#0B6F6A;font-size:12px;font-weight:700;display:flex;align-items:center;justify-content:center;gap:4px">{{icon:check}}Registrado</div>
+        </div>
+      </div>
+    </div>
+  </div>
+  {{nav:0}}
+</div>

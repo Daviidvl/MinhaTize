@@ -20,6 +20,7 @@ import {
   waterGoalMl, waterTotal, formatMl, mealDays, waterDays, countThisWeek, calcDayStreak,
 } from '../utils/foodUtils'
 import { alpha } from '../utils/color'
+import { notifyRemindersChanged } from '../utils/reminderUtils'
 
 interface Props {
   profile: UserProfile
@@ -87,6 +88,7 @@ export default function FoodGuide({ profile, view, onViewChange }: Props) {
     const updated = { ...water, [today]: entries }
     setWater(updated)
     writeJSON(WATER_KEY, updated)
+    notifyRemindersChanged()
   }
 
   function toggleExpanded(id: string) {

@@ -1,0 +1,9 @@
+<div class="mt-phone-body"></div>
+<div class="mt-btn mt-b1"></div><div class="mt-btn mt-b2"></div><div class="mt-btn mt-b3"></div>
+<div class="mt-screen">
+  {{SCREEN}}
+  <div class="mt-status {{STATUS}}"><div class="mt-time">9:41</div><div class="mt-sig"><div class="mt-bars"><i style="height:7px"></i><i style="height:11px"></i><i style="height:15px"></i><i style="height:20px"></i></div><div class="mt-batt"><i></i></div></div></div>
+  <div class="mt-island"></div>
+  <div class="mt-screen-shine"></div>
+  <div class="mt-glare" data-layout-allow-overflow></div>
+</div>

@@ -1,0 +1,146 @@
+/* MinhaTize Midnight Luxe — shared kit. "mt-" is rewritten per frame (f01-, f02-…). */
+
+/* ── Stage ─────────────────────────────────────────── */
+.mt-stage { position:absolute; inset:0; overflow:hidden; font-family:Inter, sans-serif; color:#F4F8FE; }
+.mt-bg { position:absolute; inset:0;
+  background: radial-gradient(120% 75% at 50% 40%, #0E1F48 0%, #081330 42%, #050B18 74%); }
+.mt-glow { position:absolute; width:1500px; height:1500px; left:-210px; top:260px; border-radius:50%;
+  background: radial-gradient(closest-side, rgba(30,91,184,0.50), rgba(22,37,88,0.22) 55%, rgba(5,11,24,0) 100%); }
+.mt-glow2 { position:absolute; width:900px; height:900px; left:420px; top:-260px; border-radius:50%;
+  background: radial-gradient(closest-side, rgba(40,25,93,0.42), rgba(22,37,88,0.14) 60%, rgba(5,11,24,0) 100%); }
+.mt-streak { position:absolute; left:-200px; width:1480px; height:2px; top:960px;
+  background: linear-gradient(90deg, rgba(143,189,240,0) 0%, rgba(143,189,240,0.55) 48%, rgba(220,233,249,0.9) 50%, rgba(143,189,240,0.55) 52%, rgba(143,189,240,0) 100%); }
+.mt-rings { position:absolute; left:540px; top:960px; width:0; height:0; }
+.mt-ring { position:absolute; border-radius:50%; border:1.5px solid rgba(143,189,240,0.18); }
+.mt-ring.mt-r1 { width:760px; height:760px; left:-380px; top:-380px; }
+.mt-ring.mt-r2 { width:1060px; height:1060px; left:-530px; top:-530px; border-color:rgba(143,189,240,0.12); }
+.mt-ring.mt-r3 { width:1400px; height:1400px; left:-700px; top:-700px; border-color:rgba(143,189,240,0.07); border-style:dashed; }
+.mt-ring-dot { position:absolute; width:14px; height:14px; border-radius:50%; background:#8FBDF0; box-shadow:0 0 18px 4px rgba(143,189,240,0.7); }
+.mt-dust { position:absolute; inset:0; }
+.mt-dust i { position:absolute; display:block; border-radius:50%; background:#DCE9F9; }
+.mt-grain { position:absolute; inset:0; opacity:0.07; mix-blend-mode:overlay;
+  background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='240' height='240'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' seed='7' stitchTiles='stitch'/></filter><rect width='100%' height='100%' filter='url(%23n)'/></svg>"); }
+.mt-vignette { position:absolute; inset:0; background: radial-gradient(110% 80% at 50% 45%, rgba(0,0,0,0) 55%, rgba(0,0,0,0.6) 100%); }
+.mt-floor { position:absolute; left:90px; width:900px; height:160px; border-radius:50%;
+  background: radial-gradient(closest-side, rgba(58,134,224,0.45), rgba(30,91,184,0.12) 60%, rgba(5,11,24,0) 100%); }
+
+/* ── Type ──────────────────────────────────────────── */
+.mt-eyebrow { font-size:26px; font-weight:600; letter-spacing:0.32em; text-transform:uppercase; color:#8FBDF0; }
+.mt-h { font-size:76px; font-weight:300; line-height:1.08; letter-spacing:-0.035em; color:#F4F8FE; }
+.mt-h b, .mt-sheen { font-weight:700; letter-spacing:-0.04em;
+  background:linear-gradient(100deg, #DCE9F9 0%, #FFFFFF 40%, #8FBDF0 100%); -webkit-background-clip:text; background-clip:text; color:transparent; }
+.mt-display { font-size:112px; font-weight:300; line-height:1.02; letter-spacing:-0.045em; color:#F4F8FE; }
+.mt-body { font-size:36px; font-weight:400; line-height:1.4; color:rgba(220,233,249,0.66); }
+.mt-fine { font-size:22px; font-weight:500; letter-spacing:0.02em; color:rgba(220,233,249,0.55); }
+.mt-line { display:block; }
+.mt-center { text-align:center; }
+.mt-text-block { position:absolute; left:96px; right:96px; }
+
+/* ── Glass chip (floats beside the phone) ──────────── */
+.mt-glass { position:absolute; display:flex; align-items:center; gap:22px; padding:24px 40px 24px 24px;
+  border-radius:999px; background:rgba(14,31,72,0.72); border:1.5px solid rgba(143,189,240,0.30);
+  box-shadow:0 30px 60px rgba(0,0,0,0.45), inset 0 1px 0 rgba(255,255,255,0.10); white-space:nowrap; }
+.mt-glass .mt-gi { width:76px; height:76px; border-radius:24px; background:#DCE9F9; color:#1E5BB8;
+  display:flex; align-items:center; justify-content:center; flex-shrink:0; }
+.mt-glass .mt-gi.mt-pos { background:#D7F3EF; color:#0B6F6A; }
+.mt-glass .mt-gi svg { width:40px; height:40px; }
+.mt-glass .mt-gt { font-size:38px; font-weight:700; color:#F4F8FE; letter-spacing:-0.02em; }
+.mt-glass .mt-gs { font-size:24px; font-weight:500; color:rgba(220,233,249,0.62); margin-top:2px; }
+
+/* ── Float card (app card out of the phone) ────────── */
+.mt-fcard { position:absolute; background:#FFFFFF; border-radius:34px; padding:30px 32px; color:#0B2545;
+  box-shadow:0 40px 90px rgba(0,0,0,0.5), 0 2px 0 rgba(255,255,255,0.6) inset; }
+.mt-fcard .mt-fl { padding-right:64px; font-size:19px; font-weight:700; letter-spacing:0.12em; text-transform:uppercase; color:#51657F; }
+.mt-fcard .mt-fv { font-size:52px; font-weight:800; letter-spacing:-0.04em; color:#0B2545; line-height:1.05; margin-top:10px; }
+.mt-fcard .mt-fv small { font-size:24px; font-weight:600; color:#51657F; letter-spacing:0; margin-left:4px; }
+.mt-fcard .mt-fs { font-size:21px; font-weight:600; color:#0B6F6A; margin-top:8px; }
+.mt-fcard .mt-fi { position:absolute; top:26px; right:26px; width:58px; height:58px; border-radius:18px; background:#DCE9F9; color:#1E5BB8; display:flex; align-items:center; justify-content:center; }
+.mt-fcard .mt-fi svg { width:30px; height:30px; }
+
+/* ── Phone ─────────────────────────────────────────── */
+.mt-phone { position:absolute; width:620px; height:1290px; }
+.mt-phone-body { position:absolute; inset:0; border-radius:128px;
+  background:linear-gradient(150deg, #3A4766 0%, #141C30 22%, #0B1222 55%, #232E48 82%, #0E1528 100%);
+  box-shadow: 0 0 0 2px rgba(143,189,240,0.35), inset 0 0 0 4px #05080F, inset 0 2px 1px rgba(220,233,249,0.35), 0 120px 160px rgba(0,0,0,0.62), 0 40px 60px rgba(0,0,0,0.35); }
+.mt-btn { position:absolute; width:8px; border-radius:4px; background:linear-gradient(90deg,#1A2338,#3A4766); }
+.mt-btn.mt-b1 { left:-6px; top:250px; height:70px; }
+.mt-btn.mt-b2 { left:-6px; top:350px; height:120px; }
+.mt-btn.mt-b3 { right:-6px; top:300px; height:170px; }
+.mt-screen { position:absolute; left:24px; top:24px; width:572px; height:1242px; border-radius:104px; overflow:hidden; background:#F6F9FD; }
+.mt-island { position:absolute; left:201px; top:26px; width:170px; height:50px; border-radius:26px; background:#000; z-index:6; }
+.mt-status { position:absolute; left:0; right:0; top:0; height:100px; z-index:5; color:#0B2545; }
+.mt-status.mt-dark { color:#FFFFFF; }
+.mt-status .mt-time { position:absolute; left:74px; top:34px; font-size:30px; font-weight:700; letter-spacing:-0.01em; }
+.mt-status .mt-sig { position:absolute; right:66px; top:38px; display:flex; gap:10px; align-items:flex-end; }
+.mt-status .mt-bars { display:flex; gap:3px; align-items:flex-end; height:22px; }
+.mt-status .mt-bars i { display:block; width:5px; border-radius:2px; background:currentColor; }
+.mt-status .mt-batt { width:44px; height:22px; border-radius:7px; border:2px solid currentColor; padding:2px; opacity:0.95; }
+.mt-status .mt-batt i { display:block; height:100%; width:78%; border-radius:3px; background:currentColor; }
+.mt-glare { position:absolute; left:-300px; top:-200px; width:420px; height:1700px; z-index:7;
+  background:linear-gradient(90deg, rgba(255,255,255,0) 0%, rgba(255,255,255,0.16) 50%, rgba(255,255,255,0) 100%); }
+.mt-screen-shine { position:absolute; inset:0; z-index:7; border-radius:104px;
+  background:linear-gradient(160deg, rgba(255,255,255,0.10) 0%, rgba(255,255,255,0) 32%); }
+
+/* App canvas: authored in 390px app units, scaled to the 572px screen. */
+.mt-app { position:absolute; left:0; top:0; width:390px; height:847px; transform-origin:0 0; transform:scale(1.4667);
+  background:#F6F9FD; color:#0B2545; font-family:Inter, sans-serif; }
+.mt-app-pad { position:absolute; left:16px; right:16px; top:60px; }
+
+/* App atoms (app units) */
+.mt-a-hdr { display:flex; align-items:center; justify-content:space-between; margin-bottom:14px; }
+.mt-a-title { font-size:22px; font-weight:800; letter-spacing:-0.5px; color:#0B2545; }
+.mt-a-sub { font-size:11px; font-weight:500; color:#51657F; margin-top:2px; }
+.mt-a-avatar { width:36px; height:36px; border-radius:50%; background:#DCE9F9; color:#1E5BB8; font-size:15px; font-weight:800; display:flex; align-items:center; justify-content:center; }
+.mt-a-card { background:#FFFFFF; border:1px solid #DDE6F1; border-radius:20px; padding:14px; box-shadow:0 2px 12px rgba(11,37,69,0.05); position:relative; overflow:hidden; }
+.mt-a-label { font-size:9px; font-weight:700; letter-spacing:0.10em; text-transform:uppercase; color:#51657F; }
+.mt-a-num { font-weight:800; letter-spacing:-1px; color:#0B2545; line-height:1; }
+.mt-a-ico { width:32px; height:32px; border-radius:9px; background:#DCE9F9; color:#1E5BB8; display:flex; align-items:center; justify-content:center; flex-shrink:0; }
+.mt-a-ico svg { width:17px; height:17px; }
+.mt-a-chip { display:inline-flex; align-items:center; gap:4px; border-radius:99px; padding:2px 8px; font-size:10px; font-weight:700; }
+.mt-a-chip.mt-teal { background:#D7F3EF; border:1px solid #19B5A5; color:#0B6F6A; }
+.mt-a-chip.mt-blue { background:#DCE9F9; border:1px solid #8FBDF0; color:#1E5BB8; }
+.mt-a-dot { width:5px; height:5px; border-radius:50%; background:currentColor; }
+.mt-a-hero { border-radius:26px; padding:20px; background:linear-gradient(135deg, #0B2545 0%, #1E5BB8 100%); color:#fff; position:relative; overflow:hidden; box-shadow:0 6px 28px rgba(11,37,69,0.24); }
+.mt-a-hero .mt-deco1 { position:absolute; top:-40px; right:-40px; width:150px; height:150px; border-radius:50%; background:rgba(255,255,255,0.07); }
+.mt-a-hero .mt-deco2 { position:absolute; bottom:-30px; left:-20px; width:100px; height:100px; border-radius:50%; background:rgba(255,255,255,0.04); }
+.mt-a-track { height:6px; border-radius:99px; background:#EEF4FC; overflow:hidden; }
+.mt-a-fill { height:100%; transform-origin:0 50%; border-radius:99px; background:linear-gradient(90deg, #3A86E0 0%, #19B5A5 100%); }
+.mt-a-nav { position:absolute; left:0; right:0; bottom:0; height:74px; background:rgba(255,255,255,0.96); border-top:1px solid #DDE6F1; display:flex; justify-content:space-around; padding-top:10px; }
+.mt-a-nav div { display:flex; flex-direction:column; align-items:center; gap:3px; font-size:10px; font-weight:600; color:#0B2545; width:60px; }
+.mt-a-nav div svg { width:20px; height:20px; }
+.mt-a-nav div.mt-on { color:#1E5BB8; font-weight:800; }
+.mt-calc-field { display:flex; justify-content:space-between; align-items:center; height:42px; padding:0 14px; border-radius:14px; background:#FFFFFF; border:1.5px solid #DDE6F1; font-size:14px; font-weight:700; color:#0B2545; }
+.mt-calc-field svg { width:16px; height:16px; color:#51657F; }
+.mt-calc-field.mt-focus { border-color:#1E5BB8; box-shadow:0 0 0 3px #DCE9F9; }
+.mt-cal-grid { display:grid; grid-template-columns:repeat(7,1fr); row-gap:6px; text-align:center; }
+.mt-cal-grid .mt-wd { font-size:9px; font-weight:700; color:#51657F; padding-bottom:2px; }
+.mt-cal-grid .mt-d { position:relative; height:34px; display:flex; align-items:center; justify-content:center; font-size:12px; font-weight:600; color:#0B2545; }
+.mt-cal-grid .mt-d span { position:relative; z-index:1; }
+.mt-cal-grid .mt-d .mt-dm { position:absolute; left:50%; top:50%; width:30px; height:30px; margin:-15px 0 0 -15px; border-radius:50%; }
+.mt-cal-grid .mt-d.mt-done { color:#FFFFFF; font-weight:800; }
+.mt-cal-grid .mt-d.mt-done .mt-dm { background:#19B5A5; }
+.mt-cal-grid .mt-d.mt-plan .mt-dm { border:1.5px dashed #3A86E0; }
+.mt-cal-grid .mt-d.mt-today { color:#FFFFFF; font-weight:800; }
+.mt-cal-grid .mt-d.mt-today .mt-dm { background:#19B5A5; box-shadow:0 0 0 4px #D7F3EF; }
+.mt-cal-grid .mt-d.mt-past { color:#51657F; }
+.mt-home-grid { position:absolute; left:28px; right:28px; top:92px; display:grid; grid-template-columns:repeat(4,1fr); row-gap:22px; justify-items:center; }
+.mt-home-app { width:62px; display:flex; flex-direction:column; align-items:center; gap:6px; }
+.mt-home-app i { display:block; width:58px; height:58px; border-radius:16px; }
+.mt-home-app span { font-size:10px; font-weight:500; color:rgba(255,255,255,0.88); white-space:nowrap; }
+.mt-home-dock { position:absolute; left:14px; right:14px; bottom:18px; height:84px; border-radius:30px; background:rgba(220,233,249,0.16); display:flex; justify-content:space-around; align-items:center; }
+.mt-home-dock i { display:block; width:58px; height:58px; border-radius:16px; }
+
+/* ── Pose wrapper: static placement/scale (never tweened); the inner .mt-phone is what GSAP moves ── */
+.mt-pose { position:absolute; width:620px; height:1290px; transform-origin:50% 0; perspective:2600px; }
+.mt-pose .mt-phone { left:0; top:0; }
+.mt-pshadow { position:absolute; left:40px; right:40px; bottom:-120px; height:160px; border-radius:50%;
+  background:radial-gradient(closest-side, rgba(58,134,224,0.42), rgba(5,11,24,0)); filter:blur(6px); }
+.mt-fx { position:absolute; inset:0; pointer-events:none; }
+.mt-strike { position:absolute; left:0; top:54%; height:3px; width:100%; background:#8FBDF0; transform-origin:0 50%; border-radius:2px; }
+.mt-cta { position:absolute; display:flex; align-items:center; justify-content:center; gap:18px; height:116px; border-radius:999px;
+  background:linear-gradient(135deg, #17458F 0%, #1E5BB8 60%, #3A86E0 100%); color:#fff; font-size:42px; font-weight:700; letter-spacing:-0.02em;
+  box-shadow:0 30px 70px rgba(30,91,184,0.55), inset 0 1px 0 rgba(255,255,255,0.35); overflow:hidden; }
+.mt-cta svg { width:40px; height:40px; }
+.mt-shine { position:absolute; top:0; bottom:0; width:220px; left:-240px;
+  background:linear-gradient(105deg, rgba(255,255,255,0) 30%, rgba(255,255,255,0.45) 50%, rgba(255,255,255,0) 70%); }
+.mt-pose .mt-phone { transform-origin:50% 0; }

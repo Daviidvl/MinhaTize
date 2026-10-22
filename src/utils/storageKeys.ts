@@ -5,6 +5,8 @@ export const STORAGE_KEYS = {
   token: 'tizetrack_token',
   // Impressão digital (hash) do token dono dos dados deste aparelho — ver utils/token.ts
   owner: 'tizetrack_owner',
+  // Prova assinada pelo servidor que libera o app offline — ver utils/accessProof.ts
+  accessProof: 'tizetrack_access_proof',
   theme: 'minha-tize-theme',
   consent: 'tizetrack_consent',
   workoutProfile: 'tizetrack_workout',
@@ -15,6 +17,11 @@ export const STORAGE_KEYS = {
   waterLog: 'tizetrack_water_log',
   sideEffects: 'tizetrack_side_effects',
   diary: 'tizetrack_diary',
+  // Preferências de lembretes e o registro do que já foi avisado/dispensado — ver utils/reminderUtils.ts
+  reminders: 'tizetrack_reminders',
+  remindersState: 'tizetrack_reminders_state',
+  // Assinatura da última agenda de push enviada ao servidor — ver utils/pushSync.ts
+  pushSync: 'tizetrack_push_sync',
 } as const
 
 // Chaves de dados do usuário apagadas em "Resetar todos os dados" (ProfilePage).
@@ -30,4 +37,7 @@ export const USER_DATA_KEYS: string[] = [
   STORAGE_KEYS.workoutChecks,
   STORAGE_KEYS.sideEffects,
   STORAGE_KEYS.diary,
+  STORAGE_KEYS.reminders,
+  STORAGE_KEYS.remindersState,
+  STORAGE_KEYS.pushSync,
 ]

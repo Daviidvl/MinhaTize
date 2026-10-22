@@ -1,0 +1,29 @@
+<div class="mt-app">
+  <div class="mt-app-pad">
+    <div class="mt-a-hdr">
+      <div><div class="mt-a-title">Calculadora</div><div class="mt-a-sub">Converta mg em unidades (UI)</div></div>
+      <div class="mt-a-ico">{{icon:calculator}}</div>
+    </div>
+
+    <div style="background:#FDF1DF;border:1px solid #F3D0A0;border-radius:14px;padding:9px 12px;font-size:10px;line-height:1.45;color:#51657F;margin-bottom:12px"><b style="color:#B45309">Uso educativo.</b> Confirme sempre a dose com o profissional que prescreveu.</div>
+
+    <div class="mt-calc-f1" style="margin-bottom:10px"><div class="mt-a-label" style="margin-bottom:6px">Concentração da ampola</div><div class="mt-calc-field"><span class="mt-calc-v1">15mg / 0,5mL</span>{{icon:chevron}}</div></div>
+    <div class="mt-calc-f2" style="margin-bottom:10px"><div class="mt-a-label" style="margin-bottom:6px">Dose desejada</div><div class="mt-calc-field"><span class="mt-calc-v2">5 mg</span>{{icon:chevron}}</div></div>
+    <div class="mt-calc-f3" style="margin-bottom:12px"><div class="mt-a-label" style="margin-bottom:6px">Tipo de seringa</div><div class="mt-calc-field"><span class="mt-calc-v3">Seringa de 100 UI</span>{{icon:chevron}}</div></div>
+
+    <div class="mt-a-hero mt-calc-res" style="padding:18px 20px">
+      <div class="mt-deco1"></div>
+      <div style="font-size:10px;font-weight:600;opacity:.6;letter-spacing:.12em;text-transform:uppercase;position:relative">Aspire até</div>
+      <div class="mt-a-num" style="font-size:56px;color:#fff;margin:8px 0 6px;position:relative"><span class="mt-calc-ui">17</span><span style="font-size:20px;opacity:.65;margin-left:6px;letter-spacing:0">UI</span></div>
+      <div style="font-size:11px;opacity:.7;font-weight:600;position:relative">0,17 mL · concentração 30 mg/mL</div>
+      <div style="position:relative;margin-top:14px;height:22px">
+        <div style="position:absolute;left:0;right:22px;top:3px;height:16px;border-radius:4px;border:1.5px solid rgba(255,255,255,.55);overflow:hidden">
+          <div class="mt-calc-sfill" style="position:absolute;left:0;top:0;bottom:0;width:17%;transform-origin:0 50%;background:linear-gradient(90deg,#8FBDF0,#2BD4C0)"></div>
+          <div style="position:absolute;inset:0;background:repeating-linear-gradient(90deg, rgba(255,255,255,.45) 0 1px, transparent 1px 10%)"></div>
+        </div>
+        <div style="position:absolute;right:0;top:9px;width:22px;height:4px;background:rgba(255,255,255,.55);border-radius:2px"></div>
+      </div>
+    </div>
+  </div>
+  {{nav:3}}
+</div>

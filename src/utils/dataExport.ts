@@ -13,6 +13,7 @@ export function exportAllData(profile: UserProfile) {
     workout: readJSON(STORAGE_KEYS.workoutProfile, null),
     workoutLog: readJSON(STORAGE_KEYS.workoutLog, null),
     workoutChecks: readJSON(STORAGE_KEYS.workoutChecks, null), consent,
+    reminders: readJSON(STORAGE_KEYS.reminders, null),
   }
   const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' })
   const url  = URL.createObjectURL(blob)

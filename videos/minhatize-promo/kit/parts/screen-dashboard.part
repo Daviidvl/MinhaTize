@@ -1,0 +1,78 @@
+<div class="mt-app">
+  <div class="mt-app-pad">
+    <div class="mt-a-hdr">
+      <div><div class="mt-a-title">Bom dia, Ana</div><div class="mt-a-sub">Quinta, 15 de outubro</div></div>
+      <div class="mt-a-avatar">A</div>
+    </div>
+
+    <div class="mt-a-hero mt-dash-hero">
+      <div class="mt-deco1"></div><div class="mt-deco2"></div>
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;position:relative">
+        <span style="font-size:10px;font-weight:600;opacity:.6;letter-spacing:.12em;text-transform:uppercase">Peso atual</span>
+        <span style="font-size:10px;font-weight:500;opacity:.5">12ª semana · Tirzepatida</span>
+      </div>
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;position:relative">
+        <div>
+          <div class="mt-a-num" style="font-size:54px;color:#fff;margin-bottom:8px"><span class="mt-dash-kg">82,4</span><span style="font-size:18px;opacity:.6;margin-left:5px;font-weight:600;letter-spacing:0">kg</span></div>
+          <div class="mt-dash-lost" style="display:inline-flex;align-items:center;gap:5px;background:rgba(255,255,255,.14);border:1px solid rgba(255,255,255,.16);border-radius:99px;padding:4px 10px">
+            <svg width="9" height="9" viewBox="0 0 9 9" fill="none"><path d="M4.5 1L4.5 8M1 4.5L4.5 8L8 4.5" stroke="#2BD4C0" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            <span style="font-size:12px;font-weight:800;letter-spacing:-.3px"><span class="mt-dash-lostn">7,6</span> kg eliminados</span>
+          </div>
+        </div>
+        <div style="position:relative;width:104px;height:104px">
+          <svg width="104" height="104" viewBox="0 0 104 104">
+            <defs><linearGradient id="mt-ringgrad" x1="0" y1="0" x2="1" y2="1"><stop offset="0%" stop-color="#8FBDF0"/><stop offset="100%" stop-color="#2BD4C0"/></linearGradient></defs>
+            <circle cx="52" cy="52" r="44" fill="none" stroke="rgba(255,255,255,0.22)" stroke-width="7"/>
+            <circle class="mt-dash-ring" cx="52" cy="52" r="44" fill="none" stroke="url(#mt-ringgrad)" stroke-width="7" stroke-linecap="round" stroke-dasharray="276.46" stroke-dashoffset="127.17" transform="rotate(-90 52 52)"/>
+          </svg>
+          <div style="position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center">
+            <div class="mt-a-num" style="font-size:21px;color:#fff"><span class="mt-dash-pct">54</span>%</div>
+            <div style="font-size:9px;opacity:.5;font-weight:600;margin-top:2px">da meta</div>
+          </div>
+        </div>
+      </div>
+      <div style="background:rgba(255,255,255,0.22);border-radius:99px;height:4px;overflow:hidden;margin-bottom:8px;position:relative"><div class="mt-dash-bar" style="width:54%;transform-origin:0 50%;height:100%;border-radius:99px;background:linear-gradient(135deg,#8FBDF0,#2BD4C0)"></div></div>
+      <div style="display:flex;justify-content:space-between;position:relative"><span style="font-size:10px;opacity:.45;font-weight:500">90 kg início</span><span style="font-size:10px;opacity:.8;font-weight:700">Faltam 6,4 kg</span></div>
+    </div>
+
+    <div style="display:grid;grid-template-columns:4fr 3fr;gap:10px;margin-top:10px">
+      <div class="mt-a-card mt-dash-t1" style="height:104px">
+        <div class="mt-a-label">IMC</div>
+        <div class="mt-a-num" style="font-size:28px;margin:8px 0 6px">28,5</div>
+        <div style="font-size:10px;font-weight:700;color:#0B6F6A">↓ 2,6 desde o início</div>
+      </div>
+      <div class="mt-a-card mt-dash-t2" style="height:104px">
+        <div class="mt-a-label">Dose atual</div>
+        <div class="mt-a-num" style="font-size:28px;margin:8px 0 6px">5<span style="font-size:13px;font-weight:600;color:#51657F;margin-left:3px;letter-spacing:0">mg</span></div>
+        <div class="mt-a-chip mt-teal"><span class="mt-a-dot" style="background:#19B5A5"></span>Aplicar hoje!</div>
+      </div>
+    </div>
+
+    <div class="mt-a-card mt-dash-t3" style="margin-top:10px;display:flex;align-items:center;gap:12px">
+      <div class="mt-a-ico">{{icon:droplet}}</div>
+      <div style="flex:1">
+        <div style="display:flex;justify-content:space-between;margin-bottom:7px"><span style="font-size:12px;font-weight:700">Água hoje</span><span style="font-size:11px;font-weight:700;color:#1E5BB8">1,2 de 2,9 L</span></div>
+        <div class="mt-a-track"><div class="mt-a-fill" style="width:41%"></div></div>
+      </div>
+    </div>
+
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:10px">
+      <div class="mt-a-card mt-dash-t4" style="height:92px">
+        <div class="mt-a-label">Treino hoje</div>
+        <div style="font-size:13px;font-weight:800;margin:10px 0 3px;letter-spacing:-.3px">Caminhada 30 min</div>
+        <div style="font-size:10px;color:#51657F">Saúde → Exercícios</div>
+      </div>
+      <div class="mt-a-card mt-dash-t5" style="height:92px">
+        <div class="mt-a-label">Alimentação</div>
+        <div style="font-size:13px;font-weight:800;margin:10px 0 3px;letter-spacing:-.3px">Proteína 92 g</div>
+        <div style="font-size:10px;color:#51657F">Meta do dia</div>
+      </div>
+    </div>
+
+    <div class="mt-a-card mt-dash-t6" style="margin-top:10px;display:flex;align-items:center;gap:10px">
+      <div class="mt-a-ico">{{icon:calendar}}</div>
+      <div style="flex:1"><div style="font-size:13px;font-weight:800">Calendário de aplicações</div><div style="font-size:10px;color:#51657F;margin-top:2px">12 semanas seguidas · 100% de aderência</div></div>
+    </div>
+  </div>
+  {{nav:0}}
+</div>

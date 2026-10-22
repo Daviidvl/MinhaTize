@@ -156,6 +156,33 @@ describe('access gate (token login)', () => {
       await waitFor(() => expect(screen.queryByText(/verificando acesso/i)).toBeNull())
       expect(getStoredToken()).toBe(TOKEN)
     })
+
+    // Antes, gravar qualquer token no localStorage e bloquear a validação dava
+    // acesso ao app. Offline agora exige a prova assinada pelo servidor.
+    it('does not open the app offline with a saved token but no signed proof', async () => {
+      saveToken(TOKEN)
+      mockFetch(() => Promise.reject(new TypeError('Failed to fetch')))
+      render(<App />)
+      expect(await screen.findByPlaceholderText(/cole aqui/i)).toBeTruthy()
+      expect(getStoredToken()).toBe(TOKEN)
+    })
+
+    it('does not open the app offline with a forged proof', async () => {
+      saveToken(TOKEN)
+      const fakePayload = btoa(JSON.stringify({ fp: 'x', exp: Date.now() + 864e5 }))
+      localStorage.setItem(STORAGE_KEYS.accessProof, `${fakePayload}.AAAA`)
+      mockFetch(() => Promise.reject(new TypeError('Failed to fetch')))
+      render(<App />)
+      expect(await screen.findByPlaceholderText(/cole aqui/i)).toBeTruthy()
+    })
+
+    it('stores the proof sent by the server and drops it on logout', async () => {
+      mockFetch(() => json({ valid: true, proof: 'payload.assinatura' }))
+      expect(await checkToken(TOKEN)).toBe('valid')
+      expect(localStorage.getItem(STORAGE_KEYS.accessProof)).toBe('payload.assinatura')
+      clearToken()
+      expect(localStorage.getItem(STORAGE_KEYS.accessProof)).toBeNull()
+    })
   })
 
   // Dados de saúde ficam no aparelho e "Sair" não os apaga. Outra pessoa, com

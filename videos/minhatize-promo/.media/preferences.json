@@ -1,0 +1,41 @@
+{
+  "version": 1,
+  "preferences": {
+    "destination": {
+      "value": "reels",
+      "confirmed_in": [
+        "minhatize-promo"
+      ],
+      "updated_at": "2026-10-15T21:13:24.258Z"
+    },
+    "aspect": {
+      "value": "1080x1920",
+      "confirmed_in": [
+        "minhatize-promo"
+      ],
+      "updated_at": "2026-10-15T21:13:24.389Z"
+    },
+    "language": {
+      "value": "pt-BR",
+      "confirmed_in": [
+        "minhatize-promo"
+      ],
+      "updated_at": "2026-10-15T21:13:24.523Z"
+    },
+    "flow": {
+      "value": "automation",
+      "confirmed_in": [
+        "minhatize-promo"
+      ],
+      "updated_at": "2026-10-15T21:13:24.703Z"
+    },
+    "storyboard": {
+      "value": "yes",
+      "confirmed_in": [
+        "minhatize-promo"
+      ],
+      "updated_at": "2026-10-15T21:13:24.839Z"
+    }
+  },
+  "sightings": {}
+}

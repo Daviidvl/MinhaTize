@@ -21,9 +21,9 @@ const TOKEN = '123e4567-e89b-42d3-a456-426614174000'
 
 function makeReq(overrides: Partial<VercelRequest> = {}): VercelRequest {
   return {
-    method: 'GET',
-    headers: { 'x-forwarded-for': '9.9.9.9' },
-    query: { token: TOKEN },
+    method: 'POST',
+    headers: { 'x-forwarded-for': '9.9.9.9', authorization: `Bearer ${TOKEN}` },
+    query: {},
     ...overrides,
   } as unknown as VercelRequest
 }
@@ -57,10 +57,12 @@ describe('api/validate-token handler', () => {
     vi.restoreAllMocks()
   })
 
-  it('only accepts GET, POST and OPTIONS (preflight)', async () => {
-    const put = makeRes()
-    await handler(makeReq({ method: 'PUT' }), put)
-    expect(put.statusCode).toBe(405)
+  it('only accepts POST and OPTIONS (preflight)', async () => {
+    for (const method of ['PUT', 'GET']) {
+      const res = makeRes()
+      await handler(makeReq({ method }), res)
+      expect(res.statusCode).toBe(405)
+    }
 
     const options = makeRes()
     await handler(makeReq({ method: 'OPTIONS' }), options)
@@ -68,27 +70,39 @@ describe('api/validate-token handler', () => {
     expect(maybeSingle).not.toHaveBeenCalled()
   })
 
-  it('returns valid:true for an active token', async () => {
+  it('returns valid:true, without caching, for an active token', async () => {
     const res = makeRes()
     await handler(makeReq(), res)
     expect(res.body).toEqual({ valid: true })
+    expect(res.headers['Cache-Control']).toBe('no-store')
   })
 
-  it('accepts the token in the Authorization header on POST (keeps it out of URLs and logs)', async () => {
+  // O GET ?token= antigo deixava o token em logs de acesso e no histórico
+  it('never reads the token from the query string', async () => {
     const res = makeRes()
-    await handler(makeReq({
-      method: 'POST',
-      query: {},
-      headers: { 'x-forwarded-for': '9.9.9.9', authorization: `Bearer ${TOKEN}` },
-    }), res)
-    expect(res.body).toEqual({ valid: true })
-  })
-
-  it('ignores a query-string token on POST', async () => {
-    const res = makeRes()
-    await handler(makeReq({ method: 'POST', headers: { 'x-forwarded-for': '9.9.9.9' } }), res)
+    await handler(makeReq({ headers: { 'x-forwarded-for': '9.9.9.9' }, query: { token: TOKEN } }), res)
     expect(res.body).toEqual({ valid: false })
     expect(maybeSingle).not.toHaveBeenCalled()
+
+    const get = makeRes()
+    await handler(makeReq({ method: 'GET', headers: { 'x-forwarded-for': '9.9.9.9' }, query: { token: TOKEN } }), get)
+    expect(get.statusCode).toBe(405)
+    expect(maybeSingle).not.toHaveBeenCalled()
+  })
+
+  it('attaches an access proof when the signing key is configured', async () => {
+    const { generateKeyPairSync } = await import('crypto')
+    const { privateKey } = generateKeyPairSync('ec', { namedCurve: 'P-256' })
+    process.env.ACCESS_PROOF_PRIVATE_KEY = privateKey.export({ format: 'der', type: 'pkcs8' }).toString('base64')
+    vi.resetModules()
+    const { default: h } = await import('../validate-token')
+    const res = makeRes()
+    await h(makeReq(), res)
+    delete process.env.ACCESS_PROOF_PRIVATE_KEY
+    const body = res.body as { valid: boolean; proof?: string }
+    expect(body.valid).toBe(true)
+    expect(body.proof).toMatch(/^[\w-]+\.[\w-]+$/)
+    expect(body.proof).not.toContain(TOKEN)
   })
 
   it('returns valid:false when the token does not exist', async () => {
@@ -99,9 +113,9 @@ describe('api/validate-token handler', () => {
   })
 
   it('rejects a missing or malformed token without touching the database', async () => {
-    for (const token of [undefined, '', 'abc', "' OR 1=1 --", ['a', 'b'], `${TOKEN}x`]) {
+    for (const authorization of [undefined, 'Bearer ', 'Bearer abc', "Bearer ' OR 1=1 --", `Bearer ${TOKEN}x`, `Basic ${TOKEN}`]) {
       const res = makeRes()
-      await handler(makeReq({ query: { token } as VercelRequest['query'] }), res)
+      await handler(makeReq({ headers: { 'x-forwarded-for': '9.9.9.9', ...(authorization ? { authorization } : {}) } }), res)
       expect(res.body).toEqual({ valid: false })
     }
     expect(maybeSingle).not.toHaveBeenCalled()

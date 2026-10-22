@@ -273,7 +273,16 @@ function Privacidade() {
           E-mail, token de acesso e registro de consentimento são armazenados no banco de dados
           Supabase (servidores nos EUA) com criptografia em trânsito (TLS) e em repouso (AES-256).
         </p>
-        <h3 style={s.h3}>3.3 Relatório Anti-Platô</h3>
+        <h3 style={s.h3}>3.3 Notificações no celular</h3>
+        <p style={s.p}>
+          Com as notificações ativas, o app calcula no seu aparelho os lembretes dos próximos dias e envia
+          ao servidor apenas o <strong style={{ color: 'var(--text-primary)' }}>horário e o texto de cada aviso</strong> (ex.: "Hoje é dia de
+          aplicação", "Hora de beber água"), junto com o endereço de entrega do navegador. Peso, dose, sintomas e
+          demais registros de saúde não são enviados. A entrega é feita pelo serviço de notificações do seu
+          navegador (Google, Apple, Mozilla ou Microsoft). Ao desligar as notificações em Perfil → Lembretes ou
+          sair da conta, a inscrição e os avisos pendentes são apagados do servidor.
+        </p>
+        <h3 style={s.h3}>3.4 Relatório Anti-Platô</h3>
         <p style={s.p}>
           Ao gerar o relatório, os dados do questionário são enviados de forma anônima à API da
           Anthropic (EUA). <strong style={{ color: 'var(--text-primary)' }}>Nenhum dado identificador</strong> (nome, e-mail, token)
@@ -289,6 +298,7 @@ function Privacidade() {
             { dado: 'E-mail e token', finalidade: 'Autenticação e entrega do acesso', base: 'Execução de contrato (Art. 7, V)' },
             { dado: 'Registro de consentimento', finalidade: 'Cumprimento de obrigação legal (LGPD Art. 8)', base: 'Obrigação legal (Art. 7, II)' },
             { dado: 'IP', finalidade: 'Prevenção de abuso e segurança', base: 'Legítimo interesse (Art. 7, IX)' },
+            { dado: 'Agenda de notificações', finalidade: 'Entregar os lembretes que você ativou', base: 'Consentimento (Art. 7, I), revogável em Perfil → Lembretes' },
           ].map((row, i) => (
             <div key={i} style={{ padding: '10px 12px', background: 'var(--mist)', borderRadius: '8px', border: '1px solid var(--line)' }}>
               <p style={{ ...s.p, margin: 0, color: 'var(--ink)', fontWeight: 600 }}>{row.dado}</p>
@@ -305,7 +315,8 @@ function Privacidade() {
         </p>
         <ul style={{ paddingLeft: '16px', margin: 0 }}>
           {[
-            'Supabase Inc. (EUA) — armazenamento do token de acesso e consentimento',
+            'Supabase Inc. (EUA) — armazenamento do token de acesso, do consentimento e da agenda de notificações',
+            'Serviço de notificações do navegador (Google, Apple, Mozilla ou Microsoft) — entrega dos lembretes no celular, se ativados',
             'Resend Inc. (EUA) — envio do e-mail de boas-vindas',
             'Anthropic PBC (EUA) — geração do relatório educativo (sem dados identificadores)',
             'Upstash Inc. (EUA) — contador temporário de limite de requisições por endereço IP',
@@ -632,6 +643,7 @@ function Cookies() {
           {[
             { chave: 'tizetrack_profile', desc: 'Perfil do usuário (nome, peso, medicamento, histórico)' },
             { chave: 'tizetrack_token', desc: 'Token de acesso ao app' },
+            { chave: 'tizetrack_access_proof', desc: 'Comprovante assinado pelo servidor que permite abrir o app sem internet por até 30 dias' },
             { chave: 'tizetrack_consent', desc: 'Data e versão do aceite dos Termos de Uso (LGPD)' },
             { chave: 'tizetrack_diet', desc: 'Configuração do plano alimentar (sexo, kcal diária)' },
             { chave: 'tizetrack_food_log', desc: 'Log de refeições registradas' },
@@ -639,6 +651,9 @@ function Cookies() {
             { chave: 'tizetrack_antiplato', desc: 'Plano e respostas do módulo anti-platô' },
             { chave: 'tizetrack_workout', desc: 'Treinos cadastrados' },
             { chave: 'tizetrack_workout_log', desc: 'Log de treinos realizados' },
+            { chave: 'tizetrack_reminders', desc: 'Preferências de lembretes (horários, tipos ativos, modo discreto)' },
+            { chave: 'tizetrack_reminders_state', desc: 'Lembretes dispensados nos últimos 14 dias' },
+            { chave: 'tizetrack_push_sync', desc: 'Controle da última agenda de notificações enviada (evita reenvios)' },
           ].map((item, i) => (
             <div key={i} style={{ padding: '8px 12px', background: 'var(--mist)', borderRadius: '8px', border: '1px solid var(--line)' }}>
               <code style={{ fontSize: '11px', color: 'var(--cobalt)', display: 'block', marginBottom: '2px' }}>{item.chave}</code>
@@ -654,6 +669,10 @@ function Cookies() {
           O MinhaTize utiliza um Service Worker para funcionar offline como PWA (Progressive Web App).
           O Service Worker armazena em cache os arquivos estáticos do app (HTML, CSS, JavaScript, imagens).
           Não armazena dados pessoais em cache e não realiza rastreamento.
+        </p>
+        <p style={s.p}>
+          O Service Worker também recebe e exibe as notificações de lembrete, quando ativadas (veja a
+          Política de Privacidade, item 3.3).
         </p>
       </div>
 

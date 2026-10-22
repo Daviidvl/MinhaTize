@@ -55,6 +55,17 @@ async function findActiveToken(token: string, columns: string) {
 }
 
 export async function checkToken(token: string): Promise<TokenStatus> {
+  return (await resolveToken(token)).status
+}
+
+// Como checkToken, mas devolve também o id do token (tokens.id, em texto) —
+// para gravar referências ao acesso sem copiar o token em outras tabelas.
+export async function resolveToken(token: string): Promise<{ status: TokenStatus; id: string | null }> {
+  const status = await lookupToken(token)
+  return typeof status === 'string' ? { status, id: null } : { status: 'active', id: status.id }
+}
+
+async function lookupToken(token: string): Promise<Exclude<TokenStatus, 'active'> | { id: string }> {
   try {
     const skipExpiry = Date.now() < expiresAtMissingUntil
     let { data, error } = await findActiveToken(token, skipExpiry ? 'id' : 'id, expires_at')
@@ -74,7 +85,7 @@ export async function checkToken(token: string): Promise<TokenStatus> {
     }
     if (!data) return 'inactive'
     if (data.expires_at && new Date(data.expires_at).getTime() <= Date.now()) return 'inactive'
-    return 'active'
+    return { id: String(data.id) }
   } catch (err) {
     console.error('[auth] Erro inesperado ao validar token:', err)
     return 'error'

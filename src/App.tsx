@@ -1,8 +1,9 @@
 import { useState, useEffect, useRef } from 'react'
 import LoginScreen from './components/LoginScreen'
-import { getStoredToken, clearToken, checkToken, claimLocalData } from './utils/token'
+import { getStoredToken, clearToken, checkToken, claimLocalData, hasOfflineAccess } from './utils/token'
 import Header from './components/Header'
 import Dashboard from './components/Dashboard'
+import { PUSH_PROMPT_ID } from './components/PushPrompt'
 import ProgressHub from './components/ProgressHub'
 import Calculator from './components/Calculator'
 import HealthHub from './components/HealthHub'
@@ -13,6 +14,10 @@ import ConsentGate, { hasConsent } from './components/ConsentGate'
 import LegalPage, { isLegalDoc, type LegalDoc } from './components/LegalPage'
 import Footer from './components/Footer'
 import { useDarkMode } from './hooks/useDarkMode'
+import { useReminders } from './hooks/useReminders'
+import { loadReminderSettings } from './utils/reminderUtils'
+import { requestNotificationPermission } from './utils/notifications'
+import { disablePush } from './utils/pushSync'
 import { readJSON, writeJSON, readRaw } from './utils/storage'
 import { STORAGE_KEYS } from './utils/storageKeys'
 import { Tab, UserProfile } from './types'
@@ -35,6 +40,15 @@ const DEFAULT_PROFILE: UserProfile = {
 function loadProfile(): UserProfile {
   const stored = readJSON<Partial<UserProfile> | null>(STORAGE_KEYS.profile, null)
   return stored ? { ...DEFAULT_PROFILE, ...stored } : DEFAULT_PROFILE
+}
+
+// Link interno "?tab=health&section=symptoms" — usado ao tocar num lembrete
+const TABS: Tab[] = ['dashboard', 'progress', 'health', 'calculator', 'profile', 'laboratory']
+
+function readDeepLink(search: string): { tab: Tab; section: string | null } | null {
+  const p   = new URLSearchParams(search)
+  const tab = p.get('tab') as Tab | null
+  return tab && TABS.includes(tab) ? { tab, section: p.get('section') } : null
 }
 
 // ── Inline SVG nav icons ─────────────────────────────────────────────────────
@@ -99,8 +113,9 @@ const NAV_TABS: { id: Tab; label: string }[] = [
 
 export default function App() {
   const { isDark, toggle }            = useDarkMode()
-  const [activeTab, setActiveTab]     = useState<Tab>('dashboard')
-  const [deepSection, setDeepSection] = useState<string | null>(null)
+  const [deepLink]                    = useState(() => readDeepLink(window.location.search))
+  const [activeTab, setActiveTab]     = useState<Tab>(deepLink?.tab ?? 'dashboard')
+  const [deepSection, setDeepSection] = useState<string | null>(deepLink?.section ?? null)
   const [profile, setProfile]         = useState<UserProfile>(loadProfile)
   const [tokenStatus, setTokenStatus] = useState<'checking' | 'valid' | 'invalid'>('checking')
   const [consentGiven, setConsentGiven] = useState<boolean>(hasConsent)
@@ -119,20 +134,53 @@ export default function App() {
       if (stored) {
         const result = await checkToken(stored)
         if (cancelled) return
-        // Só uma recusa explícita do servidor encerra a sessão. Sem internet ou
-        // com a API instável ('unknown') o token salvo continua valendo — o app
-        // é um PWA e os dados ficam todos no aparelho.
-        if (result !== 'invalid') {
-          if (result === 'valid' && !readRaw(STORAGE_KEYS.owner)) await claimLocalData(stored)
+        if (result === 'valid') {
+          if (!readRaw(STORAGE_KEYS.owner)) await claimLocalData(stored)
           if (!cancelled) setTokenStatus('valid')
           return
         }
-        clearToken()
+        // Sem internet ou com a API instável ('unknown') o app abre offline só
+        // com a prova assinada da última validação online (até 30 dias).
+        if (result === 'unknown' && await hasOfflineAccess(stored)) {
+          if (!cancelled) setTokenStatus('valid')
+          return
+        }
+        // Só uma recusa explícita do servidor apaga o token salvo; sem prova,
+        // ele fica guardado e a tela de entrada aparece até a conexão voltar.
+        if (result === 'invalid') clearToken()
       }
       if (!cancelled) setTokenStatus('invalid')
     }
     checkAccess()
     return () => { cancelled = true }
+  }, [])
+
+  // ── Lembretes ───────────────────────────────────────────────────────────────
+  const appReady = tokenStatus === 'valid' && consentGiven && !!profile.name && !legalDoc
+  const { reminders, dismiss: dismissReminder, isDismissed } = useReminders(profile, appReady)
+
+  // Remove o link interno da URL depois de abrir a tela certa
+  useEffect(() => {
+    if (!deepLink) return
+    const url = new URL(window.location.href)
+    url.searchParams.delete('tab')
+    url.searchParams.delete('section')
+    window.history.replaceState({}, '', url.pathname + url.search)
+  }, [deepLink])
+
+  // Toque numa notificação com o app já aberto: o Service Worker pede a navegação
+  useEffect(() => {
+    if (!('serviceWorker' in navigator)) return
+    function onMessage(e: MessageEvent) {
+      if (e.data?.type !== 'navigate' || typeof e.data.url !== 'string') return
+      const link = readDeepLink(new URL(e.data.url, window.location.origin).search)
+      if (!link) return
+      setActiveTab(link.tab)
+      setDeepSection(link.section)
+      window.scrollTo({ top: 0, behavior: 'instant' })
+    }
+    navigator.serviceWorker.addEventListener('message', onMessage)
+    return () => navigator.serviceWorker.removeEventListener('message', onMessage)
   }, [])
 
   // ── Altura da navbar ────────────────────────────────────────────────────────
@@ -155,10 +203,15 @@ export default function App() {
   const isFirstAccess = !profile.name
 
   function handleProfileComplete(p: UserProfile) {
+    // Ainda dentro do toque em "Concluir": o celular só mostra o pedido de
+    // permissão de notificações a partir de um gesto do usuário
+    if (loadReminderSettings().notifications) void requestNotificationPermission()
     setProfile(p)
   }
 
-  function handleLogout() {
+  async function handleLogout() {
+    // Para de mandar lembretes para este aparelho (precisa do token, então vem antes)
+    await disablePush()
     clearToken()
     setTokenStatus('invalid')
   }
@@ -233,7 +286,7 @@ export default function App() {
     }
     switch (activeTab) {
       case 'dashboard':
-        return <Dashboard profile={profile} onUpdateProfile={setProfile} onNavigate={handleNavigate} />
+        return <Dashboard profile={profile} onUpdateProfile={setProfile} onNavigate={handleNavigate} reminders={reminders} onDismissReminder={dismissReminder} pushPromptDismissed={isDismissed(PUSH_PROMPT_ID)} />
       case 'progress':
         return <ProgressHub profile={profile} onUpdateProfile={setProfile} />
       case 'health':
@@ -243,7 +296,7 @@ export default function App() {
       case 'laboratory':
         return <Laboratory profile={profile} onUpdateProfile={setProfile} />
       default:
-        return <Dashboard profile={profile} onUpdateProfile={setProfile} onNavigate={handleNavigate} />
+        return <Dashboard profile={profile} onUpdateProfile={setProfile} onNavigate={handleNavigate} reminders={reminders} onDismissReminder={dismissReminder} pushPromptDismissed={isDismissed(PUSH_PROMPT_ID)} />
     }
   }
 

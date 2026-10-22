@@ -1,5 +1,6 @@
 import { readRaw, writeRaw, removeKey, readJSON } from './storage'
 import { STORAGE_KEYS, USER_DATA_KEYS } from './storageKeys'
+import { verifyAccessProof } from './accessProof'
 
 export function getStoredToken(): string | null {
   return readRaw(STORAGE_KEYS.token)
@@ -11,6 +12,7 @@ export function saveToken(token: string): void {
 
 export function clearToken(): void {
   removeKey(STORAGE_KEYS.token)
+  removeKey(STORAGE_KEYS.accessProof)
 }
 
 // Aceita token puro ou URL completa colada pelo usuário
@@ -86,13 +88,25 @@ export async function checkToken(token: string): Promise<TokenCheck> {
       headers: { Authorization: `Bearer ${token}` },
     })
     if (!res.ok) return 'unknown'
-    const data = await res.json() as { valid?: unknown }
-    if (data.valid === true)  return 'valid'
+    const data = await res.json() as { valid?: unknown; proof?: unknown }
+    if (data.valid === true) {
+      // Renova a prova que libera o app sem internet (ver hasOfflineAccess)
+      if (typeof data.proof === 'string' && data.proof.length < 1000) writeRaw(STORAGE_KEYS.accessProof, data.proof)
+      return 'valid'
+    }
     if (data.valid === false) return 'invalid'
     return 'unknown'
   } catch {
     return 'unknown'
   }
+}
+
+// Sem resposta do servidor ('unknown'), o app só entra com a prova assinada
+// que o servidor entregou na última validação online deste token — e por até
+// 30 dias. Gravar um token qualquer no localStorage não basta.
+export async function hasOfflineAccess(token: string): Promise<boolean> {
+  const proof = readRaw(STORAGE_KEYS.accessProof)
+  return !!proof && verifyAccessProof(proof, token)
 }
 
 export async function validateToken(token: string): Promise<boolean> {

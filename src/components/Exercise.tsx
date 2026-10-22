@@ -17,6 +17,7 @@ import {
   toDateStr, getWeekDays, calcStreak, getMotivation, isWorkoutComplete,
 } from '../utils/exerciseUtils'
 import { alpha } from '../utils/color'
+import { notifyRemindersChanged } from '../utils/reminderUtils'
 
 const STORAGE_KEY = STORAGE_KEYS.workoutProfile
 const LOG_KEY     = STORAGE_KEYS.workoutLog
@@ -96,6 +97,7 @@ export default function Exercise({ userProfile, view, onViewChange }: Props) {
       const log = isDone ? [...others, today] : others
       setWorkoutLog(log)
       writeJSON(LOG_KEY, log)
+      notifyRemindersChanged()
     }
   }
 

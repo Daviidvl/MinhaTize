@@ -1,0 +1,6 @@
+MinhaTize — Plataforma de acompanhamento para usuários de GLP-1/GIP — Tirzepatida, Semaglutida e análogos.
+Acesso via link exclusivo entregue após a compra. Sem cadastro. Sem senha. Funciona instalado no celular como um app nativo.
+Módulos: Calendário de Aplicações (registro de cada aplicação com local de injeção, sequência de semanas, aderência percentual, próxima aplicação prevista). Progresso (histórico de peso com gráfico, IMC, meta, comparativos semana a semana). Saúde (diário de sintomas e efeitos colaterais; hidratação, alimentação, exercícios). Calculadora (unidades UI para seringas de insulina a partir da concentração da ampola e dose prescrita; Tirzepatida, Semaglutida, Ozempic, Wegovy, Mounjaro). Laboratório (registro e acompanhamento de exames). Perfil (estoque de ampolas, conquistas, suporte).
+Características: PWA instalável iOS e Android; modo claro e escuro; dados armazenados localmente no dispositivo; sem cookies de rastreamento; conformidade LGPD.
+Tela inicial real: cartão "Peso atual" com kg, selo "x kg eliminados", anel "% da meta", barra "Faltam x kg"; blocos IMC e Dose atual ("Próxima em 3d"); widget de água; Treino Hoje; Alimentação; Calendário de aplicações. Navegação: Início · Progresso · Saúde · Calcular · Lab.
+Aviso: plataforma de uso educativo e informativo. Não substitui orientação médica.
