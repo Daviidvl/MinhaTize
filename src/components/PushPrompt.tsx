@@ -26,7 +26,7 @@ export default function PushPrompt({ dismissed, onDismiss }: Props) {
     const result = await requestNotificationPermission()
     setSupport(result)
     // Reaviso para o hook: com a permissão dada, ele faz a inscrição e envia a agenda
-    if (result === 'granted') saveReminderSettings({ ...loadReminderSettings(), notifications: true })
+    if (result === 'granted') saveReminderSettings({ notifications: true })
   }
 
   return (
@@ -46,7 +46,7 @@ export default function PushPrompt({ dismissed, onDismiss }: Props) {
         <p style={{ fontSize: '11px', color: 'var(--text-muted)', margin: 0, lineHeight: 1.4 }}>
           {install
             ? 'No iPhone, adicione o MinhaTize à tela de início (Compartilhar → Adicionar à Tela de Início) e abra por lá.'
-            : 'Aplicação, água, treino e estoque, mesmo com o app fechado.'}
+            : 'Aplicação, treino, água e pesagem. No máximo 2 por dia, mesmo com o app fechado.'}
         </p>
       </div>
       {!install && (

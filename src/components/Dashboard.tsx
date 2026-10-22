@@ -15,15 +15,17 @@ import {
 import { toDateStr } from '../utils/exerciseUtils'
 import { type WaterLog, waterGoalMl, waterTotal, formatMl } from '../utils/foodUtils'
 import { WATER_QUICK_ADD } from '../data/foodPlans'
-import RemindersCard from './RemindersCard'
+import InsightsCarousel from './InsightsCarousel'
 import PushPrompt, { PUSH_PROMPT_ID } from './PushPrompt'
-import { type Reminder, notifyRemindersChanged } from '../utils/reminderUtils'
+import { notifyRemindersChanged } from '../utils/reminderUtils'
+import { type Insight, getInsights, readInsightContext, MAX_INSIGHTS } from '../utils/insightUtils'
 
 interface Props {
   profile: UserProfile
   onNavigate: (tab: Tab, section?: string) => void
   onUpdateProfile: (p: UserProfile) => void
-  reminders?: Reminder[]
+  // Avisos e o pedido de notificações dispensados (estado de useReminders)
+  isDismissed?: (id: string) => boolean
   onDismissReminder?: (id: string) => void
   pushPromptDismissed?: boolean
 }
@@ -386,7 +388,7 @@ function StatTile({
 }
 
 // ── Componente principal ──────────────────────────────────────────────────────
-export default function Dashboard({ profile, onNavigate, onUpdateProfile, reminders = [], onDismissReminder = () => {}, pushPromptDismissed = true }: Props) {
+export default function Dashboard({ profile, onNavigate, onUpdateProfile, isDismissed = () => false, onDismissReminder = () => {}, pushPromptDismissed = true }: Props) {
   const lastWeight  = profile.weightHistory.at(-1)?.weight ?? profile.currentWeight ?? profile.startWeight
   const totalLost   = profile.startWeight - lastWeight
   const toGoal      = lastWeight - profile.goalWeight
@@ -413,6 +415,19 @@ export default function Dashboard({ profile, onNavigate, onUpdateProfile, remind
   const plateauStatus = getPlateauStatus(profile)
   const showPlateauBanner = ['possivel_estagnacao', 'em_acompanhamento_14dias', 'estagnacao_persistente'].includes(plateauStatus)
   const plateauMeta = getPlateauStatusMeta(plateauStatus)
+
+  // Recalculado a cada render: treino e água vêm do localStorage, e o App
+  // re-renderiza a cada minuto e a cada registro (useReminders)
+  const insights = getInsights(readInsightContext(profile)).filter(i => !isDismissed(i.id)).slice(0, MAX_INSIGHTS)
+
+  function openInsight(i: Insight) {
+    // A aplicação se registra no calendário desta própria tela
+    if (i.tab === 'dashboard') {
+      document.querySelector('[data-tour="dash-calendar"]')?.scrollIntoView({ behavior: 'smooth', block: 'center' })
+    } else {
+      onNavigate(i.tab, i.section)
+    }
+  }
 
   // Arco SVG para progresso da meta
   const arcR    = 44
@@ -600,9 +615,9 @@ export default function Dashboard({ profile, onNavigate, onUpdateProfile, remind
         </button>
       )}
 
-      {/* ── Lembretes de hoje ── */}
+      {/* ── Avisos para você ── */}
       <PushPrompt dismissed={pushPromptDismissed} onDismiss={() => onDismissReminder(PUSH_PROMPT_ID)} />
-      <RemindersCard reminders={reminders} onDismiss={onDismissReminder} onNavigate={onNavigate} />
+      <InsightsCarousel insights={insights} onOpen={openInsight} onDismiss={onDismissReminder} />
 
       {/* ── Stats ── */}
       <div style={{ display: 'grid', gridTemplateColumns: '4fr 3fr', gap: '10px' }}>

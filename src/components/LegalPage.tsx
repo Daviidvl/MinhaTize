@@ -277,9 +277,11 @@ function Privacidade() {
         <p style={s.p}>
           Com as notificações ativas, o app calcula no seu aparelho os lembretes dos próximos dias e envia
           ao servidor apenas o <strong style={{ color: 'var(--text-primary)' }}>horário e o texto de cada aviso</strong> (ex.: "Hoje é dia de
-          aplicação", "Hora de beber água"), junto com o endereço de entrega do navegador. Peso, dose, sintomas e
-          demais registros de saúde não são enviados. A entrega é feita pelo serviço de notificações do seu
-          navegador (Google, Apple, Mozilla ou Microsoft). Ao desligar as notificações em Perfil → Lembretes ou
+          aplicação", "Como está a água hoje?"), junto com o endereço de entrega do navegador. Peso, dose, sintomas e
+          demais registros de saúde não são enviados. Para escolher o horário dos avisos, o app guarda no próprio
+          aparelho os horários em que você costuma abri-lo; essa informação não sai do aparelho. A entrega é feita
+          pelo serviço de notificações do seu navegador (Google, Apple, Mozilla ou Microsoft). Ao desligar as
+          notificações em Perfil → Notificações ou
           sair da conta, a inscrição e os avisos pendentes são apagados do servidor.
         </p>
         <h3 style={s.h3}>3.4 Relatório Anti-Platô</h3>
@@ -298,7 +300,7 @@ function Privacidade() {
             { dado: 'E-mail e token', finalidade: 'Autenticação e entrega do acesso', base: 'Execução de contrato (Art. 7, V)' },
             { dado: 'Registro de consentimento', finalidade: 'Cumprimento de obrigação legal (LGPD Art. 8)', base: 'Obrigação legal (Art. 7, II)' },
             { dado: 'IP', finalidade: 'Prevenção de abuso e segurança', base: 'Legítimo interesse (Art. 7, IX)' },
-            { dado: 'Agenda de notificações', finalidade: 'Entregar os lembretes que você ativou', base: 'Consentimento (Art. 7, I), revogável em Perfil → Lembretes' },
+            { dado: 'Agenda de notificações', finalidade: 'Entregar os lembretes que você ativou', base: 'Consentimento (Art. 7, I), revogável em Perfil → Notificações' },
           ].map((row, i) => (
             <div key={i} style={{ padding: '10px 12px', background: 'var(--mist)', borderRadius: '8px', border: '1px solid var(--line)' }}>
               <p style={{ ...s.p, margin: 0, color: 'var(--ink)', fontWeight: 600 }}>{row.dado}</p>
@@ -651,8 +653,9 @@ function Cookies() {
             { chave: 'tizetrack_antiplato', desc: 'Plano e respostas do módulo anti-platô' },
             { chave: 'tizetrack_workout', desc: 'Treinos cadastrados' },
             { chave: 'tizetrack_workout_log', desc: 'Log de treinos realizados' },
-            { chave: 'tizetrack_reminders', desc: 'Preferências de lembretes (horários, tipos ativos, modo discreto)' },
-            { chave: 'tizetrack_reminders_state', desc: 'Lembretes dispensados nos últimos 14 dias' },
+            { chave: 'tizetrack_reminders', desc: 'Notificações ligadas ou desligadas' },
+            { chave: 'tizetrack_reminders_state', desc: 'Avisos dispensados nos últimos 14 dias' },
+            { chave: 'tizetrack_usage', desc: 'Horários em que o app foi aberto nos últimos 30 dias (define o horário das notificações)' },
             { chave: 'tizetrack_push_sync', desc: 'Controle da última agenda de notificações enviada (evita reenvios)' },
           ].map((item, i) => (
             <div key={i} style={{ padding: '8px 12px', background: 'var(--mist)', borderRadius: '8px', border: '1px solid var(--line)' }}>

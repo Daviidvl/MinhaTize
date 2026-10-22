@@ -480,8 +480,8 @@ export default function ProfilePage({ profile, onUpdateProfile, onBack, initialS
 
   if (section === 'reminders') return (
     <div className="fade-in" style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-      <SubHeader title="Lembretes" onBack={() => setSection(null)} />
-      <ReminderSettings profile={profile} />
+      <SubHeader title="Notificações" onBack={() => setSection(null)} />
+      <ReminderSettings />
     </div>
   )
 
@@ -943,8 +943,8 @@ export default function ProfilePage({ profile, onUpdateProfile, onBack, initialS
           <LRow
             iconBg="var(--ice)"
             icon={<Bell size={18} strokeWidth={1.75} style={{ color: 'var(--cobalt)' }} />}
-            label="Lembretes"
-            value={loadReminderSettings().notifications ? 'Notificações ativas' : undefined}
+            label="Notificações"
+            value={loadReminderSettings().notifications ? 'Ativadas' : 'Desativadas'}
             onClick={() => setSection('reminders')}
           />
         </LGroup>

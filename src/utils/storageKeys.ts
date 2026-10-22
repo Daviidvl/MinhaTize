@@ -20,6 +20,8 @@ export const STORAGE_KEYS = {
   // Preferências de lembretes e o registro do que já foi avisado/dispensado — ver utils/reminderUtils.ts
   reminders: 'tizetrack_reminders',
   remindersState: 'tizetrack_reminders_state',
+  // Horários em que o app foi aberto (últimos 30 dias) — ver utils/usageUtils.ts
+  usage: 'tizetrack_usage',
   // Assinatura da última agenda de push enviada ao servidor — ver utils/pushSync.ts
   pushSync: 'tizetrack_push_sync',
 } as const
@@ -39,5 +41,6 @@ export const USER_DATA_KEYS: string[] = [
   STORAGE_KEYS.diary,
   STORAGE_KEYS.reminders,
   STORAGE_KEYS.remindersState,
+  STORAGE_KEYS.usage,
   STORAGE_KEYS.pushSync,
 ]

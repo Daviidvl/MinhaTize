@@ -157,7 +157,7 @@ export default function App() {
 
   // ── Lembretes ───────────────────────────────────────────────────────────────
   const appReady = tokenStatus === 'valid' && consentGiven && !!profile.name && !legalDoc
-  const { reminders, dismiss: dismissReminder, isDismissed } = useReminders(profile, appReady)
+  const { dismiss: dismissReminder, isDismissed } = useReminders(profile, appReady)
 
   // Remove o link interno da URL depois de abrir a tela certa
   useEffect(() => {
@@ -286,7 +286,7 @@ export default function App() {
     }
     switch (activeTab) {
       case 'dashboard':
-        return <Dashboard profile={profile} onUpdateProfile={setProfile} onNavigate={handleNavigate} reminders={reminders} onDismissReminder={dismissReminder} pushPromptDismissed={isDismissed(PUSH_PROMPT_ID)} />
+        return <Dashboard profile={profile} onUpdateProfile={setProfile} onNavigate={handleNavigate} isDismissed={isDismissed} onDismissReminder={dismissReminder} pushPromptDismissed={isDismissed(PUSH_PROMPT_ID)} />
       case 'progress':
         return <ProgressHub profile={profile} onUpdateProfile={setProfile} />
       case 'health':
@@ -296,7 +296,7 @@ export default function App() {
       case 'laboratory':
         return <Laboratory profile={profile} onUpdateProfile={setProfile} />
       default:
-        return <Dashboard profile={profile} onUpdateProfile={setProfile} onNavigate={handleNavigate} reminders={reminders} onDismissReminder={dismissReminder} pushPromptDismissed={isDismissed(PUSH_PROMPT_ID)} />
+        return <Dashboard profile={profile} onUpdateProfile={setProfile} onNavigate={handleNavigate} isDismissed={isDismissed} onDismissReminder={dismissReminder} pushPromptDismissed={isDismissed(PUSH_PROMPT_ID)} />
     }
   }
 

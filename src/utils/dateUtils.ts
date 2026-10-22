@@ -12,3 +12,9 @@ export function toDateStr(d: Date): string {
 export function todayStr(): string {
   return toDateStr(new Date())
 }
+
+export function addDays(dateStr: string, n: number): string {
+  const d = new Date(dateStr + 'T12:00:00')
+  d.setDate(d.getDate() + n)
+  return toDateStr(d)
+}
