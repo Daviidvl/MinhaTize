@@ -1,6 +1,7 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node'
 import { timingSafeEqual } from 'crypto'
 import { getSupabaseAdmin } from './_lib/supabaseAdmin.js'
+import { isMissingExpiresAt } from './_lib/auth.js'
 import { configureWebPush, webpush } from './_lib/webPush.js'
 import { type PushItem, nextAt } from './_lib/pushSchedule.js'
 
@@ -59,17 +60,26 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
   // Acesso revogado (reembolso, token desativado) não recebe mais avisos
   const tokenIds = [...new Set(rows.map(r => r.token_id))]
-  const { data: tokens, error: tokErr } = await supabase
-    .from('tokens').select('id, active, expires_at').in('id', tokenIds)
+  type TokenRow = { id: unknown; active: boolean; expires_at?: string | null }
+  const queryTokens = async (columns: string) => {
+    const { data, error } = await supabase.from('tokens').select(columns).in('id', tokenIds)
+    return { data: data as unknown as TokenRow[] | null, error }
+  }
+  let { data: tokens, error: tokErr } = await queryTokens('id, active, expires_at')
+  // Banco sem a migration de expiração: sem a coluna, nenhum token expira.
+  // Sem este desvio a consulta falhava e nenhuma notificação era enviada.
+  if (isMissingExpiresAt(tokErr)) {
+    console.warn('[push-cron] Coluna tokens.expires_at ausente — conferindo só se o token está ativo.')
+    ;({ data: tokens, error: tokErr } = await queryTokens('id, active'))
+  }
   if (tokErr) {
     console.error('[push-cron] Erro ao conferir tokens:', tokErr.message)
     return res.status(500).json({ error: 'Erro interno.' })
   }
   const activeIds = new Set(
     (tokens ?? [])
-      .filter((t: { active: boolean; expires_at?: string | null }) =>
-        t.active && !(t.expires_at && new Date(t.expires_at).getTime() <= now))
-      .map((t: { id: unknown }) => String(t.id)),
+      .filter(t => t.active && !(t.expires_at && new Date(t.expires_at).getTime() <= now))
+      .map(t => String(t.id)),
   )
 
   let sent = 0, removed = 0

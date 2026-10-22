@@ -38,6 +38,11 @@ export type TokenStatus = 'active' | 'inactive' | 'error'
 // este tratamento, NENHUM token validaria. Sem a coluna não existe expiração a
 // respeitar, então a consulta é refeita sem ela.
 const UNDEFINED_COLUMN = '42703'
+
+// Erro do Supabase/PostgREST para "coluna tokens.expires_at não existe"
+export function isMissingExpiresAt(error: { code?: string; message?: string } | null): boolean {
+  return !!error && (error.code === UNDEFINED_COLUMN || /expires_at.*does not exist/i.test(error.message ?? ''))
+}
 // Depois de detectar a ausência, evita a consulta dupla por alguns minutos e
 // então tenta de novo — assim a migration passa a valer sem precisar de deploy.
 const MISSING_COLUMN_RECHECK_MS = 5 * 60_000
@@ -70,7 +75,7 @@ async function lookupToken(token: string): Promise<Exclude<TokenStatus, 'active'
     const skipExpiry = Date.now() < expiresAtMissingUntil
     let { data, error } = await findActiveToken(token, skipExpiry ? 'id' : 'id, expires_at')
 
-    if (error && !skipExpiry && (error.code === UNDEFINED_COLUMN || /expires_at.*does not exist/i.test(error.message ?? ''))) {
+    if (!skipExpiry && isMissingExpiresAt(error)) {
       console.warn(
         '[auth] Coluna tokens.expires_at ausente — validando sem expiração. ' +
         'Rode supabase/migrations/20260901_add_token_expiration.sql.'

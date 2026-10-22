@@ -10,7 +10,7 @@ const sendNotification = vi.fn()
 vi.mock('../_lib/supabaseAdmin', () => ({
   getSupabaseAdmin: () => ({
     from: (table: string) => {
-      if (table === 'tokens') return { select: () => ({ in: tokensQuery }) }
+      if (table === 'tokens') return { select: (cols: string) => ({ in: (...a: unknown[]) => tokensQuery(cols, ...a) }) }
       return {
         select: () => ({ lte: () => ({ order: () => ({ limit: rowsQuery }) }) }),
         delete: () => ({ eq: (_k: string, v: unknown) => { deleted.push(v); return Promise.resolve({ error: null }) } }),
@@ -113,6 +113,19 @@ describe('api/push-cron', () => {
     await handler(makeReq(), res)
     expect(deleted).toEqual([8])
     expect(res.body).toMatchObject({ sent: 0, removed: 1 })
+  })
+
+  it('envia mesmo sem a coluna tokens.expires_at no banco', async () => {
+    vi.spyOn(console, 'warn').mockImplementation(() => {})
+    rowsQuery.mockResolvedValue({ data: [row(10, [{ id: 'a', at: iso(-60_000) }])], error: null })
+    tokensQuery
+      .mockResolvedValueOnce({ data: null, error: { code: '42703', message: 'column tokens.expires_at does not exist' } })
+      .mockResolvedValueOnce({ data: [{ id: 1, active: true }], error: null })
+    const res = makeRes()
+    await handler(makeReq(), res)
+    expect(res.statusCode).toBe(200)
+    expect(tokensQuery.mock.calls.map(c => c[0])).toEqual(['id, active, expires_at', 'id, active'])
+    expect(sendNotification).toHaveBeenCalledTimes(1)
   })
 
   it('não envia para acesso revogado', async () => {
