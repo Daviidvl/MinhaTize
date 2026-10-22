@@ -48,3 +48,6 @@ fix-utf8.mjs
 # tsc -b compiled output from tsconfig.node.json (regenerated on every build)
 vite.config.js
 vite.config.d.ts
+
+# Projeto do vídeo promocional (HyperFrames) — fica só na máquina local
+videos/

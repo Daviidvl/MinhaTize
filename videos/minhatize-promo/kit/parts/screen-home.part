@@ -1,5 +1,0 @@
-<div class="mt-app" style="background:linear-gradient(160deg,#1E5BB8 0%,#162558 48%,#0B2545 100%)">
-  <div style="position:absolute;left:-80px;top:380px;width:420px;height:420px;border-radius:50%;background:radial-gradient(closest-side,rgba(143,189,240,0.35),rgba(143,189,240,0))"></div>
-  <div class="mt-home-grid">{{homegrid}}</div>
-  <div class="mt-home-dock"><i style="background:#3A86E0"></i><i style="background:#DCE9F9"></i><i style="background:#8FBDF0"></i><i style="background:#EEF4FC"></i></div>
-</div>
