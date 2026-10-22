@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'vitest'
 import { render, screen, } from '@testing-library/react'
-import '@testing-library/jest-dom'
+// Entrada própria do vitest: a padrão estende o namespace `jest`, que o vitest 5 não tem
+import '@testing-library/jest-dom/vitest'
 import userEvent from '@testing-library/user-event'
 import Calculator from '../components/Calculator'
 
