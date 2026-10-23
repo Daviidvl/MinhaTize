@@ -5,20 +5,22 @@ import { readJSON, writeJSON } from './storage'
 import { STORAGE_KEYS } from './storageKeys'
 
 // O que as notificações aprendem com o uso do app, sem nenhuma configuração:
-// em que horário a pessoa costuma abrir o app de manhã e no fim do dia (as duas
-// janelas de envio), em que dia da semana ela costuma se pesar e se ela usa o
-// registro de água. Tudo fica no aparelho.
+// em que horário a pessoa costuma abrir o app de manhã, à tarde e à noite (as
+// três janelas de envio), em que dia da semana ela costuma se pesar e se ela
+// usa o registro de água. Tudo fica no aparelho.
 
 export interface UsageProfile {
   morningMin: number     // minuto do dia da janela da manhã
-  eveningMin: number     // minuto do dia da janela do fim do dia
+  afternoonMin: number   // minuto do dia da janela da tarde
+  eveningMin: number     // minuto do dia da janela da noite
   weighInWeekday: number // 0 = domingo
   usesWater: boolean
 }
 
 export const DEFAULT_USAGE: UsageProfile = {
   morningMin: 9 * 60,
-  eveningMin: 18 * 60 + 30,
+  afternoonMin: 14 * 60 + 30,
+  eveningMin: 20 * 60,
   weighInWeekday: 1,
   usesWater: true,
 }
@@ -26,12 +28,15 @@ export const DEFAULT_USAGE: UsageProfile = {
 // Uma abertura do app: data e minuto do dia
 export interface AppOpen { d: string; m: number }
 
-// Limites das janelas: nada antes das 7h30 nem depois das 21h30
-export const MORNING_RANGE: [number, number] = [7 * 60 + 30, 12 * 60]
-export const EVENING_RANGE: [number, number] = [16 * 60, 21 * 60 + 30]
+// Limites das janelas: nada antes das 7h30 nem depois das 21h30, e uma janela
+// não invade a outra
+export const MORNING_RANGE: [number, number]   = [7 * 60 + 30, 11 * 60]
+export const AFTERNOON_RANGE: [number, number] = [12 * 60 + 30, 16 * 60 + 30]
+export const EVENING_RANGE: [number, number]   = [18 * 60, 21 * 60 + 30]
 // Aberturas consideradas para cada janela
-const MORNING_OPENS: [number, number] = [5 * 60, 13 * 60]
-const EVENING_OPENS: [number, number] = [15 * 60, 22 * 60]
+const MORNING_OPENS: [number, number]   = [5 * 60, 12 * 60]
+const AFTERNOON_OPENS: [number, number] = [12 * 60, 17 * 60]
+const EVENING_OPENS: [number, number]   = [17 * 60, 23 * 60]
 
 const KEEP_DAYS = 30
 const MAX_OPENS = 240
@@ -76,8 +81,9 @@ export function learnUsage(opens: AppOpen[], profile: UserProfile, waterLog: Wat
   const loggedWater = Object.entries(waterLog).some(([d, v]) => d >= waterCutoff && d <= today && v.length > 0)
 
   return {
-    morningMin: windowMin(recent, MORNING_OPENS, MORNING_RANGE, DEFAULT_USAGE.morningMin),
-    eveningMin: windowMin(recent, EVENING_OPENS, EVENING_RANGE, DEFAULT_USAGE.eveningMin),
+    morningMin:   windowMin(recent, MORNING_OPENS, MORNING_RANGE, DEFAULT_USAGE.morningMin),
+    afternoonMin: windowMin(recent, AFTERNOON_OPENS, AFTERNOON_RANGE, DEFAULT_USAGE.afternoonMin),
+    eveningMin:   windowMin(recent, EVENING_OPENS, EVENING_RANGE, DEFAULT_USAGE.eveningMin),
     weighInWeekday: usualWeighInDay(profile),
     usesWater: loggedWater || firstOpen === '' || firstOpen >= addDays(today, -NEW_USER_DAYS),
   }

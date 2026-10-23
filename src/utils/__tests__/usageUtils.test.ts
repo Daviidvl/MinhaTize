@@ -18,10 +18,12 @@ describe('learnUsage', () => {
   it('aprende as janelas pelo horário em que o app costuma ser aberto', () => {
     const opens = [
       at('2026-10-20', 7, 50), at('2026-10-21', 8, 5), at('2026-10-22', 7, 55),
+      at('2026-10-20', 13, 10), at('2026-10-21', 13, 20), at('2026-10-22', 13, 35),
       at('2026-10-20', 20, 10), at('2026-10-21', 20, 40), at('2026-10-23', 21, 0),
     ]
     const u = learnUsage(opens, PROFILE, {}, TODAY)
     expect(u.morningMin).toBe(8 * 60)
+    expect(u.afternoonMin).toBe(13 * 60 + 15)
     expect(u.eveningMin).toBe(20 * 60 + 45)
   })
 

@@ -277,7 +277,7 @@ function Privacidade() {
         <p style={s.p}>
           Com as notificações ativas, o app calcula no seu aparelho os lembretes dos próximos dias e envia
           ao servidor apenas o <strong style={{ color: 'var(--text-primary)' }}>horário e o texto de cada aviso</strong> (ex.: "Hoje é dia de
-          aplicação", "Como está a água hoje?"), junto com o endereço de entrega do navegador. Peso, dose, sintomas e
+          aplicação", "Como está a água hoje?" ou uma mensagem de incentivo), junto com o endereço de entrega do navegador. Peso, dose, sintomas e
           demais registros de saúde não são enviados. Para escolher o horário dos avisos, o app guarda no próprio
           aparelho os horários em que você costuma abri-lo; essa informação não sai do aparelho. A entrega é feita
           pelo serviço de notificações do seu navegador (Google, Apple, Mozilla ou Microsoft). Ao desligar as

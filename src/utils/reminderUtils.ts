@@ -6,18 +6,20 @@ import { toDateStr, addDays } from './dateUtils'
 import { readJSON, writeJSON } from './storage'
 import { STORAGE_KEYS } from './storageKeys'
 import { type UsageProfile, learnUsage, loadOpens } from './usageUtils'
+import { motivationFor } from './motivationMessages'
 
-// Notificações calculadas no próprio aparelho. A política é fixa: só aplicação,
-// treino, água e pesagem, e no máximo MAX_PER_DAY por dia — uma na janela da
-// manhã e outra na do fim do dia. O que muda de pessoa para pessoa vem do uso
-// do app (utils/usageUtils.ts): o horário das janelas, o dia da pesagem e se a
-// água entra. A pessoa só liga ou desliga.
+// Notificações calculadas no próprio aparelho. A política é fixa: no máximo
+// MAX_PER_DAY por dia, uma em cada janela. A manhã é da mensagem do dia
+// (utils/motivationMessages.ts); a tarde e a noite ficam com os lembretes de
+// aplicação, treino, água e pesagem, os mais importantes primeiro. O que muda
+// de pessoa para pessoa vem do uso do app (utils/usageUtils.ts): o horário das
+// janelas, o dia da pesagem e se a água entra. A pessoa só liga ou desliga.
 //
 // As mesmas regras alimentam o contador no ícone do app (getDueReminders) e a
 // agenda enviada ao servidor de push (buildPushSchedule).
 
-export type ReminderKind = 'application' | 'water' | 'weighIn' | 'workout'
-export type ReminderSlot = 'morning' | 'evening'
+export type ReminderKind = 'application' | 'water' | 'weighIn' | 'workout' | 'motivation'
+export type ReminderSlot = 'morning' | 'afternoon' | 'evening'
 
 export interface ReminderSettings {
   notifications: boolean // notificações no celular (push) — ligadas por padrão
@@ -25,7 +27,7 @@ export interface ReminderSettings {
 
 export const DEFAULT_REMINDER_SETTINGS: ReminderSettings = { notifications: true }
 
-export const MAX_PER_DAY = 2
+export const MAX_PER_DAY = 3
 
 export interface Reminder {
   id: string        // estável por ocorrência — evita avisar duas vezes a mesma coisa
@@ -86,7 +88,7 @@ function dayCandidates(
 
     if (offset === 0 && !doneSince) {
       out.push({
-        id: `application-${day}`, kind: 'application', priority: 100, slots: ['morning', 'evening'], tab: 'dashboard',
+        id: `application-${day}`, kind: 'application', priority: 100, slots: ['afternoon', 'evening'], tab: 'dashboard',
         title: 'Hoje é dia de aplicação',
         body: 'Sua aplicação está programada para hoje. Depois de aplicar, registre no calendário.',
       })
@@ -95,7 +97,7 @@ function dayCandidates(
       && lastScheduled >= profile.startDate && !doneSince
     ) {
       out.push({
-        id: `application-late-${lastScheduled}`, kind: 'application', priority: 95, slots: ['morning', 'evening'], tab: 'dashboard',
+        id: `application-late-${lastScheduled}`, kind: 'application', priority: 95, slots: ['afternoon', 'evening'], tab: 'dashboard',
         title: 'Aplicação não registrada',
         body: `A aplicação de ${WEEK_DAYS_FULL[appDay].toLowerCase()} ainda não foi registrada. Se já aplicou, marque no calendário.`,
       })
@@ -108,13 +110,15 @@ function dayCandidates(
     }
   }
 
-  // ── Pesagem: no dia em que a pessoa costuma se pesar, de manhã (em jejum) ──
+  // ── Pesagem: no dia em que a pessoa costuma se pesar ──
+  // A manhã é da mensagem do dia, então o aviso chega à tarde: a dica do jejum
+  // fica para a próxima pesagem.
   const weighedRecently = profile.weightHistory.some(e => e.date <= day && e.date > addDays(day, -RECENT_WEIGH_DAYS))
   if (dow === usage.weighInWeekday && !weighedRecently) {
     out.push({
-      id: `weighIn-${day}`, kind: 'weighIn', priority: 60, slots: ['morning'], tab: 'progress',
+      id: `weighIn-${day}`, kind: 'weighIn', priority: 60, slots: ['afternoon', 'evening'], tab: 'progress',
       title: 'Dia de se pesar',
-      body: 'Pese-se em jejum, depois de ir ao banheiro, e registre o peso no Progresso.',
+      body: 'Já se pesou hoje? Registre o peso no Progresso. Da próxima vez, pese-se em jejum, logo ao acordar.',
     })
   }
 
@@ -122,7 +126,7 @@ function dayCandidates(
   const workout = plan[dow]
   if (workout && !today.workoutDone) {
     out.push({
-      id: `workout-${day}`, kind: 'workout', priority: 50, slots: ['evening', 'morning'],
+      id: `workout-${day}`, kind: 'workout', priority: 50, slots: ['afternoon', 'evening'],
       tab: 'health', section: 'exercise',
       title: 'Treino de hoje',
       body: `Treino ${workout.label}: ${workout.name}. Marque os exercícios conforme for fazendo.`,
@@ -132,20 +136,28 @@ function dayCandidates(
   // ── Água: só para quem usa o registro ──
   if (usage.usesWater && !today.waterGoalMet) {
     out.push({
-      id: `water-${day}`, kind: 'water', priority: 30, slots: ['evening', 'morning'],
+      id: `water-${day}`, kind: 'water', priority: 30, slots: ['afternoon', 'evening'],
       tab: 'health', section: 'food:hydration',
       title: 'Como está a água hoje?',
       body: 'Beba um copo agora e registre no MinhaTize para acompanhar a meta do dia.',
     })
   }
 
+  // ── Mensagem do dia: todo dia, sempre de manhã ──
+  out.push({
+    id: `motivation-${day}`, kind: 'motivation', priority: 0, slots: ['morning'], tab: 'dashboard',
+    ...motivationFor(day),
+  })
+
   return out
 }
 
 // Distribui os candidatos nas janelas do dia, do mais importante para o menos
 function fillSlots(candidates: Candidate[], usage: UsageProfile): Reminder[] {
-  const at: Record<ReminderSlot, number> = { morning: usage.morningMin, evening: usage.eveningMin }
-  const free = new Set<ReminderSlot>(['morning', 'evening'])
+  const at: Record<ReminderSlot, number> = {
+    morning: usage.morningMin, afternoon: usage.afternoonMin, evening: usage.eveningMin,
+  }
+  const free = new Set<ReminderSlot>(['morning', 'afternoon', 'evening'])
   const out: Reminder[] = []
   for (const c of [...candidates].sort((a, b) => b.priority - a.priority)) {
     if (out.length >= MAX_PER_DAY) break
@@ -159,13 +171,14 @@ function fillSlots(candidates: Candidate[], usage: UsageProfile): Reminder[] {
 
 // ── Contador no ícone do app ─────────────────────────────────────────────────
 
-// Avisos de hoje cuja hora já chegou e que continuam valendo
+// Avisos de hoje cuja hora já chegou e que continuam valendo. A mensagem do
+// dia não é pendência: não entra no contador.
 export function getDueReminders(ctx: ReminderContext): Reminder[] {
   const candidates = dayCandidates(ctx.profile, ctx.today, ctx.workoutPlan, ctx.usage, {
     workoutDone: ctx.workoutDoneToday,
     waterGoalMet: ctx.waterGoalMl > 0 && ctx.waterMl >= ctx.waterGoalMl,
   })
-  return fillSlots(candidates, ctx.usage).filter(r => r.at <= ctx.nowMin)
+  return fillSlots(candidates, ctx.usage).filter(r => r.kind !== 'motivation' && r.at <= ctx.nowMin)
 }
 
 // ── Agenda de notificações push ──────────────────────────────────────────────

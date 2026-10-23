@@ -46,7 +46,7 @@ export default function PushPrompt({ dismissed, onDismiss }: Props) {
         <p style={{ fontSize: '11px', color: 'var(--text-muted)', margin: 0, lineHeight: 1.4 }}>
           {install
             ? 'No iPhone, adicione o MinhaTize à tela de início (Compartilhar → Adicionar à Tela de Início) e abra por lá.'
-            : 'Aplicação, treino, água e pesagem. No máximo 2 por dia, mesmo com o app fechado.'}
+            : 'Uma mensagem de incentivo de manhã e lembretes de aplicação, treino, água e pesagem à tarde e à noite, mesmo com o app fechado.'}
         </p>
       </div>
       {!install && (

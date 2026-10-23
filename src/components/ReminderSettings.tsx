@@ -1,5 +1,5 @@
 import { useState, type ReactNode } from 'react'
-import { Bell, Syringe, Dumbbell, GlassWater, Scale } from 'lucide-react'
+import { Bell, Syringe, Dumbbell, GlassWater, Scale, Quote } from 'lucide-react'
 import { type ReminderSettings as Settings, MAX_PER_DAY, loadReminderSettings, saveReminderSettings } from '../utils/reminderUtils'
 import { getNotificationSupport, requestNotificationPermission } from '../utils/notifications'
 import { isPushSupported, needsHomeScreenInstall } from '../utils/pushSync'
@@ -32,6 +32,7 @@ const TOPICS: { icon: ReactNode; label: string; sub: string }[] = [
   { icon: <Dumbbell size={16} strokeWidth={1.85} />,   label: 'Treino',    sub: 'Nos dias do seu plano' },
   { icon: <GlassWater size={16} strokeWidth={1.85} />, label: 'Água',      sub: 'Se você usa o registro de água' },
   { icon: <Scale size={16} strokeWidth={1.85} />,      label: 'Pesagem',   sub: 'No dia em que você costuma se pesar' },
+  { icon: <Quote size={16} strokeWidth={1.85} />,      label: 'Mensagem do dia', sub: 'Uma frase de incentivo toda manhã' },
 ]
 
 export default function ReminderSettings() {
@@ -112,7 +113,8 @@ export default function ReminderSettings() {
       </div>
 
       <p style={{ fontSize: '11px', color: 'var(--text-muted)', margin: '0 4px', lineHeight: 1.55 }}>
-        No máximo {MAX_PER_DAY} por dia, uma de manhã e outra no fim do dia, nos horários em que você costuma abrir o app.
+        No máximo {MAX_PER_DAY} por dia: a mensagem de manhã e até dois lembretes, um à tarde e outro à noite, nos horários
+        em que você costuma abrir o app.
         Nada é enviado entre 22h e 7h30. Se você já registrou, o aviso não chega.
       </p>
       <p style={{ fontSize: '11px', color: 'var(--text-muted)', margin: '0 4px', lineHeight: 1.55 }}>

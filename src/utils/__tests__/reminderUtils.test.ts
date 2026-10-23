@@ -26,15 +26,15 @@ function ctx(over: Partial<ReminderContext> = {}, profile: Partial<UserProfile> 
 const ids = (c: ReminderContext) => getDueReminders(c).map(r => r.id)
 
 describe('getDueReminders — aplicação', () => {
-  it('lembra no dia, na janela da manhã, sem citar a dose', () => {
+  it('lembra no dia, na janela da tarde, sem citar a dose', () => {
     const [r] = getDueReminders(ctx())
     expect(r.id).toBe('application-2026-10-25')
-    expect(r.at).toBe(QUIET.morningMin)
+    expect(r.at).toBe(QUIET.afternoonMin)
     expect(r.body).not.toContain('mg')
   })
 
   it('só conta depois que a hora da janela chega', () => {
-    expect(ids(ctx({ nowMin: QUIET.morningMin - 1 }))).toEqual([])
+    expect(ids(ctx({ nowMin: QUIET.afternoonMin - 1 }))).toEqual([])
   })
 
   it('some depois que a aplicação do dia é registrada', () => {
@@ -53,7 +53,7 @@ describe('getDueReminders — aplicação', () => {
     expect(ids(ctx({ today: '2026-10-27' }))).toEqual([])
   })
 
-  it('avisa na véspera, na janela do fim do dia', () => {
+  it('avisa na véspera, na janela da noite', () => {
     const [r] = getDueReminders(ctx({ today: '2026-10-24' }, { applicationLog: ['2026-10-18'] }))
     expect(r.id).toBe('application-eve-2026-10-24')
     expect(r.at).toBe(QUIET.eveningMin)
@@ -63,10 +63,10 @@ describe('getDueReminders — aplicação', () => {
 describe('getDueReminders — hábitos', () => {
   const workoutPlan = { 1: { label: 'A', name: 'Peito + Tríceps' } }
 
-  it('treino do dia ainda não feito, no fim do dia', () => {
+  it('treino do dia ainda não feito, à tarde', () => {
     const r = getDueReminders(ctx({ today: '2026-10-26', workoutPlan }))
     expect(r.map(x => x.id)).toEqual(['workout-2026-10-26'])
-    expect(r[0].at).toBe(QUIET.eveningMin)
+    expect(r[0].at).toBe(QUIET.afternoonMin)
     expect(ids(ctx({ today: '2026-10-26', workoutPlan, workoutDoneToday: true }))).toEqual([])
   })
 
@@ -85,33 +85,39 @@ describe('getDueReminders — hábitos', () => {
 })
 
 describe('getDueReminders — limite diário', () => {
-  it(`no máximo ${MAX_PER_DAY} por dia, os mais importantes primeiro`, () => {
-    // Segunda: véspera de nada, pesagem, treino e água disputando duas janelas
+  it('dois lembretes por dia, à tarde e à noite, os mais importantes primeiro', () => {
+    // Segunda: pesagem, treino e água disputando as duas janelas
     const r = getDueReminders(ctx({
       today: '2026-10-26', waterGoalMl: 2000,
       workoutPlan: { 1: { label: 'A', name: 'Peito' } },
       usage: { ...QUIET, usesWater: true, weighInWeekday: 1 },
     }))
-    expect(r.map(x => x.id)).toEqual(['weighIn-2026-10-26', 'workout-2026-10-26'])
+    expect(r.map(x => [x.id, x.at])).toEqual([
+      ['weighIn-2026-10-26', QUIET.afternoonMin],
+      ['workout-2026-10-26', QUIET.eveningMin],
+    ])
   })
 
-  it('a pesagem não cai no fim do dia: se a manhã está ocupada, fica de fora', () => {
-    // Domingo: aplicação ocupa a manhã
+  it('com a aplicação na tarde, a pesagem vai para a noite', () => {
     const r = getDueReminders(ctx({ usage: { ...QUIET, weighInWeekday: 0 } }))
-    expect(r.map(x => x.id)).toEqual(['application-2026-10-25'])
+    expect(r.map(x => x.id)).toEqual(['application-2026-10-25', 'weighIn-2026-10-25'])
   })
 
-  it('o treino vai para a manhã quando a véspera da aplicação ocupa o fim do dia', () => {
+  it('o treino fica com a tarde quando a véspera da aplicação ocupa a noite', () => {
     const r = getDueReminders(ctx({ today: '2026-10-24', workoutPlan: { 6: { label: 'B', name: 'Costas' } } }, { applicationLog: ['2026-10-18'] }))
     expect(r.map(x => [x.id, x.at])).toEqual([
-      ['workout-2026-10-24', QUIET.morningMin],
+      ['workout-2026-10-24', QUIET.afternoonMin],
       ['application-eve-2026-10-24', QUIET.eveningMin],
     ])
   })
 
+  it('a mensagem do dia não entra no contador do ícone', () => {
+    expect(ids(ctx({ today: '2026-10-27' }))).toEqual([])
+  })
+
   it('usa os horários aprendidos', () => {
-    const usage = { ...QUIET, morningMin: 7 * 60 + 45 }
-    expect(getDueReminders(ctx({ usage }))[0].at).toBe(7 * 60 + 45)
+    const usage = { ...QUIET, afternoonMin: 15 * 60 }
+    expect(getDueReminders(ctx({ usage }))[0].at).toBe(15 * 60)
   })
 })
 
@@ -129,16 +135,16 @@ describe('buildPushSchedule', () => {
 
   it('agenda véspera, dia e atraso da aplicação com horário local em UTC', () => {
     const byId = Object.fromEntries(buildPushSchedule(input()).map(i => [i.id, i]))
-    expect(byId['application-eve-2026-10-24'].at).toBe(new Date(2026, 9, 24, 18, 30).toISOString())
-    expect(byId['application-2026-10-25'].at).toBe(new Date(2026, 9, 25, 9, 0).toISOString())
-    expect(byId['application-late-2026-10-25'].at).toBe(new Date(2026, 9, 26, 9, 0).toISOString())
+    expect(byId['application-eve-2026-10-24'].at).toBe(new Date(2026, 9, 24, 20, 0).toISOString())
+    expect(byId['application-2026-10-25'].at).toBe(new Date(2026, 9, 25, 14, 30).toISOString())
+    expect(byId['application-late-2026-10-25'].at).toBe(new Date(2026, 9, 26, 14, 30).toISOString())
     expect(byId['application-2026-10-25'].url).toBe('/?tab=dashboard')
   })
 
   it('o atraso só vale na primeira vez e libera a vaga dos dias seguintes', () => {
     const items = buildPushSchedule(input({ usage: { ...QUIET, weighInWeekday: 2 } }))
     expect(items.filter(i => i.id === 'application-late-2026-10-25')).toHaveLength(1)
-    // Terça: o atraso já foi avisado na segunda, então a pesagem fica com a manhã
+    // Terça: o atraso já foi avisado na segunda, então a pesagem fica com a tarde
     expect(items.map(i => i.id)).toContain('weighIn-2026-10-27')
   })
 
@@ -164,9 +170,30 @@ describe('buildPushSchedule', () => {
   it('água: nenhuma hoje se a meta já foi batida', () => {
     const usage = { ...QUIET, usesWater: true }
     const todayIds = (inp: PushScheduleInput) => buildPushSchedule(inp, 1).map(i => i.id)
-    // Hoje (sáb) o atraso da aplicação de quarta fica com a manhã (já passou) e a água, com o fim do dia
-    expect(todayIds(input({ usage }, { applicationDay: 3 }))).toEqual(['water-2026-10-24'])
-    expect(todayIds(input({ usage, waterGoalMetToday: true }, { applicationDay: 3 }))).toEqual([])
+    // Hoje (sáb, 10h) a mensagem da manhã já passou; o atraso da aplicação de quarta fica com a tarde e a água, com a noite
+    expect(todayIds(input({ usage }, { applicationDay: 3 }))).toEqual(['application-late-2026-10-21', 'water-2026-10-24'])
+    expect(todayIds(input({ usage, waterGoalMetToday: true }, { applicationDay: 3 }))).toEqual(['application-late-2026-10-21'])
+  })
+
+  it('mensagem do dia: todo dia, sempre de manhã', () => {
+    const items = buildPushSchedule(input({ now: new Date(2026, 9, 26, 6, 0) }, { applicationDay: 3 }))
+    const motivation = items.filter(i => i.id.startsWith('motivation'))
+    expect(motivation).toHaveLength(7)
+    motivation.forEach(i => expect(new Date(i.at).getHours() * 60 + new Date(i.at).getMinutes()).toBe(QUIET.morningMin))
+    expect(motivation[0].title).not.toBe(motivation[1].title)
+    expect(motivation[0].url).toBe('/?tab=dashboard')
+  })
+
+  it('a manhã é só da mensagem do dia: os lembretes ficam com a tarde e a noite', () => {
+    const items = buildPushSchedule(input({
+      now: new Date(2026, 9, 26, 6, 0),
+      workoutPlan: { 1: { label: 'A', name: 'A' }, 3: { label: 'B', name: 'B' } },
+      usage: { ...QUIET, usesWater: true, weighInWeekday: 1 },
+    }, { applicationDay: 3 }))
+    const minutes = (iso: string) => new Date(iso).getHours() * 60 + new Date(iso).getMinutes()
+    for (const i of items.filter(x => !x.id.startsWith('motivation'))) {
+      expect([QUIET.afternoonMin, QUIET.eveningMin]).toContain(minutes(i.at))
+    }
   })
 
   it('treino nos dias do plano; o de hoje some quando feito', () => {
