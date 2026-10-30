@@ -277,6 +277,8 @@ export default function App() {
     if (showProfile) {
       return (
         <ProfilePage
+          // Notificação tocada com o Perfil já aberto: remonta na seção nova
+          key={deepSection ?? ''}
           profile={profile}
           onUpdateProfile={setProfile}
           onBack={() => { setActiveTab(prevTabRef.current); setDeepSection(null) }}

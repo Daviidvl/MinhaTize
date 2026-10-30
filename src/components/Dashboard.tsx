@@ -1,5 +1,5 @@
 import { useState, type ReactNode, type CSSProperties } from 'react'
-import { Package, AlertTriangle, ChevronRight, Moon, Zap, Search, ShoppingBag, Target, GlassWater, Check } from 'lucide-react'
+import { Package, AlertTriangle, ChevronRight, Moon, Zap, Search, ShoppingBag, Cross, Target, GlassWater, Check } from 'lucide-react'
 import { UserProfile, Tab } from '../types'
 import ApplicationCalendar from './ApplicationCalendar'
 import { calcIMC, imcLabel } from '../utils/bmiUtils'
@@ -710,6 +710,47 @@ export default function Dashboard({ profile, onNavigate, onUpdateProfile, isDism
               display: 'flex', alignItems: 'center', justifyContent: 'center',
             }}>
               <ShoppingBag size={22} strokeWidth={1.75} color="rgba(255,255,255,0.90)" />
+            </div>
+          </div>
+        </div>
+      </button>
+
+      {/* ── Farmácias parceiras ── */}
+      <button
+        onClick={() => onNavigate('profile', 'farmacias')}
+        style={{ background: 'none', border: 'none', padding: 0, cursor: 'pointer', textAlign: 'left', width: '100%' }}
+        aria-label="Farmácias parceiras"
+      >
+        <div style={{
+          borderRadius: '26px', padding: '18px 20px',
+          background: 'var(--teal-l)',
+          boxShadow: 'inset 0 0 0 1px color-mix(in srgb, var(--teal) 30%, var(--teal-l)), 0 8px 22px rgba(var(--shadow-rgb),0.10), 0 2px 6px rgba(var(--shadow-rgb),0.08)',
+          position: 'relative', overflow: 'hidden',
+          transition: 'transform 0.15s, box-shadow 0.2s',
+        }}>
+          <div style={{ position: 'absolute', top: '-32px', right: '-32px', width: '120px', height: '120px', borderRadius: '50%', background: 'rgba(255,255,255,0.35)', pointerEvents: 'none' }} />
+
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '12px', position: 'relative' }}>
+            <div style={{ minWidth: 0 }}>
+              <p style={{
+                fontSize: '9px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.10em',
+                margin: '0 0 8px', color: 'var(--teal-d)', fontFamily: 'Inter, sans-serif',
+              }}>
+                Farmácias
+              </p>
+              <p style={{ fontSize: '16px', fontWeight: 800, color: 'var(--ink)', margin: '0 0 4px', letterSpacing: '-0.3px' }}>
+                Farmácias parceiras
+              </p>
+              <p style={{ fontSize: '11px', color: 'var(--ink-2)', fontWeight: 600, margin: 0, fontFamily: 'Inter, sans-serif' }}>
+                Fale direto com farmácias indicadas
+              </p>
+            </div>
+            <div style={{
+              width: '48px', height: '48px', borderRadius: '14px', flexShrink: 0,
+              background: 'rgba(255,255,255,0.65)', border: '1px solid color-mix(in srgb, var(--teal) 30%, var(--teal-l))',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+            }}>
+              <Cross size={22} strokeWidth={1.75} color="var(--teal-d)" />
             </div>
           </div>
         </div>

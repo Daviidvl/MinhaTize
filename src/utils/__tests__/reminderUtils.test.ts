@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest'
 import {
-  getDueReminders, buildPushSchedule, pruneReminderState, reminderUrl, MAX_PER_DAY,
+  getDueReminders, buildPushSchedule, pruneReminderState, reminderUrl, storeMin, MAX_PER_DAY,
   type ReminderContext, type PushScheduleInput,
 } from '../reminderUtils'
 import { DEFAULT_USAGE, type UsageProfile } from '../usageUtils'
@@ -184,15 +184,18 @@ describe('buildPushSchedule', () => {
     expect(motivation[0].url).toBe('/?tab=dashboard')
   })
 
-  it('a manhã é só da mensagem do dia: os lembretes ficam com a tarde e a noite', () => {
+  it('a manhã é só da mensagem do dia: os lembretes ficam com a tarde e a noite, e a Loja com a janela dela', () => {
     const items = buildPushSchedule(input({
       now: new Date(2026, 9, 26, 6, 0),
       workoutPlan: { 1: { label: 'A', name: 'A' }, 3: { label: 'B', name: 'B' } },
       usage: { ...QUIET, usesWater: true, weighInWeekday: 1 },
     }, { applicationDay: 3 }))
     const minutes = (iso: string) => new Date(iso).getHours() * 60 + new Date(iso).getMinutes()
-    for (const i of items.filter(x => !x.id.startsWith('motivation'))) {
+    for (const i of items.filter(x => !x.id.startsWith('motivation') && !x.id.startsWith('store'))) {
       expect([QUIET.afternoonMin, QUIET.eveningMin]).toContain(minutes(i.at))
+    }
+    for (const i of items.filter(x => x.id.startsWith('store'))) {
+      expect(minutes(i.at)).toBe(storeMin(QUIET))
     }
   })
 
@@ -202,6 +205,62 @@ describe('buildPushSchedule', () => {
     // Horizonte de 7 dias: sábado 24 a sexta 30
     expect(workouts(input({ workoutPlan }, { applicationDay: 3 }))).toEqual(['workout-2026-10-24', 'workout-2026-10-26'])
     expect(workouts(input({ workoutPlan, workoutDoneToday: true }, { applicationDay: 3 }))).toEqual(['workout-2026-10-26'])
+  })
+})
+
+describe('Loja e Farmácias', () => {
+  // Domingo 25/10 às 6:00; aplicação às quartas
+  const NOW = new Date(2026, 9, 25, 6, 0)
+  // Dose 5 mg: 10 mg por ampola × 1 ampola = 2 aplicações
+  const LOW_STOCK = { amouleMg: 10, ampouleML: 1, ampouleCount: 1 }
+
+  function input(profile: Partial<UserProfile> = {}): PushScheduleInput {
+    return {
+      now: NOW, profile: { ...PROFILE, applicationDay: 3, ...profile },
+      workoutPlan: {}, workoutDoneToday: false, waterGoalMetToday: false, usage: QUIET, dismissed: {},
+    }
+  }
+  const byId = (inp: PushScheduleInput) => Object.fromEntries(buildPushSchedule(inp).map(i => [i.id, i]))
+  const minutes = (iso: string) => new Date(iso).getHours() * 60 + new Date(iso).getMinutes()
+
+  it('a janela da loja fica entre a tarde e a noite', () => {
+    expect(storeMin(QUIET)).toBe(17 * 60 + 15)
+    expect(storeMin({ ...QUIET, afternoonMin: 16 * 60 + 30, eveningMin: 18 * 60 })).toBeGreaterThan(16 * 60 + 30)
+  })
+
+  it('vitrine da Loja todo domingo, na janela da loja, sem entrar no contador do ícone', () => {
+    const store = buildPushSchedule(input()).filter(i => i.id.startsWith('store'))
+    expect(store.map(i => i.id)).toEqual(['store-2026-10-25'])
+    expect(minutes(store[0].at)).toBe(storeMin(QUIET))
+    expect(store[0].url).toBe('/?tab=profile&section=loja')
+    expect(ids(ctx())).not.toContain('store-2026-10-25')
+  })
+
+  it('estoque acabando: no dia seguinte à aplicação, leva às Farmácias, sem citar a dose', () => {
+    const item = byId(input({ stock: LOW_STOCK }))['stock-2026-10-29'] // quinta
+    expect(item.title).toBe('Seu estoque está acabando')
+    expect(item.body).toContain('Restam 2 aplicações')
+    expect(item.body).not.toContain('mg')
+    expect(item.url).toBe('/?tab=profile&section=farmacias')
+    expect(minutes(item.at)).toBe(storeMin(QUIET))
+    expect(Object.keys(byId(input({ stock: LOW_STOCK }))).filter(id => id.startsWith('stock'))).toHaveLength(1)
+  })
+
+  it('estoque zerado muda o texto; estoque confortável não avisa', () => {
+    expect(byId(input({ stock: { ...LOW_STOCK, amouleMg: 4 } }))['stock-2026-10-29'].title).toBe('Seu estoque acabou')
+    const plenty = buildPushSchedule(input({ stock: { ...LOW_STOCK, ampouleCount: 4 } }))
+    expect(plenty.some(i => i.id.startsWith('stock'))).toBe(false)
+  })
+
+  it('o estoque tem prioridade sobre a vitrine quando caem no mesmo dia', () => {
+    // Aplicação no sábado → aviso de estoque no domingo, mesmo dia da vitrine
+    const items = byId(input({ applicationDay: 6, stock: LOW_STOCK }))
+    expect(items['stock-2026-10-25']).toBeDefined()
+    expect(items['store-2026-10-25']).toBeUndefined()
+  })
+
+  it('a véspera da aplicação leva aos insumos da Loja', () => {
+    expect(byId(input())['application-eve-2026-10-27'].url).toBe('/?tab=profile&section=loja%3Aaplicacao')
   })
 })
 

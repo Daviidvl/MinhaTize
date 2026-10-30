@@ -7,19 +7,22 @@ import { readJSON, writeJSON } from './storage'
 import { STORAGE_KEYS } from './storageKeys'
 import { type UsageProfile, learnUsage, loadOpens } from './usageUtils'
 import { motivationFor } from './motivationMessages'
+import { getAppsLeft } from './medicationUtils'
 
 // Notificações calculadas no próprio aparelho. A política é fixa: no máximo
 // MAX_PER_DAY por dia, uma em cada janela. A manhã é da mensagem do dia
 // (utils/motivationMessages.ts); a tarde e a noite ficam com os lembretes de
-// aplicação, treino, água e pesagem, os mais importantes primeiro. O que muda
-// de pessoa para pessoa vem do uso do app (utils/usageUtils.ts): o horário das
-// janelas, o dia da pesagem e se a água entra. A pessoa só liga ou desliga.
+// aplicação, treino, água e pesagem, os mais importantes primeiro; a janela da
+// loja, entre as duas, é só da Loja e das Farmácias (estoque acabando e vitrine
+// semanal). O que muda de pessoa para pessoa vem do uso do app
+// (utils/usageUtils.ts): o horário das janelas, o dia da pesagem e se a água
+// entra. A pessoa só liga ou desliga.
 //
 // As mesmas regras alimentam o contador no ícone do app (getDueReminders) e a
 // agenda enviada ao servidor de push (buildPushSchedule).
 
-export type ReminderKind = 'application' | 'water' | 'weighIn' | 'workout' | 'motivation'
-export type ReminderSlot = 'morning' | 'afternoon' | 'evening'
+export type ReminderKind = 'application' | 'water' | 'weighIn' | 'workout' | 'motivation' | 'stock' | 'store'
+export type ReminderSlot = 'morning' | 'afternoon' | 'store' | 'evening'
 
 export interface ReminderSettings {
   notifications: boolean // notificações no celular (push) — ligadas por padrão
@@ -27,7 +30,7 @@ export interface ReminderSettings {
 
 export const DEFAULT_REMINDER_SETTINGS: ReminderSettings = { notifications: true }
 
-export const MAX_PER_DAY = 3
+export const MAX_PER_DAY = 4
 
 export interface Reminder {
   id: string        // estável por ocorrência — evita avisar duas vezes a mesma coisa
@@ -63,6 +66,12 @@ export interface ReminderContext {
 const LATE_APPLICATION_DAYS = 3
 // Quem se pesou nos últimos dias não recebe o aviso de pesagem
 const RECENT_WEIGH_DAYS = 3
+// Mesmo limite do "estoque baixo" do Dashboard e dos insights
+const LOW_STOCK_APPS = 4
+// Sem dia de aplicação definido, o aviso de estoque sai na segunda
+const STOCK_FALLBACK_WEEKDAY = 1
+// Vitrine semanal da Loja: domingo
+const STORE_WEEKDAY = 0
 
 function weekdayOf(dateStr: string): number {
   return new Date(dateStr + 'T12:00:00').getDay()
@@ -103,11 +112,35 @@ function dayCandidates(
       })
     } else if (offset === 6) {
       out.push({
-        id: `application-eve-${day}`, kind: 'application', priority: 90, slots: ['evening'], tab: 'dashboard',
+        id: `application-eve-${day}`, kind: 'application', priority: 90, slots: ['evening'],
+        tab: 'profile', section: 'loja:aplicacao',
         title: 'Amanhã é dia de aplicar',
-        body: 'Confira se o medicamento está na geladeira e se há agulha e álcool para amanhã.',
+        body: 'Confira se o medicamento está na geladeira e se há agulha e álcool. Se faltar algo, veja os insumos na Loja.',
       })
     }
+  }
+
+  // ── Estoque acabando: uma vez por semana, no dia seguinte ao da aplicação ──
+  // O estoque só muda quando a pessoa o atualiza, então avisar todo dia seria repetir
+  const appsLeft     = getAppsLeft(profile)
+  const stockWeekday = appDay !== undefined ? (appDay + 1) % 7 : STOCK_FALLBACK_WEEKDAY
+  if (appsLeft != null && appsLeft < LOW_STOCK_APPS && dow === stockWeekday) {
+    out.push({
+      id: `stock-${day}`, kind: 'stock', priority: 20, slots: ['store'], tab: 'profile', section: 'farmacias',
+      title: appsLeft === 0 ? 'Seu estoque acabou' : 'Seu estoque está acabando',
+      body: appsLeft === 0
+        ? 'Garanta a reposição antes da próxima aplicação. Fale com uma farmácia parceira.'
+        : `Restam ${appsLeft === 1 ? '1 aplicação' : `${appsLeft} aplicações`}. Garanta a reposição a tempo com as farmácias parceiras.`,
+    })
+  }
+
+  // ── Vitrine da Loja: uma vez por semana, se o estoque não ocupou a janela ──
+  if (dow === STORE_WEEKDAY) {
+    out.push({
+      id: `store-${day}`, kind: 'store', priority: 10, slots: ['store'], tab: 'profile', section: 'loja',
+      title: 'Selecionados para o seu tratamento',
+      body: 'Agulhas, suplementos e itens de treino escolhidos para quem usa o MinhaTize. Confira a Loja.',
+    })
   }
 
   // ── Pesagem: no dia em que a pessoa costuma se pesar ──
@@ -152,12 +185,17 @@ function dayCandidates(
   return out
 }
 
+// Janela da loja: no meio entre a tarde e a noite, então nunca coincide com elas
+export function storeMin(usage: UsageProfile): number {
+  return Math.round((usage.afternoonMin + usage.eveningMin) / 2 / 15) * 15
+}
+
 // Distribui os candidatos nas janelas do dia, do mais importante para o menos
 function fillSlots(candidates: Candidate[], usage: UsageProfile): Reminder[] {
   const at: Record<ReminderSlot, number> = {
-    morning: usage.morningMin, afternoon: usage.afternoonMin, evening: usage.eveningMin,
+    morning: usage.morningMin, afternoon: usage.afternoonMin, store: storeMin(usage), evening: usage.eveningMin,
   }
-  const free = new Set<ReminderSlot>(['morning', 'afternoon', 'evening'])
+  const free = new Set<ReminderSlot>(['morning', 'afternoon', 'store', 'evening'])
   const out: Reminder[] = []
   for (const c of [...candidates].sort((a, b) => b.priority - a.priority)) {
     if (out.length >= MAX_PER_DAY) break
@@ -172,13 +210,13 @@ function fillSlots(candidates: Candidate[], usage: UsageProfile): Reminder[] {
 // ── Contador no ícone do app ─────────────────────────────────────────────────
 
 // Avisos de hoje cuja hora já chegou e que continuam valendo. A mensagem do
-// dia não é pendência: não entra no contador.
+// dia e a vitrine da Loja não são pendências: não entram no contador.
 export function getDueReminders(ctx: ReminderContext): Reminder[] {
   const candidates = dayCandidates(ctx.profile, ctx.today, ctx.workoutPlan, ctx.usage, {
     workoutDone: ctx.workoutDoneToday,
     waterGoalMet: ctx.waterGoalMl > 0 && ctx.waterMl >= ctx.waterGoalMl,
   })
-  return fillSlots(candidates, ctx.usage).filter(r => r.kind !== 'motivation' && r.at <= ctx.nowMin)
+  return fillSlots(candidates, ctx.usage).filter(r => r.kind !== 'motivation' && r.kind !== 'store' && r.at <= ctx.nowMin)
 }
 
 // ── Agenda de notificações push ──────────────────────────────────────────────
