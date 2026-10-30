@@ -109,6 +109,7 @@ export function buildScheduleForDevice(
     waterGoalMetToday: ctx.waterGoalMl > 0 && ctx.waterMl >= ctx.waterGoalMl,
     usage: ctx.usage,
     dismissed: state.dismissed,
+    stockNudgeDay: ctx.stockNudgeDay,
   })
 }
 

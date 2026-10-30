@@ -21,7 +21,7 @@ import { getAppsLeft } from './medicationUtils'
 // As mesmas regras alimentam o contador no ícone do app (getDueReminders) e a
 // agenda enviada ao servidor de push (buildPushSchedule).
 
-export type ReminderKind = 'application' | 'water' | 'weighIn' | 'workout' | 'motivation' | 'stock' | 'store'
+export type ReminderKind = 'application' | 'water' | 'weighIn' | 'workout' | 'motivation' | 'stock' | 'stockSetup' | 'store'
 export type ReminderSlot = 'morning' | 'afternoon' | 'store' | 'evening'
 
 export interface ReminderSettings {
@@ -60,6 +60,7 @@ export interface ReminderContext {
   workoutPlan: WorkoutPlan
   workoutDoneToday: boolean
   usage: UsageProfile
+  stockNudgeDay?: string | null // dia do aviso único "cadastre seu estoque"
 }
 
 // Aplicação atrasada só é cobrada nos 3 dias seguintes à data programada
@@ -81,6 +82,7 @@ function weekdayOf(dateStr: string): number {
 function dayCandidates(
   profile: UserProfile, day: string, plan: WorkoutPlan, usage: UsageProfile,
   today: { workoutDone: boolean; waterGoalMet: boolean },
+  stockNudgeDay: string | null = null,
 ): Candidate[] {
   const dow = weekdayOf(day)
   const out: Candidate[] = []
@@ -131,6 +133,15 @@ function dayCandidates(
       body: appsLeft === 0
         ? 'Garanta a reposição antes da próxima aplicação. Fale com uma farmácia parceira.'
         : `Restam ${appsLeft === 1 ? '1 aplicação' : `${appsLeft} aplicações`}. Garanta a reposição a tempo com as farmácias parceiras.`,
+    })
+  }
+
+  // ── Estoque não cadastrado: um aviso só, no dia fixado em pinStockNudgeDay ──
+  if (!profile.stock && day === stockNudgeDay) {
+    out.push({
+      id: `stockSetup-${day}`, kind: 'stockSetup', priority: 15, slots: ['store'], tab: 'profile', section: 'stock',
+      title: 'Avisamos antes do estoque acabar',
+      body: 'Cadastre quantas ampolas você tem e o MinhaTize avisa quando for hora de repor.',
     })
   }
 
@@ -210,13 +221,16 @@ function fillSlots(candidates: Candidate[], usage: UsageProfile): Reminder[] {
 // ── Contador no ícone do app ─────────────────────────────────────────────────
 
 // Avisos de hoje cuja hora já chegou e que continuam valendo. A mensagem do
-// dia e a vitrine da Loja não são pendências: não entram no contador.
+// dia, a vitrine da Loja e o convite para cadastrar o estoque não são
+// pendências: não entram no contador.
+const NOT_PENDING: ReminderKind[] = ['motivation', 'store', 'stockSetup']
+
 export function getDueReminders(ctx: ReminderContext): Reminder[] {
   const candidates = dayCandidates(ctx.profile, ctx.today, ctx.workoutPlan, ctx.usage, {
     workoutDone: ctx.workoutDoneToday,
     waterGoalMet: ctx.waterGoalMl > 0 && ctx.waterMl >= ctx.waterGoalMl,
-  })
-  return fillSlots(candidates, ctx.usage).filter(r => r.kind !== 'motivation' && r.kind !== 'store' && r.at <= ctx.nowMin)
+  }, ctx.stockNudgeDay)
+  return fillSlots(candidates, ctx.usage).filter(r => !NOT_PENDING.includes(r.kind) && r.at <= ctx.nowMin)
 }
 
 // ── Agenda de notificações push ──────────────────────────────────────────────
@@ -237,6 +251,7 @@ export interface PushScheduleInput {
   waterGoalMetToday: boolean
   usage: UsageProfile
   dismissed: Record<string, string>
+  stockNudgeDay?: string | null
 }
 
 // Dias à frente enviados ao servidor. O app reenvia a agenda ao abrir e a cada
@@ -263,7 +278,7 @@ export function buildPushSchedule(inp: PushScheduleInput, horizonDays = PUSH_HOR
     const candidates = dayCandidates(inp.profile, day, inp.workoutPlan, inp.usage, {
       workoutDone: i === 0 && inp.workoutDoneToday,
       waterGoalMet: i === 0 && inp.waterGoalMetToday,
-    }).filter(c => !used.has(c.id) && !inp.dismissed[c.id])
+    }, inp.stockNudgeDay).filter(c => !used.has(c.id) && !inp.dismissed[c.id])
 
     for (const r of fillSlots(candidates, inp.usage)) {
       used.add(r.id)
@@ -318,7 +333,20 @@ export function readReminderContext(profile: UserProfile, now = new Date()): Rem
     workoutPlan: readWorkoutPlan(),
     workoutDoneToday: readJSON<string[]>(STORAGE_KEYS.workoutLog, []).includes(today),
     usage: learnUsage(loadOpens(), profile, water, today),
+    stockNudgeDay: pinStockNudgeDay(profile, today),
   }
+}
+
+// A agenda é recalculada a cada sincronização, então o aviso único precisa de
+// um dia fixo: o primeiro cálculo sem estoque cadastrado grava o dia seguinte
+// (pulando o domingo da vitrine). Passado esse dia, ele não volta.
+export function pinStockNudgeDay(profile: UserProfile, today: string): string | null {
+  const stored = readJSON<string | null>(STORAGE_KEYS.stockNudge, null)
+  if (stored || profile.stock) return stored
+  let day = addDays(today, 1)
+  if (weekdayOf(day) === STORE_WEEKDAY) day = addDays(day, 1)
+  writeJSON(STORAGE_KEYS.stockNudge, day)
+  return day
 }
 
 // Versões antigas guardavam horários e tipos por lembrete; só o liga/desliga continua valendo

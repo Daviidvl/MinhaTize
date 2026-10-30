@@ -1,8 +1,9 @@
 import { describe, it, expect } from 'vitest'
 import {
-  getDueReminders, buildPushSchedule, pruneReminderState, reminderUrl, storeMin, MAX_PER_DAY,
+  getDueReminders, buildPushSchedule, pruneReminderState, reminderUrl, storeMin, pinStockNudgeDay, MAX_PER_DAY,
   type ReminderContext, type PushScheduleInput,
 } from '../reminderUtils'
+import { STORAGE_KEYS } from '../storageKeys'
 import { DEFAULT_USAGE, type UsageProfile } from '../usageUtils'
 import { UserProfile } from '../../types'
 
@@ -257,6 +258,32 @@ describe('Loja e Farmácias', () => {
     const items = byId(input({ applicationDay: 6, stock: LOW_STOCK }))
     expect(items['stock-2026-10-25']).toBeDefined()
     expect(items['store-2026-10-25']).toBeUndefined()
+  })
+
+  it('sem estoque cadastrado: um convite só, no dia fixado, levando à tela de estoque', () => {
+    const items = buildPushSchedule({ ...input(), stockNudgeDay: '2026-10-26' })
+    const setup = items.filter(i => i.id.startsWith('stockSetup'))
+    expect(setup.map(i => i.id)).toEqual(['stockSetup-2026-10-26'])
+    expect(setup[0].url).toBe('/?tab=profile&section=stock')
+    expect(minutes(setup[0].at)).toBe(storeMin(QUIET))
+    expect(items.some(i => i.id.startsWith('stock-'))).toBe(false)
+  })
+
+  it('o convite some quando o estoque é cadastrado e não entra no contador do ícone', () => {
+    const withStock = buildPushSchedule({ ...input({ stock: LOW_STOCK }), stockNudgeDay: '2026-10-26' })
+    expect(withStock.some(i => i.id.startsWith('stockSetup'))).toBe(false)
+    expect(ids(ctx({ today: '2026-10-26', stockNudgeDay: '2026-10-26' }))).not.toContain('stockSetup-2026-10-26')
+  })
+
+  it('pinStockNudgeDay fixa o dia seguinte uma vez, pula o domingo e ignora quem já tem estoque', () => {
+    localStorage.removeItem(STORAGE_KEYS.stockNudge)
+    expect(pinStockNudgeDay({ ...PROFILE, stock: LOW_STOCK }, '2026-10-26')).toBeNull()
+    expect(localStorage.getItem(STORAGE_KEYS.stockNudge)).toBeNull()
+    // Sábado → domingo é da vitrine, então vai para segunda
+    expect(pinStockNudgeDay(PROFILE, '2026-10-24')).toBe('2026-10-26')
+    // Dias depois, o dia fixado não muda — e passado ele, o aviso não volta
+    expect(pinStockNudgeDay(PROFILE, '2026-11-10')).toBe('2026-10-26')
+    localStorage.removeItem(STORAGE_KEYS.stockNudge)
   })
 
   it('a véspera da aplicação leva aos insumos da Loja', () => {
