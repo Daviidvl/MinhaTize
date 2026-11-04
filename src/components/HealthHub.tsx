@@ -214,22 +214,7 @@ export default function HealthHub({ profile, onUpdateProfile, initialSection, on
 
           {/* ── ALIMENTAÇÃO ────────────────────────────────────────────── */}
           {activeSection === 'food' && (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
-              {activeSymptoms.some(s => ['nausea', 'constipation', 'diarrhea'].includes(s.id)) && (
-                <div style={{
-                  display: 'flex', alignItems: 'center', gap: '10px',
-                  padding: '11px 14px', borderRadius: '12px',
-                  background: 'var(--amber-bg)',
-                  border: '1px solid var(--amber-line)',
-                }}>
-                  <Lightbulb size={16} strokeWidth={1.75} style={{ flexShrink: 0, color: 'var(--amber)' }} />
-                  <p style={{ fontSize: '12px', color: 'var(--amber)', fontWeight: 600, lineHeight: 1.4, margin: 0 }}>
-                    Você tem sintomas digestivos esta semana. Priorize os alimentos da lista <strong>Aliados</strong> e evite os listados em <strong>Evitar</strong>.
-                  </p>
-                </div>
-              )}
-              <FoodGuide profile={profile} onUpdateProfile={onUpdateProfile} view={foodView} onViewChange={changeFoodView} />
-            </div>
+            <FoodGuide profile={profile} onUpdateProfile={onUpdateProfile} view={foodView} onViewChange={changeFoodView} />
           )}
 
           {/* ── EXERCÍCIO ──────────────────────────────────────────────── */}

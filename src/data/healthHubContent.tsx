@@ -239,7 +239,7 @@ export const SECTION_CARDS: {
   {
     id: 'food',
     title: 'Alimentação',
-    subtitle: 'Alimentos aliados e o que evitar',
+    subtitle: 'Refeições, proteína e água do dia',
     gradient: 'var(--surface)',
     shadow: '0 8px 28px rgba(var(--shadow-rgb),0.10)',
     accentColor: 'var(--cobalt)',

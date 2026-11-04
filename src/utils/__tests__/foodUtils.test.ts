@@ -1,7 +1,103 @@
 import { describe, it, expect } from 'vitest'
 import {
   waterGoalMl, waterTotal, mealDays, waterDays, calcDayStreak,
+  parseProtein, dayProtein, dayKcal, proteinGoalG, proteinTip, formatHour, summarizeItems,
 } from '../foodUtils'
+import { DIET_F, mealOptions, mealsForMode, LOW_APPETITE_OPTIONS, EXTREME_OPTIONS } from '../../data/foodPlans'
+
+describe('parseProtein', () => {
+  it('uses the midpoint of a range', () => {
+    expect(parseProtein('25–30 g')).toBe(28)
+    expect(parseProtein('35–40 g')).toBe(38)
+  })
+  it('reads a single value', () => {
+    expect(parseProtein('40 g')).toBe(40)
+  })
+  it('is null without a number', () => {
+    expect(parseProtein(undefined)).toBeNull()
+    expect(parseProtein('')).toBeNull()
+  })
+})
+
+describe('dayProtein', () => {
+  const defaults = { cafe: 28, almoco: 40, jantar: 35 }
+
+  it('uses the picked option, falling back to the meal default', () => {
+    const day = {
+      meals: ['cafe', 'almoco'], manual: [],
+      picks: { cafe: { label: 'Opção 5', protein: 38 } },
+    }
+    expect(dayProtein(day, defaults)).toBe(38 + 40)
+  })
+
+  it('adds the protein of the extras', () => {
+    const day = { meals: ['jantar'], manual: [{ id: '1', name: 'Whey', kcal: 120, protein: 24 }, { id: '2', name: 'Bolo', kcal: 300 }] }
+    expect(dayProtein(day, defaults)).toBe(35 + 24)
+  })
+
+  it('ignores picks of meals that were unchecked', () => {
+    const day = { meals: [], manual: [], picks: { cafe: { label: 'Opção 1', protein: 30 } } }
+    expect(dayProtein(day, defaults)).toBe(0)
+  })
+})
+
+describe('dayKcal', () => {
+  it('sums the share of each meal plus extras', () => {
+    const day = { meals: ['cafe', 'almoco'], manual: [{ id: '1', name: 'Fruta', kcal: 70 }] }
+    expect(dayKcal(day, 1600, { cafe: 0.25, almoco: 0.30 })).toBe(400 + 480 + 70)
+  })
+})
+
+describe('proteinGoalG', () => {
+  it('is 1.6 g per kg of goal weight', () => {
+    expect(proteinGoalG(65)).toBe(104)
+  })
+})
+
+describe('proteinTip', () => {
+  it('celebrates when the goal is reached', () => {
+    expect(proteinTip(110, 104, 14)).toMatch(/em dia/)
+  })
+  it('suggests a quick snack when little is missing', () => {
+    expect(proteinTip(90, 104, 14)).toMatch(/whey/)
+  })
+})
+
+describe('summarizeItems', () => {
+  it('drops quantities and keeps the first items', () => {
+    expect(summarizeItems(['Arroz branco cozido (90–120 g)', 'Feijão (70–100 g)', 'Frango grelhado (120–150 g)', 'Legumes cozidos']))
+      .toBe('Arroz branco cozido, feijão, frango grelhado')
+    expect(summarizeItems(['170 g de iogurte grego natural', '1 scoop de whey', 'Morangos ou banana']))
+      .toBe('Iogurte grego natural, whey, morangos')
+  })
+})
+
+describe('formatHour', () => {
+  it('formats whole and half hours', () => {
+    expect(formatHour(12)).toBe('12h')
+    expect(formatHour(9.5)).toBe('9h30')
+  })
+})
+
+describe('mealOptions / mealsForMode', () => {
+  const cafe  = DIET_F.find(m => m.id === 'cafe')!
+  const ceia  = DIET_F.find(m => m.id === 'ceia')!
+
+  it('switches the options with the appetite mode', () => {
+    expect(mealOptions(cafe, 'normal')).toBe(cafe.options)
+    expect(mealOptions(cafe, 'low')).toBe(LOW_APPETITE_OPTIONS.cafe)
+    expect(mealOptions(cafe, 'extreme')).toBe(EXTREME_OPTIONS.cafe)
+  })
+
+  it('falls back to the regular menu when the mode has no list', () => {
+    expect(mealOptions(ceia, 'low')).toBe(ceia.options)
+  })
+
+  it('keeps only the main meals on "no appetite" days', () => {
+    expect(mealsForMode(DIET_F, 'extreme').map(m => m.id)).toEqual(['cafe', 'almoco', 'jantar'])
+    expect(mealsForMode(DIET_F, 'normal')).toHaveLength(6)
+  })
+})
 
 describe('waterGoalMl', () => {
   it('uses 35 ml per kg, rounded to the nearest 50 ml', () => {

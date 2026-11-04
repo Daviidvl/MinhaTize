@@ -1,6 +1,8 @@
 import {
-  Sun, Droplets, Utensils, Moon, Fish, Zap, Package, Leaf, GlassWater, CupSoda, Milk, BookOpen, Soup, type LucideIcon,
+  Sun, Droplets, Utensils, Moon, Fish, Zap, Package, Leaf, GlassWater, CupSoda, Milk,
+  Egg, Apple, type LucideIcon,
 } from 'lucide-react'
+import type { AppetiteMode } from '../utils/foodUtils'
 
 // Atalhos de registro de água (tela de Hidratação e widget do Início)
 export const WATER_QUICK_ADD: { ml: number; label: string; Icon: LucideIcon }[] = [
@@ -9,15 +11,36 @@ export const WATER_QUICK_ADD: { ml: number; label: string; Icon: LucideIcon }[] 
   { ml: 500, label: 'Garrafa',     Icon: Milk },
 ]
 
-// Telas internas da seção de alimentação
-export type FoodView = 'meals' | 'hydration' | 'menu' | 'low-appetite'
+// Telas internas da seção de alimentação (com cabeçalho próprio no HealthHub).
+// Hoje, Cardápio e Guia são abas dentro da própria seção.
+export type FoodView = 'hydration'
 
 export const FOOD_VIEWS: { id: FoodView; label: string; sub: string; Icon: LucideIcon }[] = [
-  { id: 'meals',        label: 'Refeições',  sub: 'Registro do dia',      Icon: Utensils },
-  { id: 'hydration',    label: 'Hidratação', sub: 'Registro de água',     Icon: GlassWater },
-  { id: 'menu',         label: 'Cardápio',   sub: 'Opções por refeição',  Icon: BookOpen },
-  { id: 'low-appetite', label: 'Pouca fome', sub: 'Refeições menores',    Icon: Soup },
+  { id: 'hydration', label: 'Hidratação', sub: 'Registro de água', Icon: GlassWater },
 ]
+
+export type FoodTab = 'today' | 'menu' | 'guide'
+export const FOOD_TABS: { id: FoodTab; label: string }[] = [
+  { id: 'today', label: 'Hoje' },
+  { id: 'menu',  label: 'Cardápio' },
+  { id: 'guide', label: 'Guia' },
+]
+
+// ── Modo do dia (fome) ────────────────────────────────────────────────────────
+export const APPETITE_MODES: { id: AppetiteMode; label: string; hint: string }[] = [
+  { id: 'normal',  label: 'Normal',     hint: 'Cardápio completo do seu plano.' },
+  { id: 'low',     label: 'Pouca fome', hint: 'Refeições menores, com mais proteína em menos volume.' },
+  { id: 'extreme', label: 'Sem fome',   hint: '3 refeições pequenas, foco total em proteína.' },
+]
+
+// Janela de horário de cada refeição (mesmos horários do card "Agora" do Início)
+export const MEAL_WINDOW: Record<string, [number, number]> = {
+  'cafe': [6, 9.5], 'lanche-m': [9.5, 12], 'almoco': [12, 14.5],
+  'lanche-t': [14.5, 18], 'jantar': [18, 21], 'ceia': [21, 24],
+}
+
+// Ordem de montagem do prato
+export const PLATE_ORDER = ['Proteína', 'Carboidrato', 'Legumes cozidos', 'Salada crua']
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 export type IconComp = LucideIcon
@@ -195,4 +218,95 @@ export const INFO_M: InfoSection[] = [
   { id: 'frutas',      Icon: Leaf,     color: 'var(--teal-d)', label: 'Frutas Prioritárias',             items: ['Mamão', 'Kiwi', 'Pera', 'Maçã', 'Morango', 'Banana', 'Melão'], note: 'Para o intestino e melhor tolerância.' },
   { id: 'fibras',      Icon: Leaf,     color: 'var(--teal-d)', label: 'Fibras e Constipação',            items: ['Feijão', 'Frutas', 'Legumes', 'Vegetais'], note: 'Se necessário: Psyllium 5 g inicialmente, podendo evoluir para 10 g por dia. Sempre associado ao aumento da ingestão de água.' },
   { id: 'peixes',      Icon: Fish,     color: 'var(--cobalt)', label: 'Peixes e Ômega-3',               items: ['Sardinha', 'Atum', 'Salmão', 'Cavalinha'], note: 'Idealmente duas vezes por semana.' },
+]
+
+export const PRINCIPLES: Record<DietSex, string[]> = {
+  F: [
+    'Preservação de massa muscular',
+    'Maior saciedade com menor volume alimentar',
+    'Prevenção de queda de cabelo',
+    'Melhor tolerância gastrointestinal',
+    'Redução da constipação',
+    'Facilidade de adesão por 30 dias',
+    'Flexibilidade e praticidade',
+  ],
+  M: [
+    'Preservação de massa muscular',
+    'Alta saciedade',
+    'Melhor tolerância gastrointestinal',
+    'Menor risco de náusea e refluxo',
+    'Prevenção de constipação',
+    'Facilidade de adesão por longo prazo',
+  ],
+}
+
+// ── Semanas de pouca fome ─────────────────────────────────────────────────────
+const LOW_SNACKS: MealOption[] = [
+  { label: 'Whey com água',     items: ['1 scoop de whey com água'] },
+  { label: 'Iogurte proteico',  items: ['1 iogurte proteico'] },
+  { label: 'Cottage ou ricota', items: ['Cottage ou ricota'] },
+]
+
+// Opções no modo "Pouca fome". Refeição sem lista aqui usa o cardápio normal.
+export const LOW_APPETITE_OPTIONS: Record<string, MealOption[]> = {
+  'cafe': [
+    { label: 'Opção 1', protein: '35–40 g', items: ['170 g de iogurte grego', '1 scoop de whey', 'Morangos ou banana'] },
+    { label: 'Opção 2 — Vitamina', protein: '30–35 g', items: ['200 ml de leite semidesnatado', '1 scoop de whey', '20 g de aveia', '1 banana'] },
+    { label: 'Opção 3', protein: '25–30 g', items: ['2 ovos', '2 claras', '1 fatia de pão'] },
+  ],
+  'lanche-m': LOW_SNACKS,
+  'almoco': [
+    { label: 'Prato pequeno', items: ['100–130 g de arroz', '150–180 g de frango ou carne magra', 'Legumes cozidos', 'Sem exagerar na salada crua'], note: 'Coma primeiro a proteína' },
+  ],
+  'lanche-t': LOW_SNACKS,
+  'jantar': [
+    { label: 'Opção 1 — Omelete', items: ['3 ovos', '3 claras', 'Pequena porção de arroz'] },
+    { label: 'Opção 2 — Sanduíche', items: ['1 pão francês', '150 g de frango desfiado', '30 g de queijo branco'] },
+    { label: 'Opção 3', protein: '40 g', items: ['Iogurte grego', '1 scoop de whey', '20 g de aveia'] },
+  ],
+}
+
+// Dias extremos: só as 3 refeições principais, ~120 g de proteína no total
+export const EXTREME_OPTIONS: Record<string, MealOption[]> = {
+  'cafe':   [{ label: 'Iogurte + whey',   protein: '40 g', items: ['Iogurte grego', 'Whey'] }],
+  'almoco': [{ label: 'Frango com arroz', protein: '45 g', items: ['180 g de frango', '100 g de arroz'] }],
+  'jantar': [{ label: 'Vitamina proteica', protein: '35 g', items: ['Whey', 'Leite desnatado', 'Banana'] }],
+}
+
+// Opções de uma refeição conforme o modo do dia
+export function mealOptions(meal: MealSection, mode: AppetiteMode): MealOption[] {
+  if (mode === 'extreme') return EXTREME_OPTIONS[meal.id] ?? LOW_APPETITE_OPTIONS[meal.id] ?? meal.options
+  if (mode === 'low')     return LOW_APPETITE_OPTIONS[meal.id] ?? meal.options
+  return meal.options
+}
+
+// No modo "Sem fome" só as refeições principais aparecem
+export function mealsForMode(diet: MealSection[], mode: AppetiteMode): MealSection[] {
+  return mode === 'extreme' ? diet.filter(m => m.required) : diet
+}
+
+export const LOW_SIGNS = [
+  'Saciedade com poucas colheradas', 'Náusea', 'Empachamento',
+  'Sensação de comida parada no estômago', 'Refluxo', 'Falta de vontade de comer',
+  'Pular refeições sem perceber',
+]
+
+export const TOLERATED: { label: string; items: string[] }[] = [
+  { label: 'Proteínas',    items: ['Frango desfiado', 'Peixe', 'Atum em água', 'Ovos', 'Iogurte grego', 'Cottage', 'Whey'] },
+  { label: 'Carboidratos', items: ['Arroz branco', 'Batata inglesa', 'Batata doce', 'Cuscuz', 'Pão francês', 'Banana', 'Mamão'] },
+]
+
+export const LOW_PRIORITIES = [
+  'Bater a meta de proteína', 'Manter hidratação adequada',
+  'Treinar musculação regularmente', 'Ser consistente por 30 dias',
+]
+
+// ── Extras de um toque (valores aproximados por porção) ───────────────────────
+export interface QuickExtra { id: string; label: string; portion: string; protein: number; kcal: number; Icon: IconComp }
+export const QUICK_EXTRAS: QuickExtra[] = [
+  { id: 'whey',    label: 'Whey',             portion: '1 scoop',    protein: 24, kcal: 120, Icon: Zap },
+  { id: 'iogurte', label: 'Iogurte proteico', portion: '1 pote',     protein: 15, kcal: 110, Icon: Milk },
+  { id: 'ovos',    label: 'Ovos cozidos',     portion: '2 unidades', protein: 12, kcal: 150, Icon: Egg },
+  { id: 'cottage', label: 'Cottage',          portion: '50 g',       protein: 6,  kcal: 50,  Icon: Milk },
+  { id: 'fruta',   label: 'Fruta',            portion: '1 unidade',  protein: 1,  kcal: 70,  Icon: Apple },
 ]
