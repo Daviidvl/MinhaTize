@@ -82,6 +82,24 @@ describe('api/register-consent handler', () => {
     expect(insert).not.toHaveBeenCalled()
   })
 
+  // Instabilidade do banco não é token inválido: 503, como em push e validate-token
+  it('answers 503 (not 401) when the token lookup itself fails, and writes nothing', async () => {
+    tokenLookup.mockResolvedValue({ data: null, error: { message: 'connection reset' } })
+    const res = makeRes()
+    await handler(makeReq(), res)
+    expect(res.statusCode).toBe(503)
+    expect(insert).not.toHaveBeenCalled()
+  })
+
+  it('rejects a body that is not a JSON object', async () => {
+    for (const body of ['{oops', '[1,2]', 'null']) {
+      const res = makeRes()
+      await handler(makeReq({ body }), res)
+      expect(res.statusCode).toBe(400)
+    }
+    expect(insert).not.toHaveBeenCalled()
+  })
+
   it('stores the consent bound to the authenticated token, not to anything in the body', async () => {
     const res = makeRes()
     // Tentativa de mass assignment: campos extras no corpo devem ser ignorados

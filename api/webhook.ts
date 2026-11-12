@@ -4,6 +4,7 @@ import { timingSafeEqual, randomUUID } from 'crypto'
 import { getSupabaseAdmin } from './_lib/supabaseAdmin.js'
 import { createRateLimiter } from './_lib/rateLimit.js'
 import { getClientIp } from './_lib/auth.js'
+import { parseJsonBody } from './_lib/http.js'
 
 // Limite generoso: o objetivo é conter flood/abuso, não a operação normal do
 // Wiven (que chama pouquíssimas vezes por venda). 60/min por IP.
@@ -79,13 +80,9 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     return res.status(415).json({ error: 'Unsupported Media Type' })
   }
 
-  let body: WivenPayload
-  try {
-    body = (typeof req.body === 'string' ? JSON.parse(req.body) : req.body) as WivenPayload
-    if (!body || typeof body !== 'object') throw new Error()
-  } catch {
-    return res.status(400).json({ error: 'Invalid payload' })
-  }
+  const parsed = parseJsonBody(req)
+  if (!parsed) return res.status(400).json({ error: 'Invalid payload' })
+  const body = parsed as WivenPayload
 
   // 1. Verificar autenticidade ANTES de qualquer outra coisa
   if (!isValidRequest(body)) {

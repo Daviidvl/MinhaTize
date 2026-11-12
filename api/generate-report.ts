@@ -1,9 +1,10 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node'
 import https from 'https'
-import { createHash } from 'crypto'
 import { setCors } from './_lib/cors.js'
 import { createRateLimiter } from './_lib/rateLimit.js'
 import { extractBearerToken, getClientIp, isActiveToken, UUID_RE } from './_lib/auth.js'
+import { tokenFingerprint } from './_lib/accessProof.js'
+import { parseJsonBody } from './_lib/http.js'
 
 const checkRateLimit      = createRateLimiter('generate-report', 5, 3_600_000)       // máx 5 relatórios por hora por IP
 // Cota por token de acesso: trocar de IP (rede móvel, VPN) não renova o limite.
@@ -108,13 +109,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   if (!key) return res.status(500).json({ error: 'Serviço não configurado.' })
 
   // ── 4. Validar e limitar tamanho do payload ───────────────────────────────
-  let payload: Record<string, unknown>
-  try {
-    payload = typeof req.body === 'string' ? JSON.parse(req.body) : req.body
-    if (!payload || typeof payload !== 'object' || Array.isArray(payload)) throw new Error()
-  } catch {
-    return res.status(400).json({ error: 'Payload inválido.' })
-  }
+  const payload = parseJsonBody(req)
+  if (!payload) return res.status(400).json({ error: 'Payload inválido.' })
 
   if (JSON.stringify(payload).length > 4_000) {
     return res.status(400).json({ error: 'Payload muito grande.' })
@@ -122,7 +118,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
   // ── 5. Cota por token — só requisições válidas consomem ───────────────────
   // A chave é o hash do token: o token de acesso nunca vai para o Redis.
-  const tokenKey = createHash('sha256').update(token).digest('hex').slice(0, 32)
+  const tokenKey = tokenFingerprint(token).slice(0, 32)
   const trl = await checkTokenRateLimit(tokenKey)
   if (!trl.allowed) {
     res.setHeader('Retry-After', String(trl.retryAfterSeconds))

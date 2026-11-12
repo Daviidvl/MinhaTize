@@ -10,7 +10,7 @@ import { createHash, createPrivateKey, sign, type KeyObject } from 'crypto'
 // exige trocar a pública no app; as provas antigas deixam de valer offline
 // (online nada muda).
 
-export const PROOF_TTL_MS = 30 * 864e5
+const PROOF_TTL_MS = 30 * 864e5
 
 let cached: KeyObject | null | undefined
 

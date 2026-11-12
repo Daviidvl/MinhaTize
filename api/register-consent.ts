@@ -3,7 +3,7 @@ import { setCors } from './_lib/cors.js'
 import { createRateLimiter } from './_lib/rateLimit.js'
 import { extractBearerToken, getClientIp, resolveToken, UUID_RE } from './_lib/auth.js'
 import { getSupabaseAdmin } from './_lib/supabaseAdmin.js'
-
+import { parseJsonBody } from './_lib/http.js'
 
 const checkRateLimit = createRateLimiter('register-consent', 10, 3_600_000) // máx 10 por hora
 
@@ -27,13 +27,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   }
 
   // ── Payload ───────────────────────────────────────────────────────────────────
-  let body: { version?: unknown }
-  try {
-    body = typeof req.body === 'string' ? JSON.parse(req.body) : req.body
-    if (!body || typeof body !== 'object') throw new Error()
-  } catch {
-    return res.status(400).json({ error: 'Payload inválido.' })
-  }
+  const body = parseJsonBody(req)
+  if (!body) return res.status(400).json({ error: 'Payload inválido.' })
 
   const version = typeof body.version === 'string' ? body.version.trim().slice(0, 20) : '1.0'
 
@@ -41,6 +36,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   // Verificar token válido. O consentimento guarda só o id do acesso, nunca o
   // token: um vazamento desta tabela não entrega credenciais.
   const { status, id: tokenId } = await resolveToken(token)
+  // Banco indisponível não é token inválido (mesmo contrato de push e validate-token)
+  if (status === 'error') return res.status(503).json({ error: 'Tente novamente.' })
   if (status !== 'active' || !tokenId) {
     return res.status(401).json({ error: 'Token inválido.' })
   }

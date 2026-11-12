@@ -5,6 +5,7 @@ import { extractBearerToken, getClientIp, resolveToken, UUID_RE } from './_lib/a
 import { getSupabaseAdmin } from './_lib/supabaseAdmin.js'
 import { getVapidPublicKey } from './_lib/webPush.js'
 import { sanitizeSchedule, sanitizeSubscription, nextAt } from './_lib/pushSchedule.js'
+import { parseJsonBody } from './_lib/http.js'
 
 // Inscrição de push de um aparelho.
 //   GET    → chave pública VAPID (o app precisa dela para se inscrever)
@@ -12,15 +13,6 @@ import { sanitizeSchedule, sanitizeSubscription, nextAt } from './_lib/pushSched
 //   DELETE → { endpoint } remove a inscrição (notificações desligadas ou logout)
 
 const checkRateLimit = createRateLimiter('push', 60, 3_600_000) // máx 60 por hora por IP
-
-function parseBody(req: VercelRequest): Record<string, unknown> | null {
-  try {
-    const b = typeof req.body === 'string' ? JSON.parse(req.body) : req.body
-    return b && typeof b === 'object' && !Array.isArray(b) ? b : null
-  } catch {
-    return null
-  }
-}
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   setCors(req, res, 'GET,POST,DELETE,OPTIONS', 'Content-Type,Authorization')
@@ -49,7 +41,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     return res.status(500).json({ error: 'Serviço não configurado.' })
   }
 
-  const body = parseBody(req)
+  const body = parseJsonBody(req)
   if (!body) return res.status(400).json({ error: 'Payload inválido.' })
   if (JSON.stringify(body).length > 150_000) return res.status(400).json({ error: 'Payload muito grande.' })
 
