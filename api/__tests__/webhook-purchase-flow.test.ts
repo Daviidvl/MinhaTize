@@ -234,9 +234,47 @@ describe('api/webhook — purchase flow', () => {
     })
 
     it('never treats TRANSACTION_PAID as a revocation, even if misconfigured', async () => {
-      process.env.WIVEN_REVOKE_EVENTS = ''
-      await handler(makeReq(paid()), makeRes())
+      // Incluído por engano na lista: toda compra seria "revogada" e o
+      // comprador ficaria sem acesso
+      process.env.WIVEN_REVOKE_EVENTS = 'EVENTO_REEMBOLSO, TRANSACTION_PAID'
+      const res = makeRes()
+      await handler(makeReq(paid()), res)
       expect(update).not.toHaveBeenCalled()
+      expect(insert).toHaveBeenCalled()
+      expect(res.body).toEqual({ success: true })
+    })
+  })
+
+  // ── Produto da venda (WIVEN_PRODUCT_IDS) ────────────────────────────────────
+  describe('product allowlist (WIVEN_PRODUCT_IDS)', () => {
+    afterEach(() => { delete process.env.WIVEN_PRODUCT_IDS })
+
+    it('does not issue access for a paid sale of another product of the account', async () => {
+      process.env.WIVEN_PRODUCT_IDS = 'prod-minhatize'
+      const res = makeRes()
+      await handler(makeReq(paid({ offerCode: 'oferta-outro', orderItems: [{ product: { id: 'prod-outro' } }] })), res)
+      expect(res.statusCode).toBe(200) // 200: a Wiven não reentrega
+      expect(res.body).toEqual({ received: true, action: 'ignored — product not allowed' })
+      expect(insert).not.toHaveBeenCalled()
+      expect(sendMock).not.toHaveBeenCalled()
+      expect(errorSpy).toHaveBeenCalled() // configuração errada não passa em silêncio
+    })
+
+    it('does not issue access when the sale names no product at all', async () => {
+      process.env.WIVEN_PRODUCT_IDS = 'prod-minhatize'
+      await handler(makeReq(paid({ orderItems: 'prod-minhatize' })), makeRes())
+      expect(insert).not.toHaveBeenCalled()
+    })
+
+    it('issues access when a product id or the offer code is on the list', async () => {
+      process.env.WIVEN_PRODUCT_IDS = 'oferta-a, prod-minhatize'
+      await handler(makeReq(paid({ orderItems: [{ product: { id: 'prod-minhatize' } }] })), makeRes())
+      await handler(makeReq(paid({ transaction: { id: 'tx-2' }, offerCode: 'oferta-a' })), makeRes())
+      expect(insert).toHaveBeenCalledTimes(2)
+    })
+
+    it('keeps the previous behaviour (every paid sale) when the variable is not set', async () => {
+      await handler(makeReq(paid({ offerCode: 'qualquer' })), makeRes())
       expect(insert).toHaveBeenCalled()
     })
   })

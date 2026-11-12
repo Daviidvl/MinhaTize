@@ -7,6 +7,11 @@ import { parseJsonBody } from './_lib/http.js'
 
 const checkRateLimit = createRateLimiter('register-consent', 10, 3_600_000) // máx 10 por hora
 
+// Versão dos termos no formato do app (CONSENT_VERSION em src/utils/consent.ts,
+// ex.: "1.1"). Outro texto não vem do app; aceitá-lo deixaria gravar uma linha
+// por versão inventada.
+const VERSION_RE = /^\d{1,3}(\.\d{1,3}){0,2}$/
+
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   setCors(req, res, 'POST,OPTIONS', 'Content-Type,Authorization')
   if (req.method === 'OPTIONS') return res.status(200).end()
@@ -30,7 +35,11 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   const body = parseJsonBody(req)
   if (!body) return res.status(400).json({ error: 'Payload inválido.' })
 
-  const version = typeof body.version === 'string' ? body.version.trim().slice(0, 20) : '1.0'
+  // Sem versão: clientes antigos, que só conheciam a 1.0
+  const version = body.version === undefined ? '1.0' : body.version
+  if (typeof version !== 'string' || !VERSION_RE.test(version)) {
+    return res.status(400).json({ error: 'Payload inválido.' })
+  }
 
   // ── Supabase ──────────────────────────────────────────────────────────────────
   // Verificar token válido. O consentimento guarda só o id do acesso, nunca o

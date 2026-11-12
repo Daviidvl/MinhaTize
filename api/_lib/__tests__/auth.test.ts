@@ -14,11 +14,34 @@ vi.mock('../supabaseAdmin', () => ({
   }),
 }))
 
-const { UUID_RE, getClientIp, extractBearerToken, isActiveToken } = await import('../auth')
+const { UUID_RE, getClientIp, extractBearerToken, isActiveToken, secretsMatch } = await import('../auth')
 
 function makeReq(headers: Record<string, string>): VercelRequest {
   return { headers } as unknown as VercelRequest
 }
+
+describe('secretsMatch', () => {
+  it('accepts only the exact secret', () => {
+    expect(secretsMatch('s3cret-value', 's3cret-value')).toBe(true)
+    expect(secretsMatch('s3cret-valuE', 's3cret-value')).toBe(false)
+    expect(secretsMatch('s3cret-value ', 's3cret-value')).toBe(false)
+  })
+
+  // Mesmo número de caracteres, mais bytes: timingSafeEqual sobre os textos
+  // lançaria RangeError (500) em vez de recusar
+  it('refuses without throwing when the input has as many characters but more bytes', () => {
+    expect(() => secretsMatch('s3cret-valué', 's3cret-value')).not.toThrow()
+    expect(secretsMatch('s3cret-valué', 's3cret-value')).toBe(false)
+  })
+
+  it('never matches when no secret is configured or the input is not a non-empty string', () => {
+    expect(secretsMatch('', '')).toBe(false)
+    expect(secretsMatch('anything', undefined)).toBe(false)
+    expect(secretsMatch(undefined, 's3cret')).toBe(false)
+    expect(secretsMatch({ toString: () => 's3cret' }, 's3cret')).toBe(false)
+    expect(secretsMatch(['s3cret'], 's3cret')).toBe(false)
+  })
+})
 
 describe('UUID_RE', () => {
   it('matches a valid UUID v4', () => {

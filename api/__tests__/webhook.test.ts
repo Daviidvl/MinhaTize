@@ -75,6 +75,26 @@ describe('api/webhook handler', () => {
     expect(res.statusCode).toBe(401)
   })
 
+  // Antes: mesmo .length do segredo com um caractere acentuado fazia o
+  // timingSafeEqual lançar RangeError → 500 em vez de 401
+  it('rejects (401, no exception) a token with the secret length in characters but more bytes', async () => {
+    const forged = 'super-secret-valu' + 'é' // 18 caracteres, 19 bytes
+    expect(forged.length).toBe('super-secret-value'.length)
+    const res = makeRes()
+    await handler(makeReq({ body: { event: 'TRANSACTION_PAID', token: forged } }), res) // lançar = teste falha
+    expect(res.statusCode).toBe(401)
+    expect(insert).not.toHaveBeenCalled()
+  })
+
+  it('rejects a token sent as a non-string (array/object) without throwing', async () => {
+    for (const token of [['super-secret-value'], { value: 'super-secret-value' }, 123]) {
+      const res = makeRes()
+      await handler(makeReq({ body: { event: 'TRANSACTION_PAID', token } }), res)
+      expect(res.statusCode).toBe(401)
+    }
+    expect(insert).not.toHaveBeenCalled()
+  })
+
   it('accepts a request with the correct secret and stores a new token', async () => {
     const req = makeReq({
       body: {

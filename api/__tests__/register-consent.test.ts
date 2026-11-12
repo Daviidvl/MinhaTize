@@ -114,14 +114,28 @@ describe('api/register-consent handler', () => {
     expect(Object.keys(row).sort()).toEqual(['accepted_at', 'ip_address', 'token_id', 'user_agent', 'version'])
   })
 
-  it('truncates oversized version and user-agent values', async () => {
+  // Uma linha por versão: texto livre deixaria gravar linhas sem fim
+  it('rejects a version that is not in the app format, and writes nothing', async () => {
+    for (const version of ['v'.repeat(500), 'abc', '1.1; drop table', '', ' 1.1', 1.1, ['1.1'], null]) {
+      const res = makeRes()
+      await handler(makeReq({ body: { version } }), res)
+      expect(res.statusCode).toBe(400)
+    }
+    expect(insert).not.toHaveBeenCalled()
+  })
+
+  it('accepts the version the app sends, and defaults to 1.0 for old clients that send none', async () => {
+    await handler(makeReq({ body: { version: '1.1' } }), makeRes())
+    await handler(makeReq({ body: {} }), makeRes())
+    expect(insert.mock.calls.map(c => c[0].version)).toEqual(['1.1', '1.0'])
+  })
+
+  it('truncates an oversized user-agent', async () => {
     const res = makeRes()
     await handler(makeReq({
       headers: { ...makeReq().headers, 'user-agent': 'x'.repeat(5_000) },
-      body: { version: 'v'.repeat(500) },
     }), res)
     const row = insert.mock.calls[0][0]
-    expect(row.version).toHaveLength(20)
     expect(row.user_agent).toHaveLength(512)
   })
 

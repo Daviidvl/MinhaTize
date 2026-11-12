@@ -28,6 +28,7 @@ prefixo `VITE_` — todas são lidas só no servidor.
 | `APP_URL` | recomendada | usa `https://minhatize.vercel.app` |
 | `UPSTASH_REDIS_REST_URL`, `UPSTASH_REDIS_REST_TOKEN` | **recomendadas** | o limite de requisições fica em memória por instância e não vale entre instâncias |
 | `WIVEN_REVOKE_EVENTS` | recomendada | reembolso e chargeback não revogam o token |
+| `WIVEN_PRODUCT_IDS` | recomendada se a conta Wiven vende outros produtos | toda venda paga da conta gera um acesso ao MinhaTize |
 | `VAPID_PUBLIC_KEY`, `VAPID_PRIVATE_KEY` | sim | as notificações no celular não funcionam (`/api/push` responde 503) |
 | `CRON_SECRET` | sim | o disparo das notificações (`/api/push-cron`) recusa todas as chamadas |
 | `ACCESS_PROOF_PRIVATE_KEY` | sim | o app só abre com internet: sem a prova assinada, quem está offline cai na tela de entrada |
@@ -50,6 +51,15 @@ O webhook só conhece o evento `TRANSACTION_PAID`. Para revogar o acesso em
 reembolso/chargeback, informe os nomes exatos dos eventos que a Wiven envia,
 separados por vírgula. Para descobri-los: faça um reembolso de teste e procure
 `[webhook] Evento ignorado: <NOME>` nos logs da função na Vercel.
+
+### Produtos que liberam o acesso (`WIVEN_PRODUCT_IDS`)
+
+Ids de produto (`orderItems[].product.id`) e/ou códigos de oferta (`offerCode`)
+do MinhaTize na Wiven, separados por vírgula. Com a variável preenchida, uma
+venda paga de outro produto não gera token (o webhook responde 200 e registra
+`[webhook] Produto fora de WIVEN_PRODUCT_IDS` como erro no log). Confira os
+valores num webhook de teste antes de cadastrar: um id errado faz **nenhuma**
+compra liberar acesso.
 
 ### Prova de acesso offline (`ACCESS_PROOF_PRIVATE_KEY`)
 
@@ -91,6 +101,7 @@ As migrations ficam em `supabase/migrations/` e são aplicadas **manualmente**
 | `20261012_unique_order_id.sql` | um token por pedido (`UNIQUE` parcial em `order_id`) | antes ou depois; confira duplicatas antes (instruções no arquivo) |
 | `20261022_consents_token_id.sql` | `consents` passa a guardar `token_id` e apaga as cópias do token | **antes**, e rode de novo o bloco final ("Apagar as cópias do token") **depois** do deploy |
 | `20261021_push_subscriptions.sql` | tabela `push_subscriptions` (inscrições e agenda de notificações) | **antes**. Sem a tabela a inscrição responde 500; o app tenta de novo depois, sem erro visível |
+| `20261112_revoke_client_roles.sql` | garante RLS e retira de `anon`/`authenticated` todo privilégio em `tokens`, `consents` e `push_subscriptions` | qualquer uma (o código só usa a `service_role`). O fim do arquivo traz as consultas de conferência |
 
 Confira também, a cada mudança de schema:
 

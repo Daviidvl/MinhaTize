@@ -1,9 +1,9 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node'
 import { Resend } from 'resend'
-import { timingSafeEqual, randomUUID } from 'crypto'
+import { randomUUID } from 'crypto'
 import { getSupabaseAdmin } from './_lib/supabaseAdmin.js'
 import { createRateLimiter } from './_lib/rateLimit.js'
-import { getClientIp } from './_lib/auth.js'
+import { getClientIp, secretsMatch } from './_lib/auth.js'
 import { parseJsonBody } from './_lib/http.js'
 
 // Limite generoso: o objetivo é conter flood/abuso, não a operação normal do
@@ -37,11 +37,31 @@ interface WivenPayload {
   }[]
 }
 
+const PAID_EVENT = 'TRANSACTION_PAID'
+
+const envList = (name: string): string[] =>
+  (process.env[name] ?? '').split(',').map(s => s.trim()).filter(Boolean)
+
 // Eventos que revogam o acesso (reembolso, chargeback, cancelamento). Os nomes
 // vêm do painel da Wiven e são configurados em WIVEN_REVOKE_EVENTS, separados
 // por vírgula. Sem a variável, nenhum evento revoga (comportamento anterior).
+// TRANSACTION_PAID nunca revoga: incluído por engano, toda compra cairia aqui
+// e o comprador ficaria sem acesso.
 function revokeEvents(): string[] {
-  return (process.env.WIVEN_REVOKE_EVENTS ?? '').split(',').map(s => s.trim()).filter(Boolean)
+  return envList('WIVEN_REVOKE_EVENTS').filter(e => e !== PAID_EVENT)
+}
+
+// Produtos que liberam o MinhaTize. Se a conta da Wiven vender outros produtos
+// e o webhook valer para a conta inteira, a compra de qualquer um deles geraria
+// um acesso. WIVEN_PRODUCT_IDS (ids de produto e/ou códigos de oferta,
+// separados por vírgula) restringe a emissão; sem a variável, toda venda paga
+// libera (comportamento anterior).
+function isAllowedProduct(body: WivenPayload): boolean {
+  const allowed = envList('WIVEN_PRODUCT_IDS')
+  if (allowed.length === 0) return true
+  const items = Array.isArray(body.orderItems) ? body.orderItems : []
+  const ids = [body.offerCode, ...items.map(i => i?.product?.id)]
+  return ids.some(id => typeof id === 'string' && allowed.includes(id))
 }
 
 // Código do Postgres para violação de UNIQUE
@@ -49,14 +69,11 @@ const UNIQUE_VIOLATION = '23505'
 
 // ─── Verificação de autenticidade (timing-safe) ───────────────────────────────
 function isValidRequest(body: WivenPayload): boolean {
-  const secret = process.env.WIVEN_WEBHOOK_SECRET
-  if (!secret) {
+  if (!process.env.WIVEN_WEBHOOK_SECRET) {
     console.warn('[webhook] WIVEN_WEBHOOK_SECRET não configurado')
     return false
   }
-  if (!body.token || typeof body.token !== 'string') return false
-  if (body.token.length !== secret.length) return false
-  return timingSafeEqual(Buffer.from(body.token), Buffer.from(secret))
+  return secretsMatch(body.token, process.env.WIVEN_WEBHOOK_SECRET)
 }
 
 // ─── Handler ──────────────────────────────────────────────────────────────────
@@ -112,9 +129,16 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
   // 3. Demais eventos são ignorados. O nome fica no log para facilitar descobrir
   //    quais eventos a Wiven envia (ex.: ao configurar WIVEN_REVOKE_EVENTS).
-  if (body.event !== 'TRANSACTION_PAID') {
+  if (body.event !== PAID_EVENT) {
     console.log('[webhook] Evento ignorado:', String(body.event).slice(0, 60))
     return res.status(200).json({ received: true, action: 'ignored — not TRANSACTION_PAID' })
+  }
+
+  // 3b. Venda de outro produto da conta: não emite acesso. 200 para a Wiven não
+  //     reentregar; error no log para um WIVEN_PRODUCT_IDS errado não passar batido.
+  if (!isAllowedProduct(body)) {
+    console.error('[webhook] Produto fora de WIVEN_PRODUCT_IDS — acesso não emitido. Transação:', transactionId || '(sem id)')
+    return res.status(200).json({ received: true, action: 'ignored — product not allowed' })
   }
 
   // 4. Extrair dados do comprador

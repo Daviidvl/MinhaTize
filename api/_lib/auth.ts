@@ -1,8 +1,19 @@
 import type { VercelRequest } from '@vercel/node'
+import { createHash, timingSafeEqual } from 'crypto'
 import { getSupabaseAdmin } from './supabaseAdmin.js'
 
 // UUID v4
 export const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i
+
+// Compara um segredo recebido com o esperado em tempo constante. Compara os
+// SHA-256 (sempre 32 bytes): não revela o tamanho do segredo e não lança erro —
+// timingSafeEqual exige buffers do mesmo tamanho, e um texto com acento tem
+// mais bytes que caracteres. Sem segredo configurado, nada confere.
+export function secretsMatch(given: unknown, expected: string | undefined): boolean {
+  if (!expected || typeof given !== 'string' || !given) return false
+  const digest = (s: string) => createHash('sha256').update(s, 'utf8').digest()
+  return timingSafeEqual(digest(given), digest(expected))
+}
 
 // Primeiro IP da cadeia x-forwarded-for, sem valor padrão — cada chamador decide o fallback
 export function getClientIp(req: VercelRequest): string {

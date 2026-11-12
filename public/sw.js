@@ -31,6 +31,12 @@ self.addEventListener('activate', (event) => {
 })
 
 // ── Notificações push ────────────────────────────────────────────────────────
+// Só caminhos internos do app. "//site.com" e "/\site.com" também começam com
+// "/", mas o navegador os abre como outro site (open redirect).
+function internalPath(url) {
+  return typeof url === 'string' && /^\/(?![/\\])/.test(url) ? url : '/'
+}
+
 // O servidor (api/push-cron.ts) manda { title, body, url, tag } já pronto
 self.addEventListener('push', (event) => {
   let data = {}
@@ -42,7 +48,7 @@ self.addEventListener('push', (event) => {
       tag: data.tag || 'minhatize',
       icon: '/icon-192.png',
       badge: '/icon-192.png',
-      data: { url: typeof data.url === 'string' && data.url.startsWith('/') ? data.url : '/' },
+      data: { url: internalPath(data.url) },
     })
   )
 })
@@ -50,7 +56,7 @@ self.addEventListener('push', (event) => {
 // Tocar no lembrete foca o app já aberto (e pede para ele navegar) ou abre um novo
 self.addEventListener('notificationclick', (event) => {
   event.notification.close()
-  const url = (event.notification.data && event.notification.data.url) || '/'
+  const url = internalPath(event.notification.data && event.notification.data.url)
   event.waitUntil(
     self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then((list) => {
       const client = list.find((c) => new URL(c.url).origin === self.location.origin)

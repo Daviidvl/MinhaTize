@@ -1,7 +1,6 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node'
-import { timingSafeEqual } from 'crypto'
 import { getSupabaseAdmin } from './_lib/supabaseAdmin.js'
-import { isMissingExpiresAt } from './_lib/auth.js'
+import { extractBearerToken, isMissingExpiresAt, secretsMatch } from './_lib/auth.js'
 import { configureWebPush, webpush } from './_lib/webPush.js'
 import { type PushItem, nextAt } from './_lib/pushSchedule.js'
 
@@ -27,12 +26,7 @@ interface Row {
 }
 
 function authorized(req: VercelRequest): boolean {
-  const secret = process.env.CRON_SECRET
-  if (!secret) return false
-  const header = (req.headers.authorization as string) ?? ''
-  const given  = Buffer.from(header.startsWith('Bearer ') ? header.slice(7).trim() : '')
-  const want   = Buffer.from(secret)
-  return given.length === want.length && timingSafeEqual(given, want)
+  return secretsMatch(extractBearerToken(req), process.env.CRON_SECRET)
 }
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
