@@ -1,4 +1,5 @@
-import { useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
+import { createPortal } from 'react-dom'
 import { Check } from 'lucide-react'
 import { UserProfile, WEEK_DAYS } from '../types'
 import {
@@ -114,6 +115,19 @@ export default function ApplicationCalendar({ profile, onUpdateProfile, compact 
 
   function closeSheet() { setSelectedDay(null); setSheetMode('detail') }
 
+  // Com a gaveta aberta: trava a rolagem do fundo e fecha com Esc
+  const closeRef = useRef(closeSheet)
+  closeRef.current = closeSheet
+  const sheetOpen = selectedDay !== null
+  useEffect(() => {
+    if (!sheetOpen) return
+    const prev = document.body.style.overflow
+    document.body.style.overflow = 'hidden'
+    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') closeRef.current() }
+    window.addEventListener('keydown', onKey)
+    return () => { document.body.style.overflow = prev; window.removeEventListener('keydown', onKey) }
+  }, [sheetOpen])
+
   function handleDayClick(dateStr: string, isFuture: boolean) {
     if (isFuture) return
     openSheet(dateStr)
@@ -171,87 +185,91 @@ export default function ApplicationCalendar({ profile, onUpdateProfile, compact 
       {/* ═══════════════════════════════════════════════════════════════
           BOTTOM SHEET
       ════════════════════════════════════════════════════════════════ */}
-      {selectedDay && (
+      {selectedDay && createPortal(
+        // Portal no body: um ancestral animado (transform) prenderia o position: fixed
         <div
           style={{ position: 'fixed', inset: 0, zIndex: 200, background: 'var(--scrim)', backdropFilter: 'blur(6px)', display: 'flex', alignItems: 'flex-end', justifyContent: 'center' }}
           onClick={closeSheet}
         >
           <div
+            role="dialog" aria-modal="true" aria-label={`Aplicação de ${fmtDateShort(selectedDay)}`}
             onClick={e => e.stopPropagation()}
             style={{
-              background: 'var(--surface)', borderRadius: '28px 28px 0 0',
-              width: '100%', maxWidth: '480px', maxHeight: '92dvh', overflowY: 'auto',
+              background: 'var(--bg)', borderRadius: '28px 28px 0 0',
+              width: '100%', maxWidth: '480px', maxHeight: '88dvh',
+              display: 'flex', flexDirection: 'column',
               boxShadow: '0 -16px 60px rgba(var(--shadow-rgb),0.28)',
               border: '1px solid var(--border)', borderBottom: 'none',
               animation: 'slide-up 0.28s cubic-bezier(0.34,1.06,0.64,1) both',
+              fontFamily: 'Inter, -apple-system, sans-serif',
             }}
           >
             {/* Handle */}
-            <div style={{ padding: '14px 0 0', display: 'flex', justifyContent: 'center' }}>
+            <div style={{ padding: '12px 0 0', display: 'flex', justifyContent: 'center', flexShrink: 0 }}>
               <div style={{ width: '40px', height: '4px', borderRadius: '99px', background: 'var(--border-strong)' }} />
             </div>
 
             {sheetMode === 'detail' && (
               <>
-                {/* ── Cabeçalho colorido ──────────────────────────────────── */}
-                <div style={{ padding: '16px 20px 20px', position: 'relative' }}>
-
-                  {/* Close button */}
-                  <button onClick={closeSheet} style={{
-                    position: 'absolute', top: '14px', right: '16px',
-                    width: '32px', height: '32px', borderRadius: '50%',
-                    background: 'var(--surface-2)', border: '1px solid var(--border)',
+                {/* ── Cabeçalho ───────────────────────────────────────────── */}
+                <div style={{ padding: '12px 20px 14px', flexShrink: 0, display: 'flex', alignItems: 'center', gap: '12px' }}>
+                  <span style={{
+                    width: '44px', height: '44px', borderRadius: '14px', flexShrink: 0,
+                    background: sm.bg, color: sm.color,
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  }}>
+                    <IcoSyringe />
+                  </span>
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <h3 className="cap-first" style={{ fontSize: '20px', fontWeight: 800, color: 'var(--text-primary)', margin: 0, letterSpacing: '-0.4px', lineHeight: 1.2 }}>
+                      {fmtDateShort(selectedDay)}
+                    </h3>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginTop: '4px', flexWrap: 'wrap' }}>
+                      <span style={{
+                        display: 'inline-flex', alignItems: 'center', gap: '4px',
+                        padding: '2px 8px 2px 6px', borderRadius: '99px',
+                        background: sm.bg, border: `1px solid ${alpha(sm.color, 25)}`,
+                      }}>
+                        {selStatus === 'Aplicado' ? <IcoCheck c={sm.color} /> :
+                         selStatus === 'Atrasado' ? <IcoAlert c={sm.color} /> :
+                         <IcoClock c={sm.color} />}
+                        <span style={{ fontSize: '10px', fontWeight: 800, color: sm.color, letterSpacing: '0.06em', textTransform: 'uppercase' }}>
+                          {sm.label}
+                        </span>
+                      </span>
+                      <span style={{ fontSize: '12px', color: 'var(--text-muted)' }}>
+                        {new Date(selectedDay + 'T12:00:00').getFullYear()}{selIsAppDay && ' · dia de aplicação'}
+                      </span>
+                    </div>
+                  </div>
+                  <button onClick={closeSheet} aria-label="Fechar" style={{
+                    width: '34px', height: '34px', borderRadius: '50%', flexShrink: 0,
+                    background: 'var(--surface)', border: '1px solid var(--border)',
                     cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center',
                     color: 'var(--text-muted)',
                   }}><IcoX /></button>
-
-                  {/* Status pill */}
-                  <div style={{
-                    display: 'inline-flex', alignItems: 'center', gap: '6px',
-                    padding: '5px 12px 5px 9px', borderRadius: '99px',
-                    background: sm.bg, border: `1px solid ${alpha(sm.color, 25)}`,
-                    marginBottom: '10px',
-                  }}>
-                    {selStatus === 'Aplicado' ? <IcoCheck c={sm.color} /> :
-                     selStatus === 'Atrasado' ? <IcoAlert c={sm.color} /> :
-                     <IcoClock c={sm.color} />}
-                    <span style={{ fontSize: '11px', fontWeight: 800, color: sm.color, letterSpacing: '0.06em', textTransform: 'uppercase' }}>
-                      {sm.label}
-                    </span>
-                  </div>
-
-                  {/* Date */}
-                  <p className="cap-first" style={{ fontSize: '26px', fontWeight: 900, color: 'var(--text-primary)', margin: 0, letterSpacing: '-0.8px', lineHeight: 1.15 }}>
-                    {fmtDateShort(selectedDay)}
-                  </p>
-                  <p style={{ fontSize: '13px', color: 'var(--text-muted)', margin: '3px 0 0', fontWeight: 500 }}>
-                    {new Date(selectedDay + 'T12:00:00').getFullYear()}
-                    {selIsAppDay && <span style={{ marginLeft: '8px', fontSize: '11px', fontWeight: 700, color: sm.color, background: sm.bg, padding: '1px 7px', borderRadius: '99px' }}>dia de aplicação</span>}
-                  </p>
                 </div>
 
-                {/* Divisor */}
-                <div style={{ height: '1px', background: 'var(--border)', margin: '0 20px' }} />
-
-                <div style={{ padding: '18px 20px 32px', display: 'flex', flexDirection: 'column', gap: '18px' }}>
+                {/* ── Conteúdo rolável ────────────────────────────────────── */}
+                <div style={{ overflowY: 'auto', padding: '2px 20px 16px', display: 'flex', flexDirection: 'column', gap: '16px' }}>
 
                   {/* Info tiles */}
-                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
-                    <div style={{ padding: '14px 16px', borderRadius: '16px', background: 'var(--surface-2)', border: '1px solid var(--border)' }}>
-                      <p style={{ fontSize: '9px', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.09em', margin: '0 0 8px' }}>Dose</p>
-                      <p style={{ fontSize: 24, fontWeight: 900, color: 'var(--text-primary)', margin: 0, letterSpacing: '-1px', lineHeight: 1 }}>
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
+                    <div style={{ padding: '14px 16px', borderRadius: '16px', background: 'var(--surface)', border: '1px solid var(--border)' }}>
+                      <p style={{ fontSize: '10px', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.08em', margin: '0 0 8px' }}>Dose</p>
+                      <p style={{ fontSize: '22px', fontWeight: 900, color: 'var(--text-primary)', margin: 0, letterSpacing: '-0.8px', lineHeight: 1 }}>
                         {getDoseLabel(profile)}
                       </p>
                     </div>
-                    <div style={{ padding: '14px 16px', borderRadius: '16px', background: selConfirmed ? 'var(--teal-l)' : 'var(--surface-2)', border: `1px solid ${selConfirmed ? 'var(--teal)' : 'var(--border)'}` }}>
-                      <p style={{ fontSize: '9px', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.09em', margin: '0 0 8px' }}>
-                        {selIsToday ? 'Hoje' : selIsFuture ? 'Em' : selConfirmed ? 'Há' : 'Há'}
+                    <div style={{ padding: '14px 16px', borderRadius: '16px', background: selConfirmed ? 'var(--teal-l)' : 'var(--surface)', border: `1px solid ${selConfirmed ? 'var(--teal)' : 'var(--border)'}` }}>
+                      <p style={{ fontSize: '10px', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.08em', margin: '0 0 8px' }}>
+                        {selIsToday ? 'Quando' : selIsFuture ? 'Faltam' : 'Há'}
                       </p>
                       {selIsToday ? (
-                        <p style={{ fontSize: '22px', fontWeight: 900, color: selConfirmed ? 'var(--teal-d)' : 'var(--primary)', margin: 0, lineHeight: 1 }}>Hoje</p>
+                        <p style={{ fontSize: '22px', fontWeight: 900, color: selConfirmed ? 'var(--teal-d)' : 'var(--cobalt)', margin: 0, letterSpacing: '-0.8px', lineHeight: 1 }}>Hoje</p>
                       ) : (
-                        <p style={{ fontSize: '28px', fontWeight: 900, color: selConfirmed ? 'var(--teal-d)' : 'var(--text-primary)', margin: 0, letterSpacing: '-1px', lineHeight: 1 }}>
-                          {selDiff}<span style={{ fontSize: '14px', fontWeight: 600, color: 'var(--text-muted)', marginLeft: '3px' }}>dias</span>
+                        <p style={{ fontSize: '22px', fontWeight: 900, color: selConfirmed ? 'var(--teal-d)' : 'var(--text-primary)', margin: 0, letterSpacing: '-0.8px', lineHeight: 1 }}>
+                          {selDiff}<span style={{ fontSize: '13px', fontWeight: 600, color: 'var(--text-muted)', marginLeft: '4px', letterSpacing: 0 }}>{selDiff === 1 ? 'dia' : 'dias'}</span>
                         </p>
                       )}
                     </div>
@@ -259,27 +277,39 @@ export default function ApplicationCalendar({ profile, onUpdateProfile, compact 
 
                   {/* Local de aplicação */}
                   <div>
-                    <p style={{ fontSize: '9px', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.09em', margin: '0 0 10px' }}>
+                    <p style={{ fontSize: '10px', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.08em', margin: '0 2px 8px' }}>
                       Local de aplicação
                     </p>
-                    <div style={{ display: 'flex', gap: '7px', flexWrap: 'wrap' }}>
+                    <div role="radiogroup" aria-label="Local de aplicação" style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '8px' }}>
                       {SITES.map(s => {
                         const active = siteInput === s
                         return (
                           <button
                             key={s}
+                            role="radio" aria-checked={active}
                             onClick={() => setSiteInput(active ? '' : s)}
                             style={{
-                              padding: '7px 13px', borderRadius: '99px', border: 'none',
-                              background: active ? sm.grad : 'var(--surface-2)',
-                              color: active ? '#fff' : 'var(--text-secondary)',
-                              fontSize: '12px', fontWeight: 700, cursor: 'pointer',
+                              display: 'flex', alignItems: 'center', gap: '10px',
+                              padding: '12px 14px', borderRadius: '14px', minHeight: '46px',
+                              background: active ? 'var(--ice)' : 'var(--surface)',
+                              border: `1.5px solid ${active ? 'var(--cobalt)' : 'var(--border)'}`,
+                              color: 'var(--text-primary)', textAlign: 'left',
+                              fontSize: '13px', fontWeight: 700, cursor: 'pointer',
                               fontFamily: 'Inter, -apple-system, sans-serif',
-                              outline: active ? 'none' : `1px solid var(--border)`,
                               transition: 'all 0.15s',
-                              boxShadow: active ? `0 4px 14px ${shade(0.25)}` : 'none',
+                              boxShadow: active ? `0 4px 14px ${shade(0.12)}` : 'none',
                             }}
-                          >{s}</button>
+                          >
+                            <span style={{
+                              width: '18px', height: '18px', borderRadius: '50%', flexShrink: 0,
+                              border: `2px solid ${active ? 'var(--cobalt)' : 'var(--border-strong)'}`,
+                              background: active ? 'var(--cobalt)' : 'transparent',
+                              display: 'flex', alignItems: 'center', justifyContent: 'center',
+                            }}>
+                              {active && <Check size={11} strokeWidth={3} color="#fff" />}
+                            </span>
+                            {s}
+                          </button>
                         )
                       })}
                     </div>
@@ -287,7 +317,7 @@ export default function ApplicationCalendar({ profile, onUpdateProfile, compact 
 
                   {/* Observações */}
                   <div>
-                    <p style={{ fontSize: '9px', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.09em', margin: '0 0 8px' }}>
+                    <p style={{ fontSize: '10px', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.08em', margin: '0 2px 8px' }}>
                       Observações
                     </p>
                     <textarea
@@ -296,49 +326,49 @@ export default function ApplicationCalendar({ profile, onUpdateProfile, compact 
                       placeholder="Ex: Sem reações, abdômen esquerdo, 1cm da cicatriz..."
                       rows={2}
                       style={{
-                        width: '100%', padding: '11px 13px', borderRadius: '14px',
-                        border: '1.5px solid var(--border)', background: 'var(--surface-2)',
-                        fontFamily: 'Inter, -apple-system, sans-serif', fontSize: '13px',
+                        width: '100%', padding: '12px 14px', borderRadius: '14px',
+                        border: '1.5px solid var(--border)', background: 'var(--surface)',
+                        fontFamily: 'Inter, -apple-system, sans-serif', fontSize: '16px',
                         color: 'var(--text-primary)', resize: 'none', outline: 'none',
-                        boxSizing: 'border-box', lineHeight: 1.55, transition: 'border-color 0.2s, box-shadow 0.2s',
+                        boxSizing: 'border-box', lineHeight: 1.5, transition: 'border-color 0.2s, box-shadow 0.2s',
                       }}
-                      onFocus={e => { e.currentTarget.style.borderColor = sm.color; e.currentTarget.style.boxShadow = `0 0 0 3px ${alpha(sm.color, 13)}` }}
+                      onFocus={e => { e.currentTarget.style.borderColor = 'var(--cobalt)'; e.currentTarget.style.boxShadow = `0 0 0 3px ${shade(0.12)}` }}
                       onBlur={e => { e.currentTarget.style.borderColor = 'var(--border)'; e.currentTarget.style.boxShadow = 'none'; saveNote(selectedDay, noteInput) }}
                     />
                   </div>
+                </div>
 
-                  {/* Botões de ação */}
-                  <div style={{ display: 'flex', gap: '10px' }}>
-                    <button onClick={closeSheet} style={{
-                      flex: 1, padding: '14px', borderRadius: '16px',
-                      border: '1.5px solid var(--border)', background: 'var(--surface-2)',
+                {/* ── Rodapé fixo ─────────────────────────────────────────── */}
+                <div style={{
+                  padding: '12px 20px calc(16px + env(safe-area-inset-bottom))', flexShrink: 0,
+                  borderTop: '1px solid var(--border)', background: 'var(--bg)',
+                  display: 'flex', gap: '10px',
+                }}>
+                  <button onClick={closeSheet} className="btn-ghost" style={{ flex: 1, minHeight: '48px' }}>
+                    Fechar
+                  </button>
+                  {!selIsFuture && (
+                    <button onClick={handleDetailAction} style={{
+                      flex: 2, minHeight: '48px', padding: '0 14px', borderRadius: '16px',
+                      border: selConfirmed ? '1.5px solid var(--red-line)' : 'none',
+                      background: selConfirmed ? 'var(--red-bg)' : sm.grad,
+                      color: selConfirmed ? 'var(--red)' : '#fff',
                       cursor: 'pointer', fontWeight: 700, fontSize: '14px',
-                      color: 'var(--text-secondary)', fontFamily: 'Inter, -apple-system, sans-serif',
-                    }}>Fechar</button>
-
-                    {!selIsFuture && (
-                      <button onClick={handleDetailAction} style={{
-                        flex: 2, padding: '14px', borderRadius: '16px',
-                        border: selConfirmed ? '1.5px solid var(--red-line)' : 'none',
-                        background: selConfirmed ? 'var(--red-bg)' : sm.grad,
-                        color: selConfirmed ? 'var(--red)' : '#fff',
-                        cursor: 'pointer', fontWeight: 700, fontSize: '14px',
-                        fontFamily: 'Inter, -apple-system, sans-serif',
-                        boxShadow: selConfirmed ? 'none' : `0 6px 20px ${shade(0.27)}`,
-                        display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '7px',
-                        transition: 'all 0.18s',
-                      }}>
-                        {selConfirmed ? 'Remover registro' : <><IcoSyringe />{selIsToday ? 'Registrar hoje' : 'Registrar aplicação'}</>}
-                      </button>
-                    )}
-                  </div>
+                      fontFamily: 'Inter, -apple-system, sans-serif',
+                      boxShadow: selConfirmed ? 'none' : `0 6px 20px ${shade(0.27)}`,
+                      display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px',
+                      transition: 'all 0.18s',
+                    }}>
+                      {selConfirmed ? 'Remover registro' : <><IcoSyringe />{selIsToday ? 'Registrar hoje' : 'Registrar aplicação'}</>}
+                    </button>
+                  )}
                 </div>
               </>
             )}
 
             {/* ── Confirmação antecipada ──────────────────────────────────── */}
             {sheetMode === 'confirm-early' && (
-              <div style={{ padding: '20px 22px 36px' }}>
+              <div style={{ padding: '20px 22px calc(24px + env(safe-area-inset-bottom))', overflowY: 'auto' }}>
                 <div style={{ width: '54px', height: '54px', borderRadius: '18px', background: 'var(--amber-bg)', border: '1.5px solid var(--amber-line)', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: '18px' }}>
                   <IcoWarning />
                 </div>
@@ -365,7 +395,7 @@ export default function ApplicationCalendar({ profile, onUpdateProfile, compact 
 
             {/* ── Confirmação de remoção ──────────────────────────────────── */}
             {sheetMode === 'confirm-delete' && (
-              <div style={{ padding: '20px 22px 36px' }}>
+              <div style={{ padding: '20px 22px calc(24px + env(safe-area-inset-bottom))', overflowY: 'auto' }}>
                 <div style={{ width: '54px', height: '54px', borderRadius: '18px', background: 'var(--red-bg)', border: '1.5px solid var(--red-line)', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: '18px' }}>
                   <IcoTrash />
                 </div>
@@ -384,7 +414,8 @@ export default function ApplicationCalendar({ profile, onUpdateProfile, compact 
               </div>
             )}
           </div>
-        </div>
+        </div>,
+        document.body,
       )}
 
       {/* ═══════════════════════════════════════════════════════════════
