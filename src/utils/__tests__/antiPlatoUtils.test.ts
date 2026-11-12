@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest'
-import { computeDiagnosis, getDayNumber, DEFAULT_ANSWERS, type Answers } from '../antiPlatoUtils'
+import { computeDiagnosis, getDayNumber, getRawDay, DEFAULT_ANSWERS, type Answers } from '../antiPlatoUtils'
+import { addDays, todayStr } from '../dateUtils'
 
 function makeAnswers(overrides: Partial<Answers> = {}): Answers {
   return { ...DEFAULT_ANSWERS, ...overrides }
@@ -35,12 +36,15 @@ describe('computeDiagnosis', () => {
 
 describe('getDayNumber', () => {
   it('clamps to day 1 on the start date', () => {
-    const today = new Date().toISOString().split('T')[0]
-    expect(getDayNumber(today)).toBe(1)
+    expect(getDayNumber(todayStr())).toBe(1)
   })
 
   it('clamps to a maximum of 14', () => {
-    const farPast = new Date(Date.now() - 30 * 86400000).toISOString().split('T')[0]
-    expect(getDayNumber(farPast)).toBe(14)
+    expect(getDayNumber(addDays(todayStr(), -30))).toBe(14)
+  })
+
+  it('counts calendar days from the start date without clamping in getRawDay', () => {
+    expect(getRawDay(addDays(todayStr(), -14))).toBe(15)
+    expect(getDayNumber(addDays(todayStr(), -6))).toBe(7)
   })
 })

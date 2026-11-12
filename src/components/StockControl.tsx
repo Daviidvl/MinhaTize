@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { StockInfo, UserProfile } from '../types'
 import { getDoseValue } from '../utils/medicationUtils'
+import { useFlash } from '../hooks/useFlash'
 
 interface Props {
   profile: UserProfile
@@ -14,7 +15,7 @@ export default function StockControl({ profile, onUpdateProfile }: Props) {
     ampouleML:   stock?.ampouleML.toString()   ?? '',
     ampouleCount:stock?.ampouleCount.toString() ?? '',
   })
-  const [saved, setSaved] = useState(false)
+  const [saved, flashSaved] = useFlash(2000)
 
   function set(k: string, v: string) { setForm(f => ({ ...f, [k]: v })) }
 
@@ -26,8 +27,7 @@ export default function StockControl({ profile, onUpdateProfile }: Props) {
     }
     if (!s.amouleMg || !s.ampouleML || !s.ampouleCount) return
     onUpdateProfile({ ...profile, stock: s })
-    setSaved(true)
-    setTimeout(() => setSaved(false), 2000)
+    flashSaved()
   }
 
   // Cálculos

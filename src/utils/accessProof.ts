@@ -5,7 +5,7 @@
 //
 // Chave pública (SPKI DER, base64) do par de ACCESS_PROOF_PRIVATE_KEY. Não é
 // segredo: só verifica, não assina. Trocar junto com a privada.
-export const ACCESS_PROOF_PUBLIC_KEY =
+const ACCESS_PROOF_PUBLIC_KEY =
   'MFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAEj8U3lzDSu52LYpHPdWozA4MC9QbbRMUbFnEJF3bzuXR3PJJfL2Gn9PzP4KWuQqnupWUzxTymw6ZpWtgfeFiMPw=='
 
 function fromBase64(b64: string): Uint8Array<ArrayBuffer> {

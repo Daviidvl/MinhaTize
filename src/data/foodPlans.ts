@@ -2,7 +2,6 @@ import {
   Sun, Droplets, Utensils, Moon, Fish, Zap, Package, Leaf, GlassWater, CupSoda, Milk,
   Egg, Apple, type LucideIcon,
 } from 'lucide-react'
-import type { AppetiteMode } from '../utils/foodUtils'
 
 // Atalhos de registro de água (tela de Hidratação e widget do Início)
 export const WATER_QUICK_ADD: { ml: number; label: string; Icon: LucideIcon }[] = [
@@ -27,16 +26,30 @@ export const FOOD_TABS: { id: FoodTab; label: string }[] = [
 ]
 
 // ── Modo do dia (fome) ────────────────────────────────────────────────────────
+// Como está a fome no dia: muda as opções sugeridas em cada refeição
+export type AppetiteMode = 'normal' | 'low' | 'extreme'
+
 export const APPETITE_MODES: { id: AppetiteMode; label: string; hint: string }[] = [
   { id: 'normal',  label: 'Normal',     hint: 'Cardápio completo do seu plano.' },
   { id: 'low',     label: 'Pouca fome', hint: 'Refeições menores, com mais proteína em menos volume.' },
   { id: 'extreme', label: 'Sem fome',   hint: '3 refeições pequenas, foco total em proteína.' },
 ]
 
-// Janela de horário de cada refeição (mesmos horários do card "Agora" do Início)
+// Janela de horário de cada refeição, em ordem — também define a refeição do
+// card "Agora" do Início (currentMeal, utils/foodUtils.ts)
 export const MEAL_WINDOW: Record<string, [number, number]> = {
   'cafe': [6, 9.5], 'lanche-m': [9.5, 12], 'almoco': [12, 14.5],
   'lanche-t': [14.5, 18], 'jantar': [18, 21], 'ceia': [21, 24],
+}
+
+// Card "Agora" do Início: nome curto e o que costuma entrar em cada refeição
+export const MEAL_PREVIEW: Record<string, { label: string; sub: Record<DietSex, string> }> = {
+  'cafe':     { label: 'Café da manhã', sub: { M: 'Ovos · pão · fruta',               F: 'Ovos · queijo · fruta' } },
+  'lanche-m': { label: 'Lanche manhã',  sub: { M: 'Whey ou iogurte proteico',         F: 'Whey ou iogurte proteico' } },
+  'almoco':   { label: 'Almoço',        sub: { M: 'Arroz · feijão · frango · legumes', F: 'Arroz · feijão · frango · legumes' } },
+  'lanche-t': { label: 'Lanche tarde',  sub: { M: 'Whey + fruta ou sanduíche',        F: 'Whey + fruta ou 2 ovos' } },
+  'jantar':   { label: 'Jantar',        sub: { M: 'Arroz · proteína magra · legumes', F: 'Arroz · proteína magra · legumes' } },
+  'ceia':     { label: 'Ceia',          sub: { M: 'Whey com água ou leite desnatado', F: 'Whey ou iogurte grego natural' } },
 }
 
 // Ordem de montagem do prato
@@ -63,16 +76,6 @@ export const MEAL_SHARES: Record<string, number>   = {
 export const MEAL_PROTEIN: Record<DietSex, Record<string, number>> = {
   F: { 'cafe': 28, 'lanche-m': 20, 'almoco': 40, 'lanche-t': 22, 'jantar': 35, 'ceia': 20 },
   M: { 'cafe': 33, 'lanche-m': 20, 'almoco': 45, 'lanche-t': 22, 'jantar': 43, 'ceia': 20 },
-}
-
-// Cores de cada refeição — mesmas do Dashboard (MEAL_SLOTS)
-export const MEAL_COLOR: Record<string, string> = {
-  'cafe': 'var(--cobalt)', 'lanche-m': 'var(--ink-2)', 'almoco': 'var(--teal-d)',
-  'lanche-t': 'var(--ink-2)', 'jantar': 'var(--cobalt)', 'ceia': 'var(--navy)',
-}
-export const MEAL_ICON: Record<string, IconComp> = {
-  'cafe': Sun, 'lanche-m': Droplets, 'almoco': Utensils,
-  'lanche-t': Droplets, 'jantar': Moon, 'ceia': Moon,
 }
 
 // ── Dieta Feminina ────────────────────────────────────────────────────────────

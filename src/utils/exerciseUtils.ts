@@ -1,10 +1,34 @@
 import type { WeightEntry } from '../types'
-import { toDateStr } from './dateUtils'
+import { SPLITS, type SplitKey, type WorkoutDay, type WorkoutProfile } from '../data/exercisePlans'
+import { parseDay, toDateStr, weekdayOf } from './dateUtils'
+import { readJSON, writeJSON } from './storage'
+import { STORAGE_KEYS } from './storageKeys'
 
-export const DAY_INITIALS  =['D', 'S', 'T', 'Q', 'Q', 'S', 'S']
+export const DAY_INITIALS  = ['D', 'S', 'T', 'Q', 'Q', 'S', 'S']
 export const DAY_FULL      = ['Domingo', 'Segunda-feira', 'Terça-feira', 'Quarta-feira', 'Quinta-feira', 'Sexta-feira', 'Sábado']
 
-export { toDateStr }
+// ── Plano ─────────────────────────────────────────────────────────────────────
+
+// Dias da semana (0 = domingo) de cada divisão: a mesma agenda no Início, na
+// tela de treino, nos avisos e nas notificações
+export const WORKOUT_SCHEDULE: Record<number, number[]> = { 2: [1, 4], 3: [1, 3, 5], 4: [1, 2, 4, 5], 5: [1, 2, 3, 4, 5] }
+
+export function getSplitDays(wp: WorkoutProfile): WorkoutDay[] {
+  return SPLITS[`${wp.days}_${wp.sex}` as SplitKey] ?? []
+}
+
+// Dia da semana (0 = domingo) → treino do plano
+export type WorkoutPlan = Record<number, { label: string; name: string }>
+
+export function getWorkoutPlan(wp: WorkoutProfile | null): WorkoutPlan {
+  if (!wp) return {}
+  const splits = getSplitDays(wp)
+  const plan: WorkoutPlan = {}
+  ;(WORKOUT_SCHEDULE[wp.days] ?? []).forEach((dow, i) => {
+    if (splits[i]) plan[dow] = { label: splits[i].label, name: splits[i].name }
+  })
+  return plan
+}
 
 // Exercícios marcados hoje, por treino (label → índices). Vale só para a data gravada.
 export interface DayChecks {
@@ -17,16 +41,62 @@ export function isWorkoutComplete(checked: number[] | undefined, total: number):
   return total > 0 && Array.from({ length: total }, (_, i) => i).every(i => checked?.includes(i))
 }
 
-export function getWeekDays(): Date[] {
-  const today = new Date()
-  const sunday = new Date(today)
-  sunday.setDate(today.getDate() - today.getDay())
-  sunday.setHours(0, 0, 0, 0)
-  return Array.from({ length: 7 }, (_, i) => {
-    const d = new Date(sunday)
-    d.setDate(sunday.getDate() + i)
-    return d
-  })
+// ── Histórico por dia ────────────────────────────────────────────────────────
+// Complementa o workoutLog (lista de datas concluídas, usada por Dashboard,
+// Evolução e lembretes): guarda qual treino foi feito e quanto dele.
+
+export interface WorkoutDayLog {
+  label: string  // 'A' … 'E'
+  done: number   // exercícios marcados
+  total: number  // exercícios do treino
+}
+export type WorkoutHistory = Record<string, WorkoutDayLog>  // AAAA-MM-DD → registro
+
+// Resume as marcações de hoje num único registro: um treino completo tem
+// prioridade; senão, o mais avançado (empate → o último tocado). null = nada marcado.
+export function summarizeDay(
+  workouts: { label: string; total: number }[],
+  done: Record<string, number[]>,
+  preferLabel?: string,
+): WorkoutDayLog | null {
+  const entries = workouts.map(w => ({
+    label: w.label,
+    total: w.total,
+    done: Array.from({ length: w.total }, (_, i) => i).filter(i => done[w.label]?.includes(i)).length,
+  }))
+  const complete = entries.find(e => isWorkoutComplete(done[e.label], e.total))
+  if (complete) return complete
+  const best = entries
+    .filter(e => e.done > 0)
+    .sort((a, b) => b.done - a.done || Number(b.label === preferLabel) - Number(a.label === preferLabel))[0]
+  return best ?? null
+}
+
+// Próximo treino do rodízio: o seguinte ao último treino concluído antes de `before`
+export function nextWorkoutLabel(history: WorkoutHistory, labels: string[], before: string): string {
+  if (labels.length === 0) return 'A'
+  const last = Object.keys(history)
+    .filter(d => d < before && history[d].total > 0 && history[d].done >= history[d].total)
+    .sort()
+    .at(-1)
+  if (!last) return labels[0]
+  const i = labels.indexOf(history[last].label)
+  return labels[(i + 1) % labels.length]
+}
+
+// Treino planejado para a data pela agenda fixa (WORKOUT_SCHEDULE) — a mesma do Início e das notificações
+export function plannedLabel(schedule: number[], labels: string[], date: string): string | undefined {
+  const idx = schedule.indexOf(weekdayOf(date))
+  return idx === -1 ? undefined : labels[idx]
+}
+
+// Treino em foco hoje: o já começado; senão o da agenda; em dia de descanso, o próximo do rodízio
+export function focusWorkoutLabel(
+  history: WorkoutHistory, labels: string[], schedule: number[], today: string,
+): string {
+  return history[today]?.label
+    ?? plannedLabel(schedule, labels, today)
+    ?? nextWorkoutLabel(history, labels, today)
 }
 
 export function calcStreak(log: string[]): number {
@@ -64,7 +134,7 @@ function weekStart(d: Date): Date {
 
 // Quantas semanas atrás caiu a data (0 = semana atual)
 function weeksAgo(dateStr: string, now: Date): number {
-  const then = weekStart(new Date(dateStr + 'T12:00:00'))
+  const then = weekStart(parseDay(dateStr))
   return Math.round((weekStart(now).getTime() - then.getTime()) / (7 * 864e5))
 }
 
@@ -108,7 +178,7 @@ export function calcBestStreak(log: string[], now = new Date()): number {
 export function getFavoriteDay(log: string[]): number | null {
   if (log.length === 0) return null
   const counts: number[] = Array(7).fill(0)
-  log.forEach(d => counts[new Date(d + 'T12:00:00').getDay()]++)
+  log.forEach(d => counts[weekdayOf(d)]++)
   return counts.indexOf(Math.max(...counts))
 }
 
@@ -131,4 +201,29 @@ export function getMotivation(done: number, target: number, streak: number): str
   if (done === 2)   return 'Dois treinos marcados. Você está no ritmo!'
   if (done === target - 1) return 'Falta só um treino para bater a meta da semana.'
   return `${done} treinos essa semana. Siga em frente.`
+}
+
+// ── Leitura e gravação ───────────────────────────────────────────────────────
+// Plano e dias concluídos são lidos pelo Início, pelos avisos e pelas
+// notificações: o tipo de cada chave fica definido só aqui.
+
+export function readWorkoutProfile(): WorkoutProfile | null {
+  return readJSON<WorkoutProfile | null>(STORAGE_KEYS.workoutProfile, null)
+}
+
+export function saveWorkoutProfile(wp: WorkoutProfile) {
+  writeJSON(STORAGE_KEYS.workoutProfile, wp)
+}
+
+// Datas (YYYY-MM-DD) com um treino completo
+export function readWorkoutLog(): string[] {
+  return readJSON<string[]>(STORAGE_KEYS.workoutLog, [])
+}
+
+export function saveWorkoutLog(log: string[]) {
+  writeJSON(STORAGE_KEYS.workoutLog, log)
+}
+
+export function readWorkoutPlan(): WorkoutPlan {
+  return getWorkoutPlan(readWorkoutProfile())
 }

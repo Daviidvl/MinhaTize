@@ -1,11 +1,14 @@
-import { useState, useRef, useEffect } from 'react'
+import { useState } from 'react'
 import { TrendingUp, TrendingDown, Minus, BarChart2, ClipboardList, X } from 'lucide-react'
 import { UserProfile, WeightEntry } from '../types'
 import { calcIMC, imcLabel } from '../utils/bmiUtils'
 import { getDoseLabel } from '../utils/medicationUtils'
 import { getPlateauStatus, getPlateauStatusMeta } from '../utils/plateauUtils'
+import { getWeightProgress, protocolDays } from '../utils/profileUtils'
+import { isValidWeight } from '../utils/profileForm'
 import { alpha } from '../utils/color'
 import { todayStr } from '../utils/dateUtils'
+import { useFlash } from '../hooks/useFlash'
 
 interface Props {
   profile: UserProfile
@@ -33,23 +36,14 @@ function weightInputError(val: string): string | null {
 export default function ProgressHub({ profile, onUpdateProfile }: Props) {
   const [tab, setTab]             = useState<InnerTab>('evolution')
   const [newWeight, setNewWeight] = useState('')
-  const [weightSaved, setWeightSaved] = useState(false)
+  const [weightSaved, flashWeightSaved] = useFlash(2000)
   // Índice da pesagem aguardando confirmação de remoção
   const [confirmRemove, setConfirmRemove] = useState<number | null>(null)
-  const savedTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
-
-  useEffect(() => () => { if (savedTimerRef.current) clearTimeout(savedTimerRef.current) }, [])
 
   const firstWeight = profile.startWeight
-  const lastWeight  = profile.weightHistory.at(-1)?.weight ?? profile.currentWeight ?? firstWeight
-  const totalLost   = firstWeight - lastWeight
-  const toGoal      = lastWeight - profile.goalWeight
-  const hasGoal     = profile.startWeight !== profile.goalWeight
-  const pct         = hasGoal
-    ? Math.min(100, Math.max(0, (totalLost / (profile.startWeight - profile.goalWeight)) * 100))
-    : 0
+  const { current: lastWeight, lost: totalLost, toGoal, hasGoal, pct } = getWeightProgress(profile)
 
-  const days  = Math.floor((Date.now() - new Date(profile.startDate).getTime()) / 864e5)
+  const days  = protocolDays(profile)
   const weeks = Math.floor(days / 7)
 
   const chartPoints = [{ date: profile.startDate, weight: firstWeight }, ...profile.weightHistory]
@@ -64,7 +58,7 @@ export default function ProgressHub({ profile, onUpdateProfile }: Props) {
   const weekDiff = lastWeight - prev2
 
   const wInputErr = weightInputError(newWeight)
-  const wBlocked  = !!newWeight && (parseFloat(newWeight) < 20 || parseFloat(newWeight) > 500)
+  const wBlocked  = !!newWeight && !isValidWeight(newWeight)
 
   function addWeight() {
     const w = parseFloat(newWeight)
@@ -76,9 +70,7 @@ export default function ProgressHub({ profile, onUpdateProfile }: Props) {
     onUpdateProfile({ ...profile, weightHistory: [...others, entry] })
     setConfirmRemove(null)
     setNewWeight('')
-    setWeightSaved(true)
-    if (savedTimerRef.current) clearTimeout(savedTimerRef.current)
-    savedTimerRef.current = setTimeout(() => setWeightSaved(false), 2000)
+    flashWeightSaved()
   }
 
   function removeWeight(index: number) {

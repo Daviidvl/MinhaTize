@@ -1,7 +1,7 @@
-import { toDateStr, getWeekDays } from './exerciseUtils'
-
-// Como está a fome no dia: muda as opções sugeridas em cada refeição
-export type AppetiteMode = 'normal' | 'low' | 'extreme'
+import { type AppetiteMode, type DietSex, MEAL_SHARES, MEAL_WINDOW } from '../data/foodPlans'
+import { toDateStr, getWeekDays } from './dateUtils'
+import { readJSON, writeJSON } from './storage'
+import { STORAGE_KEYS } from './storageKeys'
 
 export interface ManualItem { id: string; name: string; kcal: number; protein?: number }
 // Opção do cardápio escolhida para uma refeição (guardada por extenso para não
@@ -60,11 +60,21 @@ export function dayProtein(day: DayLog, mealDefaults: Record<string, number>): n
   return meals + extras
 }
 
-// Kcal do dia: fatia fixa de cada refeição marcada + extras (mesma conta do Início)
-export function dayKcal(day: DayLog, dailyKcal: number, shares: Record<string, number>): number {
+// Kcal do dia: fatia fixa de cada refeição marcada + extras
+export function dayKcal(day: DayLog, dailyKcal: number, shares: Record<string, number> = MEAL_SHARES): number {
   const meals  = day.meals.reduce((s, id) => s + Math.round(dailyKcal * (shares[id] ?? 0)), 0)
   const extras = day.manual.reduce((s, m) => s + m.kcal, 0)
   return meals + extras
+}
+
+// Refeição da hora (card "Agora" do Início): a da janela atual ou, fora de
+// todas, a próxima do dia
+export function currentMeal(now = new Date()): { id: string; isCurrent: boolean } {
+  const h       = now.getHours() + now.getMinutes() / 60
+  const windows = Object.entries(MEAL_WINDOW)
+  const cur     = windows.find(([, [start, end]]) => h >= start && h < end)
+  if (cur) return { id: cur[0], isCurrent: true }
+  return { id: (windows.find(([, [start]]) => start > h) ?? windows[0])[0], isCurrent: false }
 }
 
 // Dica abaixo do anel de proteína (o quanto falta já aparece ao lado do anel)
@@ -122,4 +132,43 @@ export function formatHour(h: number): string {
   const hh = Math.floor(h)
   const mm = Math.round((h - hh) * 60)
   return mm ? `${hh}h${String(mm).padStart(2, '0')}` : `${hh}h`
+}
+
+// ── Leitura e gravação ───────────────────────────────────────────────────────
+// Água, refeições e plano são lidos também pelo Início, pelos avisos e pelas
+// notificações: o tipo de cada chave fica definido só aqui.
+
+// Plano alimentar escolhido. O Início lê a meta de kcal daqui.
+export interface DietProfile { sex: DietSex; dailyKcal: number }
+
+export function readDietProfile(): DietProfile | null {
+  return readJSON<DietProfile | null>(STORAGE_KEYS.dietProfile, null)
+}
+
+export function saveDietProfile(diet: DietProfile) {
+  writeJSON(STORAGE_KEYS.dietProfile, diet)
+}
+
+export function readFoodLog(): FoodLog {
+  return readJSON<FoodLog>(STORAGE_KEYS.foodLog, {})
+}
+
+export function saveFoodLog(log: FoodLog) {
+  writeJSON(STORAGE_KEYS.foodLog, log)
+}
+
+export function readWaterLog(): WaterLog {
+  return readJSON<WaterLog>(STORAGE_KEYS.waterLog, {})
+}
+
+export function saveWaterLog(log: WaterLog) {
+  writeJSON(STORAGE_KEYS.waterLog, log)
+}
+
+// Kcal de hoje contra a meta do plano; null sem plano escolhido
+export function todayCalories(today: string): { consumed: number; target: number; pct: number } | null {
+  const diet = readDietProfile()
+  if (!diet?.dailyKcal) return null
+  const consumed = dayKcal(readFoodLog()[today] ?? EMPTY_DAY, diet.dailyKcal)
+  return { consumed, target: diet.dailyKcal, pct: Math.min(100, Math.round((consumed / diet.dailyKcal) * 100)) }
 }

@@ -1,8 +1,82 @@
-import { describe, it, expect } from 'vitest'
+import { describe, it, expect, beforeEach } from 'vitest'
 import {
-  calcStreak, getMotivation, toDateStr,
+  getWorkoutPlan, getSplitDays, readWorkoutPlan, saveWorkoutProfile, WORKOUT_SCHEDULE,
+  calcStreak, getMotivation,
   getWeeklyStats, calcBestStreak, getFavoriteDay, getEvolutionInsight, isWorkoutComplete,
+  summarizeDay, nextWorkoutLabel, plannedLabel, focusWorkoutLabel,
 } from '../exerciseUtils'
+import { toDateStr } from '../dateUtils'
+
+describe('focusWorkoutLabel', () => {
+  const L = ['A', 'B', 'C']
+  const S = [1, 3, 5]  // seg, qua, sex
+  const done = (label: string) => ({ label, done: 5, total: 5 })
+
+  it('maps scheduled weekdays to workouts', () => {
+    expect(plannedLabel(S, L, '2026-11-11')).toBe('B')  // quarta
+    expect(plannedLabel(S, L, '2026-11-10')).toBeUndefined()  // terça
+  })
+
+  it('uses the workout already started today', () => {
+    expect(focusWorkoutLabel({ '2026-11-11': { label: 'C', done: 1, total: 5 } }, L, S, '2026-11-11')).toBe('C')
+  })
+
+  it('follows the schedule on planned days, even after a skipped one', () => {
+    expect(focusWorkoutLabel({}, L, S, '2026-11-11')).toBe('B')
+  })
+
+  it('suggests the next of the rotation on rest days', () => {
+    expect(focusWorkoutLabel({ '2026-11-09': done('A') }, L, S, '2026-11-10')).toBe('B')
+  })
+})
+
+describe('summarizeDay', () => {
+  const W = [{ label: 'A', total: 3 }, { label: 'B', total: 2 }]
+
+  it('is null when nothing is checked', () => {
+    expect(summarizeDay(W, {})).toBeNull()
+    expect(summarizeDay(W, { A: [] })).toBeNull()
+  })
+
+  it('prefers a complete workout over a more advanced partial one', () => {
+    expect(summarizeDay(W, { A: [0, 1], B: [0, 1] })).toEqual({ label: 'B', done: 2, total: 2 })
+  })
+
+  it('picks the most advanced workout, breaking ties by the last touched', () => {
+    expect(summarizeDay(W, { A: [0, 1], B: [0] })).toEqual({ label: 'A', done: 2, total: 3 })
+    expect(summarizeDay(W, { A: [0], B: [1] }, 'B')).toEqual({ label: 'B', done: 1, total: 2 })
+  })
+
+  it('ignores stale indexes beyond the workout size', () => {
+    expect(summarizeDay(W, { B: [0, 5] })).toEqual({ label: 'B', done: 1, total: 2 })
+  })
+})
+
+describe('nextWorkoutLabel', () => {
+  const L = ['A', 'B', 'C']
+
+  it('starts at the first workout without history', () => {
+    expect(nextWorkoutLabel({}, L, '2026-11-10')).toBe('A')
+  })
+
+  it('follows the last completed workout and wraps around', () => {
+    expect(nextWorkoutLabel({ '2026-11-08': { label: 'A', done: 5, total: 5 } }, L, '2026-11-10')).toBe('B')
+    expect(nextWorkoutLabel({ '2026-11-08': { label: 'C', done: 5, total: 5 } }, L, '2026-11-10')).toBe('A')
+  })
+
+  it('repeats a workout left unfinished and ignores today and later', () => {
+    const h = {
+      '2026-11-07': { label: 'A', done: 5, total: 5 },
+      '2026-11-09': { label: 'B', done: 2, total: 5 },
+      '2026-11-10': { label: 'B', done: 5, total: 5 },
+    }
+    expect(nextWorkoutLabel(h, L, '2026-11-10')).toBe('B')
+  })
+
+  it('falls back to the first workout when the last label left the plan', () => {
+    expect(nextWorkoutLabel({ '2026-11-08': { label: 'E', done: 5, total: 5 } }, L, '2026-11-10')).toBe('A')
+  })
+})
 
 describe('toDateStr', () => {
   it('uses the local date, even late at night', () => {
@@ -102,5 +176,33 @@ describe('getMotivation', () => {
 
   it('nudges when one workout remains to hit the target', () => {
     expect(getMotivation(3, 4, 1)).toBe('Falta só um treino para bater a meta da semana.')
+  })
+})
+
+// O plano por dia da semana vem dos mesmos dados da tela de treino (SPLITS)
+describe('getWorkoutPlan', () => {
+  beforeEach(() => { localStorage.clear() })
+
+  it('maps each scheduled weekday to the workout of the split', () => {
+    const plan = getWorkoutPlan({ sex: 'M', level: 'beginner', location: 'gym', days: 3 })
+    expect(Object.keys(plan).map(Number)).toEqual(WORKOUT_SCHEDULE[3])
+    expect(plan[1]).toEqual({ label: 'A', name: 'Peito + Tríceps' })
+    expect(plan[5]).toEqual({ label: 'C', name: 'Pernas + Core' })
+  })
+
+  it('has one workout per scheduled day for every split', () => {
+    for (const days of [2, 3, 4, 5] as const) {
+      for (const sex of ['M', 'F'] as const) {
+        const wp = { sex, level: 'beginner' as const, location: 'home' as const, days }
+        expect(getSplitDays(wp)).toHaveLength(days)
+        expect(Object.keys(getWorkoutPlan(wp))).toHaveLength(days)
+      }
+    }
+  })
+
+  it('is empty without a saved plan, and reads the saved one', () => {
+    expect(readWorkoutPlan()).toEqual({})
+    saveWorkoutProfile({ sex: 'F', level: 'advanced', location: 'gym', days: 2 })
+    expect(readWorkoutPlan()).toEqual({ 1: { label: 'A', name: 'Glúteos + Pernas' }, 4: { label: 'B', name: 'Superior + Core' } })
   })
 })

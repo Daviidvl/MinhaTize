@@ -4,7 +4,6 @@ import {
   Flame, Battery, RotateCcw, Circle, Minus, X,
   Zap, Moon, Sun, Heart, Shield, Fish, Sparkles, Feather,
 } from 'lucide-react'
-import { toDateStr } from '../utils/dateUtils'
 
 export type HealthTab = 'symptoms' | 'food' | 'exercise' | 'weaning' | 'supplementation' | 'antiplato' | 'storage'
 
@@ -209,13 +208,6 @@ export const SUPP_LEVELS = [
     note: 'Podem ser utilizados em situações específicas, mas normalmente não possuem prioridade maior que os itens dos níveis anteriores.',
   },
 ]
-
-export function getMondayOf(d: Date) {
-  const date = new Date(d)
-  const day  = date.getDay()
-  date.setDate(date.getDate() - day + (day === 0 ? -6 : 1))
-  return toDateStr(date)
-}
 
 // ── Section card definitions ──────────────────────────────────────────────────
 export const SECTION_CARDS: {

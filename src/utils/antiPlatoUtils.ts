@@ -1,4 +1,6 @@
-import { todayStr } from './dateUtils'
+import type { PriorityItem } from '../types'
+import { diffDays, todayStr } from './dateUtils'
+
 export const FOOD_ITEMS = [
   'Café com açúcar',
   'Molhos (maionese, ketchup, etc.)',
@@ -59,25 +61,6 @@ export interface Answers {
   medications: string[]
 }
 
-export interface PriorityItem {
-  id: string
-  level: 'high' | 'moderate' | 'low'
-  label: string
-  detail: string
-}
-
-export interface PlanData {
-  startDate: string
-  checks: Record<string, boolean[]>
-  weighIns: Record<string, string>
-  proteinMin: number
-  proteinMax: number
-  stepsGoal: string
-  priorities: PriorityItem[]
-  reevalResult?: 'dropped' | 'same' | 'increased'
-  aiReport?: string
-}
-
 export const DEFAULT_ANSWERS: Answers = {
   usingMed: null, stableDuration: null, recentExcess: null,
   routineChange: null, menstruating: null, weightGainDay: null,
@@ -112,15 +95,12 @@ export function computeDiagnosis(a: Answers): PriorityItem[] {
   )
 }
 
-export function getDayNumber(startDate: string): number {
-  const startMs = new Date(startDate).getTime()
-  const todayMs = new Date(todayStr()).getTime()
-  const diff    = Math.round((todayMs - startMs) / 86400000)
-  return Math.min(14, Math.max(1, diff + 1))
+// Dia do plano de 14 dias (1 = dia de início), sem limite
+export function getRawDay(startDate: string): number {
+  return diffDays(todayStr(), startDate) + 1
 }
 
-export function getRawDay(startDate: string): number {
-  const startMs = new Date(startDate).getTime()
-  const todayMs = new Date(todayStr()).getTime()
-  return Math.round((todayMs - startMs) / 86400000) + 1
+// Mesmo dia, limitado ao intervalo do plano (1–14)
+export function getDayNumber(startDate: string): number {
+  return Math.min(14, Math.max(1, getRawDay(startDate)))
 }

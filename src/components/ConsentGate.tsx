@@ -1,38 +1,6 @@
 import { useState } from 'react'
 import { AlertTriangle, Shield, FileText, ChevronDown, Check } from 'lucide-react'
-import { getStoredToken } from '../utils/token'
-import { readJSON, writeJSON } from '../utils/storage'
-import { STORAGE_KEYS } from '../utils/storageKeys'
-
-export const CONSENT_KEY     = STORAGE_KEYS.consent
-// 1.1 (out/2026): a Política de Privacidade passou a descrever o registro de IP
-// e navegador junto com o aceite, a Loja (imagens e links de afiliado da Shopee)
-// e o Upstash. Mudar a versão faz todos os usuários aceitarem os termos de novo.
-export const CONSENT_VERSION = '1.1'
-
-export function hasConsent(): boolean {
-  const parsed = readJSON<{ version?: string } | null>(CONSENT_KEY, null)
-  return parsed?.version === CONSENT_VERSION
-}
-
-export function saveConsent(): void {
-  writeJSON(CONSENT_KEY, {
-    date:    new Date().toISOString(),
-    version: CONSENT_VERSION,
-  })
-  // Registrar no servidor (fire-and-forget — não bloqueia o usuário)
-  const token = getStoredToken()
-  if (token) {
-    fetch('/api/register-consent', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${token}`,
-      },
-      body: JSON.stringify({ version: CONSENT_VERSION }),
-    }).catch(() => { /* falha silenciosa — consentimento local já foi salvo */ })
-  }
-}
+import { saveConsent } from '../utils/consent'
 
 interface Props { onAccept: () => void }
 

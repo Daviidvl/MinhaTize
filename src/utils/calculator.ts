@@ -19,63 +19,25 @@ export function calculateDose(
   doseDesejada: number,
   syringeCapacity: number
 ): CalculationResult {
-  try {
-    // Validações
-    if (!ampola || ampola.mg <= 0 || ampola.ml <= 0) {
-      return {
-        concentration: 0,
-        volume: 0,
-        ui: 0,
-        isValid: false,
-        error: 'Ampola inválida',
-      }
-    }
+  if (!(ampola.mg > 0) || !(ampola.ml > 0)) {
+    return { concentration: 0, volume: 0, ui: 0, isValid: false, error: 'Ampola inválida' }
+  }
+  if (!(doseDesejada > 0)) {
+    return { concentration: 0, volume: 0, ui: 0, isValid: false, error: 'Dose desejada inválida' }
+  }
 
-    if (doseDesejada <= 0) {
-      return {
-        concentration: 0,
-        volume: 0,
-        ui: 0,
-        isValid: false,
-        error: 'Dose desejada inválida',
-      }
-    }
+  const concentration = ampola.mg / ampola.ml        // 1. mg/mL
+  const volume        = doseDesejada / concentration // 2. mL
+  const ui            = Math.round(volume * 100)     // 3. UI (100 UI = 1 mL)
 
-    // 1. Calcular concentração (mg/mL)
-    const concentration = ampola.mg / ampola.ml
-
-    // 2. Calcular volume (mL)
-    const volume = doseDesejada / concentration
-
-    // 3. Converter para UI
-    const ui = Math.round(volume * 100)
-
-    // 4. Verificar se cabe na seringa
-    if (ui > syringeCapacity) {
-      return {
-        concentration,
-        volume,
-        ui,
-        isValid: false,
-        error: `Esta dose não cabe em uma seringa de ${syringeCapacity} UI.`,
-      }
-    }
-
+  // 4. Precisa caber na seringa
+  if (ui > syringeCapacity) {
     return {
-      concentration,
-      volume,
-      ui,
-      isValid: true,
-    }
-  } catch {
-    return {
-      concentration: 0,
-      volume: 0,
-      ui: 0,
-      isValid: false,
-      error: 'Erro ao realizar cálculo',
+      concentration, volume, ui, isValid: false,
+      error: `Esta dose não cabe em uma seringa de ${syringeCapacity} UI.`,
     }
   }
+  return { concentration, volume, ui, isValid: true }
 }
 
 /**
@@ -136,24 +98,4 @@ export function getSyringeGuidance(ui: number, syringeCapacity: number): Syringe
   const start = baseNumber === 0 ? 'A partir do zero, avance' : `Localize o número ${baseNumber} e avance`
 
   return { exact: true, scaleNote, text: `${start} ${steps} ${stepText}.` }
-}
-
-/**
- * Texto da orientação de aspiração. Sem informar a seringa, assume a escala
- * de 1 UI por traço (30/50 UI).
- */
-export function generateGuidance(ui: number, syringeCapacity = 50): string {
-  return getSyringeGuidance(ui, syringeCapacity).text
-}
-
-/**
- * Valida se uma combinação ampola + dose + seringa é viável
- */
-export function isValidCombination(
-  ampola: { mg: number; ml: number },
-  doseDesejada: number,
-  syringeCapacity: number
-): boolean {
-  const result = calculateDose(ampola, doseDesejada, syringeCapacity)
-  return result.isValid
 }

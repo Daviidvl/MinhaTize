@@ -2,11 +2,12 @@ import { describe, it, expect } from 'vitest'
 import { UserProfile, WeightEntry } from '../../types'
 import {
   hasUsableHistory, getWeightTrend, evaluateNewUser, evaluateReassessment,
-  getPlateauStatus, writePlateauStatus,
+  getPlateauStatus, writePlateauStatus, autoPlateauStatus,
 } from '../plateauUtils'
+import { addDays, todayStr } from '../dateUtils'
 
 function daysAgo(n: number): string {
-  return new Date(Date.now() - n * 86400000).toISOString().split('T')[0]
+  return addDays(todayStr(), -n)
 }
 
 function makeProfile(overrides: Partial<UserProfile> = {}): UserProfile {
@@ -150,5 +151,24 @@ describe('getPlateauStatus / writePlateauStatus', () => {
     const next = writePlateauStatus(profile, { status: 'em_acompanhamento_14dias', tracking: { startDate: daysAgo(0), origin: 'com_historico', baselineWeight: 80 } })
     expect(next.plateau?.status).toBe('em_acompanhamento_14dias')
     expect(next.plateau?.tracking?.origin).toBe('com_historico')
+  })
+})
+
+// Status automático ao abrir a tela de platô (sem acompanhamento ativo)
+describe('autoPlateauStatus', () => {
+  it('follows the weight trend', () => {
+    expect(autoPlateauStatus('sem_sinal', 'queda')).toBe('tendencia_queda')
+    expect(autoPlateauStatus('sem_sinal', 'estagnacao_provavel')).toBe('possivel_estagnacao')
+    expect(autoPlateauStatus('possivel_estagnacao', 'insuficiente')).toBe('sem_sinal')
+  })
+
+  it('keeps the current status when it already matches', () => {
+    expect(autoPlateauStatus('tendencia_queda', 'queda')).toBeNull()
+  })
+
+  it('only leaves a persistent stagnation on a clear downward trend', () => {
+    expect(autoPlateauStatus('estagnacao_persistente', 'estagnacao_provavel')).toBeNull()
+    expect(autoPlateauStatus('estagnacao_persistente', 'insuficiente')).toBeNull()
+    expect(autoPlateauStatus('estagnacao_persistente', 'queda')).toBe('tendencia_queda')
   })
 })

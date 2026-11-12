@@ -1,13 +1,14 @@
 import { Tab, UserProfile, WEEK_DAYS_FULL } from '../types'
-import { getLog } from './applicationCalendarUtils'
-import { type WaterLog, waterGoalMl, waterTotal } from './foodUtils'
-import { SPLIT_INFO, WORKOUT_SCHEDULE } from './dashboardUtils'
-import { toDateStr, addDays } from './dateUtils'
+import { getLog, applicationWeek, isApplicationLate } from './applicationCalendarUtils'
+import { waterGoalMl, waterTotal, readWaterLog } from './foodUtils'
+import { type WorkoutPlan, readWorkoutLog, readWorkoutPlan } from './exerciseUtils'
+import { toDateStr, addDays, weekdayOf } from './dateUtils'
 import { readJSON, writeJSON } from './storage'
 import { STORAGE_KEYS } from './storageKeys'
 import { type UsageProfile, learnUsage, loadOpens } from './usageUtils'
 import { motivationFor } from './motivationMessages'
-import { getAppsLeft } from './medicationUtils'
+import { getAppsLeft, isLowStock } from './medicationUtils'
+import { getCurrentWeight } from './profileUtils'
 
 // Notificações calculadas no próprio aparelho. A política é fixa: no máximo
 // MAX_PER_DAY por dia, uma em cada janela. A manhã é da mensagem do dia
@@ -28,7 +29,7 @@ export interface ReminderSettings {
   notifications: boolean // notificações no celular (push) — ligadas por padrão
 }
 
-export const DEFAULT_REMINDER_SETTINGS: ReminderSettings = { notifications: true }
+const DEFAULT_REMINDER_SETTINGS: ReminderSettings = { notifications: true }
 
 export const MAX_PER_DAY = 4
 
@@ -48,9 +49,6 @@ interface Candidate extends Omit<Reminder, 'at'> {
   slots: ReminderSlot[] // janelas aceitas, em ordem de preferência
 }
 
-// Dia da semana (0 = domingo) → treino do plano
-export type WorkoutPlan = Record<number, { label: string; name: string }>
-
 export interface ReminderContext {
   today: string     // YYYY-MM-DD
   nowMin: number    // minutos desde a meia-noite
@@ -63,20 +61,12 @@ export interface ReminderContext {
   stockNudgeDay?: string | null // dia do aviso único "cadastre seu estoque"
 }
 
-// Aplicação atrasada só é cobrada nos 3 dias seguintes à data programada
-const LATE_APPLICATION_DAYS = 3
 // Quem se pesou nos últimos dias não recebe o aviso de pesagem
 const RECENT_WEIGH_DAYS = 3
-// Mesmo limite do "estoque baixo" do Dashboard e dos insights
-const LOW_STOCK_APPS = 4
 // Sem dia de aplicação definido, o aviso de estoque sai na segunda
 const STOCK_FALLBACK_WEEKDAY = 1
 // Vitrine semanal da Loja: domingo
 const STORE_WEEKDAY = 0
-
-function weekdayOf(dateStr: string): number {
-  return new Date(dateStr + 'T12:00:00').getDay()
-}
 
 // `today` traz o que só se sabe sobre hoje; para dias futuros, tudo false.
 function dayCandidates(
@@ -92,10 +82,8 @@ function dayCandidates(
   // Sem a dose no texto: ele vai para o servidor de push e aparece na tela bloqueada
   const appDay = profile.applicationDay
   if (appDay !== undefined) {
-    const offset        = (dow - appDay + 7) % 7 // dias desde a última data programada
-    const lastScheduled = addDays(day, -offset)
-    // Aplicação feita com atraso de alguns dias também conta para a semana
-    const doneSince = log.some(d => d >= lastScheduled && d <= day)
+    const week = applicationWeek(appDay, day, log)
+    const { offset, lastScheduled, doneSince } = week
 
     if (offset === 0 && !doneSince) {
       out.push({
@@ -103,10 +91,7 @@ function dayCandidates(
         title: 'Hoje é dia de aplicação',
         body: 'Sua aplicação está programada para hoje. Depois de aplicar, registre no calendário.',
       })
-    } else if (
-      offset > 0 && offset <= LATE_APPLICATION_DAYS && log.length > 0
-      && lastScheduled >= profile.startDate && !doneSince
-    ) {
+    } else if (isApplicationLate(week, log, profile.startDate)) {
       out.push({
         id: `application-late-${lastScheduled}`, kind: 'application', priority: 95, slots: ['afternoon', 'evening'], tab: 'dashboard',
         title: 'Aplicação não registrada',
@@ -126,7 +111,7 @@ function dayCandidates(
   // O estoque só muda quando a pessoa o atualiza, então avisar todo dia seria repetir
   const appsLeft     = getAppsLeft(profile)
   const stockWeekday = appDay !== undefined ? (appDay + 1) % 7 : STOCK_FALLBACK_WEEKDAY
-  if (appsLeft != null && appsLeft < LOW_STOCK_APPS && dow === stockWeekday) {
+  if (appsLeft != null && isLowStock(appsLeft) && dow === stockWeekday) {
     out.push({
       id: `stock-${day}`, kind: 'stock', priority: 20, slots: ['store'], tab: 'profile', section: 'farmacias',
       title: appsLeft === 0 ? 'Seu estoque acabou' : 'Seu estoque está acabando',
@@ -256,7 +241,7 @@ export interface PushScheduleInput {
 
 // Dias à frente enviados ao servidor. O app reenvia a agenda ao abrir e a cada
 // registro, então a janela só precisa cobrir quem fica alguns dias sem abrir.
-export const PUSH_HORIZON_DAYS = 7
+const PUSH_HORIZON_DAYS = 7
 
 function localDate(day: string, min: number): Date {
   const [y, m, d] = day.split('-').map(Number)
@@ -309,29 +294,17 @@ export function reminderUrl(r: Reminder): string {
 
 // ── Leitura dos dados locais ─────────────────────────────────────────────────
 
-export function readWorkoutPlan(): WorkoutPlan {
-  const wp = readJSON<{ sex: string; days: number } | null>(STORAGE_KEYS.workoutProfile, null)
-  const splits = wp ? SPLIT_INFO[`${wp.days}_${wp.sex}`] : undefined
-  if (!wp || !splits) return {}
-  const plan: WorkoutPlan = {}
-  ;(WORKOUT_SCHEDULE[wp.days] ?? []).forEach((dow, i) => {
-    if (splits[i]) plan[dow] = { label: splits[i].label, name: splits[i].name }
-  })
-  return plan
-}
-
 export function readReminderContext(profile: UserProfile, now = new Date()): ReminderContext {
   const today  = toDateStr(now)
-  const weight = profile.weightHistory.at(-1)?.weight ?? profile.currentWeight ?? profile.startWeight
-  const water  = readJSON<WaterLog>(STORAGE_KEYS.waterLog, {})
+  const water  = readWaterLog()
   return {
     today,
     nowMin: now.getHours() * 60 + now.getMinutes(),
     profile,
     waterMl: waterTotal(water[today]),
-    waterGoalMl: waterGoalMl(weight),
+    waterGoalMl: waterGoalMl(getCurrentWeight(profile)),
     workoutPlan: readWorkoutPlan(),
-    workoutDoneToday: readJSON<string[]>(STORAGE_KEYS.workoutLog, []).includes(today),
+    workoutDoneToday: readWorkoutLog().includes(today),
     usage: learnUsage(loadOpens(), profile, water, today),
     stockNudgeDay: pinStockNudgeDay(profile, today),
   }

@@ -30,9 +30,9 @@ export interface AppOpen { d: string; m: number }
 
 // Limites das janelas: nada antes das 7h30 nem depois das 21h30, e uma janela
 // não invade a outra
-export const MORNING_RANGE: [number, number]   = [7 * 60 + 30, 11 * 60]
-export const AFTERNOON_RANGE: [number, number] = [12 * 60 + 30, 16 * 60 + 30]
-export const EVENING_RANGE: [number, number]   = [18 * 60, 21 * 60 + 30]
+const MORNING_RANGE: [number, number]   = [7 * 60 + 30, 11 * 60]
+const AFTERNOON_RANGE: [number, number] = [12 * 60 + 30, 16 * 60 + 30]
+const EVENING_RANGE: [number, number]   = [18 * 60, 21 * 60 + 30]
 // Aberturas consideradas para cada janela
 const MORNING_OPENS: [number, number]   = [5 * 60, 12 * 60]
 const AFTERNOON_OPENS: [number, number] = [12 * 60, 17 * 60]

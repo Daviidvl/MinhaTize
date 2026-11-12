@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { calculateDose, generateGuidance, getSyringeGuidance, getSyringeScale, isValidCombination } from '../utils/calculator'
+import { calculateDose, getSyringeGuidance, getSyringeScale } from '../utils/calculator'
 
 describe('Calculator - calculateDose', () => {
   it('should calculate correct dose for 15mg/0.5mL ampola with 7.5mg dose', () => {
@@ -65,43 +65,44 @@ describe('Calculator - calculateDose', () => {
   })
 })
 
-describe('Calculator - generateGuidance', () => {
+// Seringa de 50 UI: 1 UI por traço, números de 5 em 5
+describe('Calculator - guidance text (50 UI syringe)', () => {
   it('should return simple instruction for 25 UI', () => {
-    const guidance = generateGuidance(25)
+    const guidance = getSyringeGuidance(25, 50).text
     expect(guidance).toBe('Localize o número 25.')
   })
 
   it('should return step instruction for 8 UI', () => {
-    const guidance = generateGuidance(8)
+    const guidance = getSyringeGuidance(8, 50).text
     expect(guidance).toContain('Localize o número 5')
     expect(guidance).toContain('3 traços')
   })
 
   it('should return step instruction for 17 UI', () => {
-    const guidance = generateGuidance(17)
+    const guidance = getSyringeGuidance(17, 50).text
     expect(guidance).toContain('Localize o número 15')
     expect(guidance).toContain('2 traços')
   })
 
   it('should handle singular traço for 1 step', () => {
-    const guidance = generateGuidance(11)
+    const guidance = getSyringeGuidance(11, 50).text
     expect(guidance).toContain('traço') // singular
   })
 
   it('should handle plural traços for multiple steps', () => {
-    const guidance = generateGuidance(7)
+    const guidance = getSyringeGuidance(7, 50).text
     expect(guidance).toContain('traços') // plural
   })
 
   it('should handle 0 steps', () => {
-    const guidance = generateGuidance(5)
+    const guidance = getSyringeGuidance(5, 50).text
     expect(guidance).toBe('Localize o número 5.')
   })
 
   it('should handle all round numbers', () => {
     const roundNumbers = [5, 10, 15, 20, 25, 30, 35, 40, 45, 50]
     roundNumbers.forEach((num) => {
-      const guidance = generateGuidance(num)
+      const guidance = getSyringeGuidance(num, 50).text
       expect(guidance).toBeTruthy()
     })
   })
@@ -156,19 +157,19 @@ describe('Calculator - getSyringeGuidance', () => {
   })
 })
 
-describe('Calculator - isValidCombination', () => {
+describe('Calculator - combination validity', () => {
   it('should validate 15mg/0.5mL with 7.5mg dose and 100 UI syringe', () => {
-    const valid = isValidCombination({ mg: 15, ml: 0.5 }, 7.5, 100)
+    const valid = calculateDose({ mg: 15, ml: 0.5 }, 7.5, 100).isValid
     expect(valid).toBe(true)
   })
 
   it('should reject 15mg/0.5mL with 15mg dose and 30 UI syringe', () => {
-    const valid = isValidCombination({ mg: 15, ml: 0.5 }, 15, 30)
+    const valid = calculateDose({ mg: 15, ml: 0.5 }, 15, 30).isValid
     expect(valid).toBe(false)
   })
 
   it('should validate combination with 50 UI syringe', () => {
-    const valid = isValidCombination({ mg: 30, ml: 1 }, 15, 50)
+    const valid = calculateDose({ mg: 30, ml: 1 }, 15, 50).isValid
     expect(valid).toBe(true)
   })
 })

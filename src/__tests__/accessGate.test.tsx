@@ -2,7 +2,7 @@ import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest'
 import { render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import App from '../App'
-import { extractToken, validateToken, checkToken, saveToken, getStoredToken, clearToken } from '../utils/token'
+import { extractToken, checkToken, saveToken, getStoredToken, clearToken } from '../utils/token'
 import { STORAGE_KEYS } from '../utils/storageKeys'
 
 // Testes de auditoria — fluxo de acesso (login por token, logout, sessão salva).
@@ -49,14 +49,14 @@ describe('access gate (token login)', () => {
 
     it('rejects empty or very short tokens without calling the API', async () => {
       const fetchMock = mockFetch(() => json({ valid: true }))
-      expect(await validateToken('')).toBe(false)
-      expect(await validateToken('abc')).toBe(false)
+      expect(await checkToken('')).toBe('invalid')
+      expect(await checkToken('abc')).toBe('invalid')
       expect(fetchMock).not.toHaveBeenCalled()
     })
 
     it('asks the server with the token in the Authorization header, never in the URL', async () => {
       const fetchMock = mockFetch(() => json({ valid: true }))
-      expect(await validateToken(TOKEN)).toBe(true)
+      expect(await checkToken(TOKEN)).toBe('valid')
       expect(fetchMock).toHaveBeenCalledWith('/api/validate-token', {
         method: 'POST',
         headers: { Authorization: `Bearer ${TOKEN}` },
@@ -78,13 +78,13 @@ describe('access gate (token login)', () => {
 
     it('never grants access on valid:false, HTTP errors, malformed bodies or network failures', async () => {
       mockFetch(() => json({ valid: false }))
-      expect(await validateToken(TOKEN)).toBe(false)
+      expect(await checkToken(TOKEN)).not.toBe('valid')
       mockFetch(() => json({ valid: false }, 429))
-      expect(await validateToken(TOKEN)).toBe(false)
+      expect(await checkToken(TOKEN)).not.toBe('valid')
       mockFetch(() => json({ valid: 'true' }))
-      expect(await validateToken(TOKEN)).toBe(false)
+      expect(await checkToken(TOKEN)).not.toBe('valid')
       mockFetch(() => Promise.reject(new TypeError('Failed to fetch')))
-      expect(await validateToken(TOKEN)).toBe(false)
+      expect(await checkToken(TOKEN)).not.toBe('valid')
     })
   })
 

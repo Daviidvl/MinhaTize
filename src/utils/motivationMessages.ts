@@ -8,7 +8,7 @@ export interface MotivationMessage {
   body: string
 }
 
-export const MOTIVATION_MESSAGES: MotivationMessage[] = [
+const MOTIVATION_MESSAGES: MotivationMessage[] = [
   { title: 'Você não precisa de um dia perfeito.', body: 'Precisa só de uma escolha boa agora. Depois outra. É assim que a mudança acontece.' },
   { title: 'Constância vence pressa.', body: 'O que você repete todo dia pesa mais do que o que você faz de vez em quando.' },
   { title: 'Pequenas vitórias contam.', body: 'Um copo d\'água, uma caminhada, uma refeição tranquila. Comemore cada uma.' },

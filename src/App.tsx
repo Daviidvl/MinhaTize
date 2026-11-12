@@ -10,7 +10,9 @@ import HealthHub from './components/HealthHub'
 import Laboratory from './components/Laboratory'
 import ProfilePage from './components/ProfilePage'
 import ProfileSetup from './components/ProfileSetup'
-import ConsentGate, { hasConsent } from './components/ConsentGate'
+import Library from './components/Library'
+import ConsentGate from './components/ConsentGate'
+import { hasConsent } from './utils/consent'
 import LegalPage, { isLegalDoc, type LegalDoc } from './components/LegalPage'
 import Footer from './components/Footer'
 import { useDarkMode } from './hooks/useDarkMode'
@@ -42,8 +44,12 @@ function loadProfile(): UserProfile {
   return stored ? { ...DEFAULT_PROFILE, ...stored } : DEFAULT_PROFILE
 }
 
-// Link interno "?tab=health&section=symptoms" — usado ao tocar num lembrete
-const TABS: Tab[] = ['dashboard', 'progress', 'health', 'calculator', 'profile', 'laboratory']
+// Link interno "?tab=health&section=symptoms" — usado ao tocar num lembrete.
+// Biblioteca: "?tab=library&section=<item>" ou "<item>:<aula>" (ver data/library.ts)
+const TABS: Tab[] = ['dashboard', 'progress', 'health', 'calculator', 'profile', 'laboratory', 'library']
+
+// Telas abertas por cima das abas (sem item na barra inferior), com botão Voltar
+const OVERLAY_TABS: Tab[] = ['profile', 'library']
 
 function readDeepLink(search: string): { tab: Tab; section: string | null } | null {
   const p   = new URLSearchParams(search)
@@ -195,6 +201,8 @@ export default function App() {
   }, [])
 
   function handleNavigate(tab: Tab, section?: string) {
+    // Guarda a aba de origem para o Voltar de Perfil/Biblioteca
+    if (!OVERLAY_TABS.includes(activeTab)) prevTabRef.current = activeTab
     setActiveTab(tab)
     setDeepSection(section ?? null)
     window.scrollTo({ top: 0, behavior: 'instant' })
@@ -202,11 +210,17 @@ export default function App() {
 
   const isFirstAccess = !profile.name
 
+  // Única porta de escrita do perfil: estado e aparelho mudam juntos
+  function updateProfile(p: UserProfile) {
+    setProfile(p)
+    writeJSON(STORAGE_KEYS.profile, p)
+  }
+
   function handleProfileComplete(p: UserProfile) {
     // Ainda dentro do toque em "Concluir": o celular só mostra o pedido de
     // permissão de notificações a partir de um gesto do usuário
     if (loadReminderSettings().notifications) void requestNotificationPermission()
-    setProfile(p)
+    updateProfile(p)
   }
 
   async function handleLogout() {
@@ -215,10 +229,6 @@ export default function App() {
     clearToken()
     setTokenStatus('invalid')
   }
-
-  useEffect(() => {
-    writeJSON(STORAGE_KEYS.profile, profile)
-  }, [profile])
 
   // ── Página legal pública (sem autenticação) ─────────────────────────────────
   if (legalDoc) {
@@ -280,25 +290,32 @@ export default function App() {
           // Notificação tocada com o Perfil já aberto: remonta na seção nova
           key={deepSection ?? ''}
           profile={profile}
-          onUpdateProfile={setProfile}
+          onUpdateProfile={updateProfile}
           onBack={() => { setActiveTab(prevTabRef.current); setDeepSection(null) }}
           initialSection={deepSection ?? undefined}
         />
       )
     }
     switch (activeTab) {
-      case 'dashboard':
-        return <Dashboard profile={profile} onUpdateProfile={setProfile} onNavigate={handleNavigate} isDismissed={isDismissed} onDismissReminder={dismissReminder} pushPromptDismissed={isDismissed(PUSH_PROMPT_ID)} />
+      case 'library':
+        return (
+          <Library
+            // Notificação/link tocado com a Biblioteca já aberta: remonta no conteúdo novo
+            key={deepSection ?? ''}
+            initial={deepSection ?? undefined}
+            onBack={() => { setActiveTab(prevTabRef.current); setDeepSection(null); window.scrollTo({ top: 0, behavior: 'instant' }) }}
+          />
+        )
       case 'progress':
-        return <ProgressHub profile={profile} onUpdateProfile={setProfile} />
+        return <ProgressHub profile={profile} onUpdateProfile={updateProfile} />
       case 'health':
-        return <HealthHub profile={profile} onUpdateProfile={setProfile} initialSection={deepSection ?? undefined} onNavigate={handleNavigate} />
+        return <HealthHub profile={profile} onUpdateProfile={updateProfile} initialSection={deepSection ?? undefined} onNavigate={handleNavigate} />
       case 'calculator':
         return <Calculator profile={profile} />
       case 'laboratory':
-        return <Laboratory profile={profile} onUpdateProfile={setProfile} />
+        return <Laboratory profile={profile} onUpdateProfile={updateProfile} />
       default:
-        return <Dashboard profile={profile} onUpdateProfile={setProfile} onNavigate={handleNavigate} isDismissed={isDismissed} onDismissReminder={dismissReminder} pushPromptDismissed={isDismissed(PUSH_PROMPT_ID)} />
+        return <Dashboard profile={profile} onUpdateProfile={updateProfile} onNavigate={handleNavigate} isDismissed={isDismissed} onDismissReminder={dismissReminder} pushPromptDismissed={isDismissed(PUSH_PROMPT_ID)} />
     }
   }
 
@@ -310,7 +327,7 @@ export default function App() {
         profile={profile}
         onLogout={handleLogout}
         onProfileClick={() => {
-          prevTabRef.current = activeTab
+          if (!OVERLAY_TABS.includes(activeTab)) prevTabRef.current = activeTab
           setActiveTab('profile')
           setDeepSection(null)
         }}

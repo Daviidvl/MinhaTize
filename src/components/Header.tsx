@@ -1,5 +1,6 @@
 import DarkModeToggle from './DarkModeToggle'
 import { UserProfile } from '../types'
+import { getInitials } from '../utils/profileUtils'
 
 interface Props {
   isDark: boolean
@@ -10,9 +11,7 @@ interface Props {
 }
 
 export default function Header({ isDark, onToggle, profile, onProfileClick, onLogout }: Props) {
-  const initials = profile?.name
-    ? profile.name.split(' ').map(w => w[0]).slice(0, 2).join('').toUpperCase()
-    : '?'
+  const initials = profile?.name ? getInitials(profile.name) : '?'
 
   return (
     <header className="app-header">

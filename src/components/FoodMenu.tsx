@@ -1,9 +1,9 @@
 import { useEffect, useRef, useState } from 'react'
 import { Check, Plus } from 'lucide-react'
 import {
-  type MealSection, type MealOption, APPETITE_MODES, MEAL_WINDOW, mealOptions, mealsForMode,
+  type AppetiteMode, type MealSection, type MealOption, APPETITE_MODES, MEAL_WINDOW, mealOptions, mealsForMode,
 } from '../data/foodPlans'
-import { type AppetiteMode, type DayLog, formatHour } from '../utils/foodUtils'
+import { type DayLog, formatHour } from '../utils/foodUtils'
 import { OptionCard, PlateOrder, Segmented } from './FoodShared'
 
 const FONT = 'Inter, -apple-system, sans-serif'

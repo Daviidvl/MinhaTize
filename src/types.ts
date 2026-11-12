@@ -56,6 +56,26 @@ export interface PlateauTracking {
   baselineWeight: number
 }
 
+// Plano anti-platô de 14 dias (assistente de hábitos — utils/antiPlatoUtils.ts)
+export interface PriorityItem {
+  id: string
+  level: 'high' | 'moderate' | 'low'
+  label: string
+  detail: string
+}
+
+export interface PlanData {
+  startDate: string
+  checks: Record<string, boolean[]>
+  weighIns: Record<string, string>
+  proteinMin: number
+  proteinMax: number
+  stepsGoal: string
+  priorities: PriorityItem[]
+  reevalResult?: 'dropped' | 'same' | 'increased'
+  aiReport?: string
+}
+
 export interface PlateauEvaluation {
   status: PlateauStatus
   updatedAt: string
@@ -63,7 +83,7 @@ export interface PlateauEvaluation {
   newUserAnswers?: PlateauNewUserAnswers
   tracking?: PlateauTracking
   lastCycleResult?: { date: string; status: PlateauStatus; note: string }
-  habitsPlan?: import('./utils/antiPlatoUtils').PlanData
+  habitsPlan?: PlanData
 }
 
 export interface DiaryEntry {
@@ -130,6 +150,8 @@ export interface UserProfile {
   weightHistory: WeightEntry[]
   diary: DiaryEntry[]
   sideEffects: SideEffectEntry[]
+  // Legado: perfis anteriores ao applicationLog guardavam só a última aplicação.
+  // Lido apenas por getLog (applicationCalendarUtils) quando não há applicationLog.
   lastApplication?: string
   applicationLog?: string[]
   applicationNotes?: Record<string, string>
@@ -139,4 +161,4 @@ export interface UserProfile {
   plateau?: PlateauEvaluation
 }
 
-export type Tab = 'dashboard' | 'progress' | 'health' | 'calculator' | 'profile' | 'laboratory'
+export type Tab = 'dashboard' | 'progress' | 'health' | 'calculator' | 'profile' | 'laboratory' | 'library'

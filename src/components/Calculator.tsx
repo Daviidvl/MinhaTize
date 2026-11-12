@@ -1,5 +1,5 @@
-import { useState, useEffect } from 'react'
-import { AmpolaOption, DoseOption, SyringeOption, CalculationResult, UserProfile } from '../types'
+import { useState } from 'react'
+import { AmpolaOption, DoseOption, SyringeOption, UserProfile } from '../types'
 import { calculateDose } from '../utils/calculator'
 import { getDoseValue, hasPresentation } from '../utils/medicationUtils'
 import Result from './Result'
@@ -43,7 +43,6 @@ export default function Calculator({ profile }: Props) {
   const [selectedAmpola, setSelectedAmpola] = useState<AmpolaOption>(() => registeredAmpola ?? AMPOLAS[0])
   const [selectedDose, setSelectedDose] = useState<number>(() => registeredDose ?? DOSES[0].value)
   const [selectedSyringe, setSelectedSyringe] = useState<number>(SYRINGES[2].value)
-  const [result, setResult] = useState<CalculationResult | null>(null)
 
   const handleAmpolaChange = (value: string) => {
     setSelectedAmpola(ampolaOptions.find((a) => a.value === value) || AMPOLAS[0])
@@ -51,13 +50,8 @@ export default function Calculator({ profile }: Props) {
   const handleDoseChange = (value: string) => setSelectedDose(parseFloat(value))
   const handleSyringeChange = (value: string) => setSelectedSyringe(parseInt(value))
 
-  useEffect(() => {
-    setResult(calculateDose(
-      { mg: selectedAmpola.mg, ml: selectedAmpola.ml },
-      selectedDose,
-      selectedSyringe
-    ))
-  }, [selectedAmpola, selectedDose, selectedSyringe])
+  // Derivado das escolhas: recalculado a cada render, sem estado próprio
+  const result = calculateDose({ mg: selectedAmpola.mg, ml: selectedAmpola.ml }, selectedDose, selectedSyringe)
 
   return (
     <div data-tour="calc-main" className="space-y-8">
@@ -130,13 +124,11 @@ export default function Calculator({ profile }: Props) {
         </div>
       </div>
 
-      {result && (
-        <Result
-          result={result}
-          doseDesejada={selectedDose}
-          syringeCapacity={selectedSyringe}
-        />
-      )}
+      <Result
+        result={result}
+        doseDesejada={selectedDose}
+        syringeCapacity={selectedSyringe}
+      />
     </div>
   )
 }

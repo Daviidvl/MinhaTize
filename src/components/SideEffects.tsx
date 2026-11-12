@@ -2,7 +2,9 @@ import { useState } from 'react'
 import { Waves, AlertCircle, ArrowDown, Droplets, Flame, Battery, RotateCcw, Circle, Minus, X, Activity } from 'lucide-react'
 import { SideEffectEntry, UserProfile } from '../types'
 import { alpha } from '../utils/color'
-import { toDateStr } from '../utils/dateUtils'
+import { getMondayOf, parseDay } from '../utils/dateUtils'
+import { weekSideEffects } from '../utils/profileUtils'
+import { useFlash } from '../hooks/useFlash'
 
 interface Props {
   profile: UserProfile
@@ -42,16 +44,8 @@ const INTENSITIES: { value: 0 | 1 | 2 | 3; label: string; color: string }[] = [
   { value: 3, label: 'Intenso',  color: 'var(--red)' },
 ]
 
-function getMondayOf(date: Date): string {
-  const d = new Date(date)
-  const day = d.getDay()
-  const diff = d.getDate() - day + (day === 0 ? -6 : 1)
-  d.setDate(diff)
-  return toDateStr(d)
-}
-
 function formatWeek(mondayStr: string): string {
-  const monday = new Date(mondayStr + 'T12:00:00')
+  const monday = parseDay(mondayStr)
   const sunday = new Date(monday)
   sunday.setDate(monday.getDate() + 6)
   const fmt = (d: Date) => d.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' })
@@ -64,7 +58,7 @@ function intensityColor(v: number) {
 
 export default function SideEffects({ profile, onUpdateProfile }: Props) {
   const thisWeek = getMondayOf(new Date())
-  const existing = profile.sideEffects?.find(e => e.date === thisWeek)
+  const existing = weekSideEffects(profile)
 
   const initSymptoms = () =>
     SYMPTOMS.map(s => ({
@@ -74,7 +68,7 @@ export default function SideEffects({ profile, onUpdateProfile }: Props) {
 
   const [symptoms, setSymptoms] = useState(initSymptoms)
   const [notes, setNotes] = useState(existing?.notes ?? '')
-  const [saved, setSaved] = useState(false)
+  const [saved, flashSaved] = useFlash(2500)
 
   function setIntensity(id: string, intensity: 0 | 1 | 2 | 3) {
     setSymptoms(s => s.map(x => x.id === id ? { ...x, intensity } : x))
@@ -84,8 +78,7 @@ export default function SideEffects({ profile, onUpdateProfile }: Props) {
     const entry: SideEffectEntry = { date: thisWeek, symptoms, notes }
     const filtered = (profile.sideEffects ?? []).filter(e => e.date !== thisWeek)
     onUpdateProfile({ ...profile, sideEffects: [...filtered, entry] })
-    setSaved(true)
-    setTimeout(() => setSaved(false), 2500)
+    flashSaved()
   }
 
   const hasAnySymptom = symptoms.some(s => s.intensity > 0)

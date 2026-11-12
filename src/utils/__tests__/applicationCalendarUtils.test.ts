@@ -1,5 +1,9 @@
 import { describe, it, expect } from 'vitest'
-import { getGlobalNextApp, calcStreak, calcAdherence, toDateStr } from '../applicationCalendarUtils'
+import {
+  getGlobalNextApp, calcStreak, calcAdherence, applicationWeek, isApplicationLate, lastApplicationDate,
+} from '../applicationCalendarUtils'
+import { UserProfile } from '../../types'
+import { toDateStr } from '../dateUtils'
 
 describe('getGlobalNextApp', () => {
   it('returns today when today is the application day', () => {
@@ -53,5 +57,44 @@ describe('calcAdherence', () => {
 describe('toDateStr', () => {
   it('formats a date as YYYY-MM-DD', () => {
     expect(toDateStr(new Date('2026-07-18T12:00:00'))).toBe('2026-07-18')
+  })
+})
+
+// Mesma leitura para os avisos do Início e para as notificações
+describe('applicationWeek / isApplicationLate', () => {
+  // Aplicação aos domingos (0); 2026-10-25 é domingo
+  it('measures the days since the last scheduled date', () => {
+    expect(applicationWeek(0, '2026-10-25', [])).toEqual({ offset: 0, lastScheduled: '2026-10-25', doneSince: false })
+    expect(applicationWeek(0, '2026-10-27', [])).toMatchObject({ offset: 2, lastScheduled: '2026-10-25' })
+  })
+
+  it('counts a late application as done for the week', () => {
+    expect(applicationWeek(0, '2026-10-27', ['2026-10-26']).doneSince).toBe(true)
+    expect(applicationWeek(0, '2026-10-27', ['2026-10-24']).doneSince).toBe(false)
+  })
+
+  it('is late only for 3 days, for people who log applications, after the protocol start', () => {
+    const log = ['2026-10-18']
+    expect(isApplicationLate(applicationWeek(0, '2026-10-28', log), log, '2026-01-01')).toBe(true)
+    expect(isApplicationLate(applicationWeek(0, '2026-10-29', log), log, '2026-01-01')).toBe(false)
+    expect(isApplicationLate(applicationWeek(0, '2026-10-28', []), [], '2026-01-01')).toBe(false)
+    expect(isApplicationLate(applicationWeek(0, '2026-10-28', log), log, '2026-10-26')).toBe(false)
+  })
+})
+
+describe('lastApplicationDate', () => {
+  const BASE: UserProfile = {
+    name: 'Ana', medication: 'tirzepatida', startWeight: 90, goalWeight: 70, height: 170,
+    startDate: '2026-01-01', applicationDay: 0, weightHistory: [], diary: [], sideEffects: [],
+  }
+
+  it('is the latest logged date, or null when the log is empty', () => {
+    expect(lastApplicationDate({ ...BASE, applicationLog: ['2026-10-11', '2026-10-25', '2026-10-18'] })).toBe('2026-10-25')
+    // Aplicação apagada: o legado lastApplication não volta a valer
+    expect(lastApplicationDate({ ...BASE, applicationLog: [], lastApplication: '2026-10-25' })).toBeNull()
+  })
+
+  it('falls back to the legacy lastApplication field', () => {
+    expect(lastApplicationDate({ ...BASE, lastApplication: '2026-10-25' })).toBe('2026-10-25')
   })
 })

@@ -1,8 +1,12 @@
 import { useState } from 'react'
 import { Pill, Syringe, FlaskConical, PenLine, Lock, ChevronLeft, ChevronRight, Check, AlertTriangle } from 'lucide-react'
 import { DOSE_OPTIONS, MEDICATION_LABELS, Medication, Sex, UserProfile, WEEK_DAYS_FULL } from '../types'
-import { calcIMC } from '../utils/bmiUtils'
-import { DoseMode } from '../utils/medicationUtils'
+import type { DoseMode } from '../utils/medicationUtils'
+import {
+  weightBlock, weightWarn, heightBlock, heightWarn, ageBlock, ageWarn, coherenceBlock, goalWarn,
+  startDateBlock, isValidHeight, isValidWeight, medicationNameOk, customDoseOk,
+  doseModeForMedication, resolveDose, resolvePresentation, WEIGHT_KG,
+} from '../utils/profileForm'
 import { todayStr } from '../utils/dateUtils'
 
 interface Props {
@@ -30,82 +34,6 @@ const STEPS = [
   { id: 4, title: 'Seu medicamento',          subtitle: 'Qual GLP-1 você está usando atualmente?' },
   { id: 5, title: 'Dia da aplicação',         subtitle: 'Qual dia da semana você aplica sua dose?' },
 ]
-
-// ── Validation helpers ────────────────────────────────────────────────────────
-
-function weightBlock(val: string): string | null {
-  const w = parseFloat(val)
-  if (!val || val.trim() === '') return null
-  if (isNaN(w) || w <= 0) return 'Informe um peso válido em kg.'
-  if (w < 20) return `${val}kg é um peso impossível. Verifique o valor informado.`
-  if (w > 500) return `${val}kg está fora dos limites. Verifique o valor informado.`
-  return null
-}
-
-function weightWarn(val: string): string | null {
-  const w = parseFloat(val)
-  if (!val || isNaN(w)) return null
-  if (w < 30) return `${val}kg parece muito baixo. Confirme se o peso está correto.`
-  if (w > 350) return `${val}kg é um valor incomum. Confirme se o peso está correto.`
-  return null
-}
-
-function heightBlock(val: string): string | null {
-  const h = parseFloat(val)
-  if (!val || val.trim() === '') return null
-  if (isNaN(h) || h <= 0) return 'Informe uma altura válida em centímetros.'
-  if (h < 80) return `${val}cm é uma altura impossível. Verifique o valor informado.`
-  if (h > 280) return `${val}cm está fora dos limites. Verifique o valor informado.`
-  return null
-}
-
-function heightWarn(val: string): string | null {
-  const h = parseFloat(val)
-  if (!val || isNaN(h)) return null
-  if (h < 100) return `${val}cm é muito baixo. A altura deve ser em centímetros (ex: 168).`
-  if (h > 230) return `${val}cm parece incomum. Confirme se a altura está em centímetros.`
-  return null
-}
-
-// A idade é opcional, mas quando informada precisa ser válida: os Termos de Uso
-// restringem o app a maiores de 18 anos.
-function ageBlock(val: string): string | null {
-  if (!val || val.trim() === '') return null
-  const a = Number(val)
-  if (!Number.isInteger(a) || a <= 0 || a > 120) return 'Informe uma idade válida.'
-  if (a < 18) return 'O MinhaTize é destinado a maiores de 18 anos.'
-  return null
-}
-
-function ageWarn(val: string): string | null {
-  const a = parseInt(val)
-  if (!val || isNaN(a)) return null
-  if (a > 110) return 'Idade muito alta. Confirme o valor informado.'
-  return null
-}
-
-function coherenceBlock(height: string, weight: string): string | null {
-  const h = parseFloat(height), w = parseFloat(weight)
-  if (!h || !w || h < 80 || w < 20) return null
-  const bmi = calcIMC(w, h)
-  if (bmi === null) return null
-  if (bmi < 8)  return `Com ${h}cm e ${w}kg, o IMC seria ${bmi.toFixed(1)} — fisicamente impossível. Verifique se altura está em cm e peso em kg.`
-  if (bmi > 90) return `Com ${h}cm e ${w}kg, o IMC seria ${bmi.toFixed(1)} — valor extremo. Confirme se os dados estão corretos.`
-  return null
-}
-
-function goalWarn(start: string, goal: string): string | null {
-  const s = parseFloat(start), g = parseFloat(goal)
-  if (!s || !g || g >= s) return null
-  const loss    = s - g
-  const lossPct = (loss / s) * 100
-  if (g < 30) return 'Meta abaixo de 30kg pode não ser saudável. Considere revisar a meta.'
-  if (loss > 80 || lossPct > 60)
-    return `Perder ${loss.toFixed(0)}kg (${lossPct.toFixed(0)}% do peso) é uma meta muito agressiva para um protocolo GLP-1. Considere uma meta mais gradual.`
-  if (loss > 40)
-    return `Meta de perder ${loss.toFixed(0)}kg é significativa. O GLP-1 apoiará este processo de forma gradual e segura.`
-  return null
-}
 
 // ── Inline message components ─────────────────────────────────────────────────
 
@@ -162,17 +90,7 @@ export default function ProfileSetup({ onComplete }: Props) {
   }
 
   function selectMedication(m: Medication) {
-    setForm(f => ({
-      ...f, medication: m,
-      doseMode: m === 'retatrutida' && f.doseMode === 'fixed' ? 'custom' : f.doseMode,
-    }))
-  }
-
-  function resolvedDose(): number | undefined {
-    if (form.doseMode === 'unknown') return undefined
-    if (form.doseMode === 'fixed') return form.fixedDose
-    const n = parseFloat(form.customDose)
-    return n > 0 ? n : undefined
+    setForm(f => ({ ...f, medication: m, doseMode: doseModeForMedication(m, f.doseMode) }))
   }
 
   // Derived validation state
@@ -186,34 +104,26 @@ export default function ProfileSetup({ onComplete }: Props) {
   // Peso atual é opcional; se preenchido, vale a mesma faixa do peso inicial
   const cwBlock    = form.currentWeight ? weightBlock(form.currentWeight) : null
   const cwWarn     = form.currentWeight && !cwBlock ? weightWarn(form.currentWeight) : null
-  const dateBlock  = !form.startDate
-    ? 'Informe a data de início do protocolo.'
-    : form.startDate > todayStr() ? 'A data de início não pode ser no futuro.' : null
+  const dateBlock  = startDateBlock(form.startDate)
   const refWeight  = form.currentWeight || form.startWeight
   const gWarn      = goalWarn(refWeight, form.goalWeight)
 
   function canAdvance() {
     if (step === 1) return form.name.trim().length >= 2 && !aBlock
     if (step === 2) {
-      const heightOk = parseFloat(form.height) >= 80 && !hBlock
-      const weightOk = parseFloat(form.startWeight) >= 20 && !wBlock
-      return heightOk && weightOk && !cohErr && !cwBlock && !dateBlock
+      return isValidHeight(form.height) && isValidWeight(form.startWeight) && !cohErr && !cwBlock && !dateBlock
     }
     if (step === 3) {
       const g = parseFloat(form.goalWeight), s = parseFloat(refWeight)
-      return g > 0 && g < s && g >= 20
+      return g > 0 && g < s && g >= WEIGHT_KG.min
     }
     if (step === 4) {
-      if (form.medication === 'outro' && form.medicationName.trim().length < 2) return false
-      if (form.doseMode === 'custom' && !(parseFloat(form.customDose) > 0)) return false
-      return true
+      return medicationNameOk(form.medication, form.medicationName) && customDoseOk(form.doseMode, form.customDose)
     }
     return true
   }
 
   function handleFinish() {
-    const presMg = parseFloat(form.presentationMg), presMl = parseFloat(form.presentationMl)
-    const hasPres = presMg > 0 && presMl > 0
     const profile: UserProfile = {
       name:           form.name.trim(),
       age:            form.age ? parseInt(form.age) : undefined,
@@ -224,9 +134,8 @@ export default function ProfileSetup({ onComplete }: Props) {
       startWeight:    parseFloat(form.startWeight),
       currentWeight:  form.currentWeight ? parseFloat(form.currentWeight) : undefined,
       goalWeight:     parseFloat(form.goalWeight),
-      currentDose:    resolvedDose(),
-      presentationMg: hasPres ? presMg : undefined,
-      presentationMl: hasPres ? presMl : undefined,
+      currentDose:    resolveDose(form.doseMode, form.fixedDose, form.customDose),
+      ...resolvePresentation(form.presentationMg, form.presentationMl),
       startDate:      form.startDate,
       applicationDay: form.applicationDay,
       weightHistory:  form.currentWeight

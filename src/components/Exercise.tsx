@@ -5,23 +5,25 @@ import {
 } from 'lucide-react'
 import { UserProfile } from '../types'
 import ExerciseEvolution from './ExerciseEvolution'
-import WeekCard from './WeekCard'
+import ExerciseToday from './ExerciseToday'
 import { readJSON, writeJSON, removeKey } from '../utils/storage'
 import { STORAGE_KEYS } from '../utils/storageKeys'
 import {
-  type WorkoutProfile, type WorkoutDays, type SplitKey, type ExerciseView,
-  VOLUME, SPLIT_LABEL, SPLITS, DAY_ICON_MAP, EXERCISE_VIEWS,
+  type WorkoutProfile, type WorkoutDays, type ExerciseView,
+  VOLUME, SPLIT_LABEL, DAY_ICON_MAP, EXERCISE_VIEWS,
 } from '../data/exercisePlans'
 import {
-  type DayChecks,
-  toDateStr, getWeekDays, calcStreak, getMotivation, isWorkoutComplete,
+  type DayChecks, type WorkoutHistory, WORKOUT_SCHEDULE,
+  isWorkoutComplete, summarizeDay, focusWorkoutLabel, getSplitDays,
+  readWorkoutProfile, saveWorkoutProfile, readWorkoutLog, saveWorkoutLog,
 } from '../utils/exerciseUtils'
+import { todayStr } from '../utils/dateUtils'
 import { alpha } from '../utils/color'
 import { notifyRemindersChanged } from '../utils/reminderUtils'
 
-const STORAGE_KEY = STORAGE_KEYS.workoutProfile
-const LOG_KEY     = STORAGE_KEYS.workoutLog
+// Marcações do dia e histórico por dia só são lidos por esta tela
 const CHECKS_KEY  = STORAGE_KEYS.workoutChecks
+const HISTORY_KEY = STORAGE_KEYS.workoutHistory
 
 const SPLIT_HINT: Record<WorkoutDays, string> = {
   2: 'Full Body A/B — 2 treinos, corpo inteiro em cada um',
@@ -61,24 +63,28 @@ interface Props {
 // ── Main component ───────────────────────────────────────────────────────────
 
 export default function Exercise({ userProfile, view, onViewChange }: Props) {
-  const [profile, setProfile] = useState<WorkoutProfile | null>(() => readJSON(STORAGE_KEY, null))
+  const [profile, setProfile] = useState<WorkoutProfile | null>(readWorkoutProfile)
 
   const [form, setForm] = useState<Partial<WorkoutProfile>>(profile ?? {})
   const [showForm, setShowForm] = useState(profile === null)
-  const [expandedDays, setExpandedDays] = useState<Set<string>>(new Set(['A']))
 
   const formComplete = !!(form.sex && form.level && form.location && form.days)
 
-  const today = toDateStr(new Date())
-  const [workoutLog, setWorkoutLog] = useState<string[]>(() => readJSON(LOG_KEY, []))
+  const today = todayStr()
+  const [workoutLog, setWorkoutLog] = useState<string[]>(readWorkoutLog)
   const [checks, setChecks] = useState<DayChecks['done']>(() => {
     const saved = readJSON<DayChecks | null>(CHECKS_KEY, null)
     return saved?.date === today ? saved.done : {}
   })
+  const [history, setHistory] = useState<WorkoutHistory>(() => readJSON(HISTORY_KEY, {}))
 
-  const splitDays = profile
-    ? SPLITS[`${profile.days}_${profile.sex}` as SplitKey]
-    : []
+  const splitDays = profile ? getSplitDays(profile) : []
+  const schedule = profile ? (WORKOUT_SCHEDULE[profile.days] ?? []) : []
+
+  // A tela é remontada a cada troca de visão: a lista abre no treino em foco hoje
+  const [expandedDays, setExpandedDays] = useState<Set<string>>(
+    () => new Set([focusWorkoutLabel(history, splitDays.map(d => d.label), schedule, today)]),
+  )
   const vol = profile ? VOLUME[profile.level] : null
   const exercisesOf = (day: (typeof splitDays)[number]) => (profile?.location === 'gym' ? day.gym : day.home)
   const anyWorkoutDone = (done: DayChecks['done']) =>
@@ -90,13 +96,20 @@ export default function Exercise({ userProfile, view, onViewChange }: Props) {
     setChecks(next)
     writeJSON(CHECKS_KEY, { date: today, done: next })
 
+    // Histórico do dia: qual treino e quanto dele (alimenta a semana do card azul)
+    const entry = summarizeDay(splitDays.map(d => ({ label: d.label, total: exercisesOf(d).length })), next, label)
+    const nextHistory: WorkoutHistory = Object.fromEntries(Object.entries(history).filter(([d]) => d !== today))
+    if (entry) nextHistory[today] = entry
+    setHistory(nextHistory)
+    writeJSON(HISTORY_KEY, nextHistory)
+
     // O dia só é marcado (ou desmarcado) quando um treino inteiro fica completo (ou deixa de estar)
     const isDone = anyWorkoutDone(next)
     if (isDone !== anyWorkoutDone(checks)) {
       const others = workoutLog.filter(d => d !== today)
       const log = isDone ? [...others, today] : others
       setWorkoutLog(log)
-      writeJSON(LOG_KEY, log)
+      saveWorkoutLog(log)
       notifyRemindersChanged()
     }
   }
@@ -104,7 +117,7 @@ export default function Exercise({ userProfile, view, onViewChange }: Props) {
   function saveProfile() {
     if (!formComplete) return
     const p = form as WorkoutProfile
-    writeJSON(STORAGE_KEY, p)
+    saveWorkoutProfile(p)
     setProfile(p)
     setShowForm(false)
     setExpandedDays(new Set(['A']))
@@ -112,7 +125,7 @@ export default function Exercise({ userProfile, view, onViewChange }: Props) {
   }
 
   function resetProfile() {
-    removeKey(STORAGE_KEY)
+    removeKey(STORAGE_KEYS.workoutProfile)
     removeKey(CHECKS_KEY)
     setChecks({})
     setProfile(null)
@@ -245,39 +258,16 @@ export default function Exercise({ userProfile, view, onViewChange }: Props) {
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
 
-      {/* Weekly calendar */}
-      {view === null && (() => {
-        const weekDays    = getWeekDays()
-        const doneThisWeek = weekDays.filter(d => workoutLog.includes(toDateStr(d))).length
-        const streak       = calcStreak(workoutLog)
-
-        return (
-          <WeekCard title="Semana de treino" done={workoutLog} doneLabel="treino concluído" pendingLabel="sem treino">
-            {/* Stats */}
-            <p style={{ fontSize: '11px', color: 'var(--text-muted)', marginBottom: '10px' }}>
-              <span style={{ fontWeight: 700, color: 'var(--text-primary)' }}>{doneThisWeek}</span>
-              {doneThisWeek === 1 ? ' treino' : ' treinos'} essa semana
-              {streak > 0 && (
-                <>
-                  {' · '}
-                  <span style={{ fontWeight: 700, color: 'var(--teal-d)' }}>{streak}</span>
-                  {streak === 1 ? ' semana consecutiva' : ' semanas consecutivas'}
-                </>
-              )}
-            </p>
-
-            {/* Motivational message */}
-            <div style={{
-              padding: '9px 12px', borderRadius: '12px',
-              background: 'var(--surface-2)', border: '1px solid var(--border)',
-            }}>
-              <p style={{ fontSize: '12px', fontWeight: 600, color: 'var(--text-secondary)', margin: 0, lineHeight: 1.4 }}>
-                {getMotivation(doneThisWeek, profile!.days, streak)}
-              </p>
-            </div>
-          </WeekCard>
-        )
-      })()}
+      {/* Semana + treino de agora */}
+      {view === null && (
+        <ExerciseToday
+          workouts={splitDays.map(d => ({ label: d.label, name: d.name, color: d.color, total: exercisesOf(d).length }))}
+          checks={checks} workoutLog={workoutLog} history={history}
+          target={profile!.days} sets={vol!.sets}
+          schedule={schedule}
+          onOpenWorkout={() => onViewChange('workout')}
+        />
+      )}
 
       {/* Treino / Evolução */}
       {view === null && (

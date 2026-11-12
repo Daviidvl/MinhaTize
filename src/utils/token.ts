@@ -43,7 +43,8 @@ async function tokenFingerprint(token: string): Promise<string> {
   return 'fnv-' + (h >>> 0).toString(16)
 }
 
-// O App grava um perfil vazio (sem nome) assim que abre; isso não conta como dado.
+// Versões anteriores gravavam um perfil vazio (sem nome) ao abrir o app; ele
+// ainda existe em aparelhos antigos e não conta como dado.
 function hasLocalUserData(): boolean {
   return USER_DATA_KEYS.some(key => {
     if (key !== STORAGE_KEYS.profile) return readRaw(key) !== null
@@ -107,8 +108,4 @@ export async function checkToken(token: string): Promise<TokenCheck> {
 export async function hasOfflineAccess(token: string): Promise<boolean> {
   const proof = readRaw(STORAGE_KEYS.accessProof)
   return !!proof && verifyAccessProof(proof, token)
-}
-
-export async function validateToken(token: string): Promise<boolean> {
-  return (await checkToken(token)) === 'valid'
 }

@@ -11,10 +11,11 @@ import { alpha } from '../utils/color'
 import {
   type HealthTab,
   SECTION_ICON_MAP, SECTION_ICON_SM, SYMPTOM_ICON_MAP, SUPP_ICON_MAP,
-  SYMPTOM_TIPS, SUPP_LEVELS, getMondayOf, SECTION_CARDS,
+  SYMPTOM_TIPS, SUPP_LEVELS, SECTION_CARDS,
 } from '../data/healthHubContent'
 import { type ExerciseView, EXERCISE_VIEWS } from '../data/exercisePlans'
 import { type FoodView, FOOD_VIEWS } from '../data/foodPlans'
+import { weekSideEffects } from '../utils/profileUtils'
 
 interface Props {
   profile: UserProfile
@@ -44,9 +45,7 @@ export default function HealthHub({ profile, onUpdateProfile, initialSection, on
     window.scrollTo({ top: 0, behavior: 'instant' })
   }
 
-  const thisWeek       = getMondayOf(new Date())
-  const currentEntry   = profile.sideEffects?.find(e => e.date === thisWeek)
-  const activeSymptoms = currentEntry?.symptoms.filter(s => s.intensity > 0) ?? []
+  const activeSymptoms = weekSideEffects(profile)?.symptoms.filter(s => s.intensity > 0) ?? []
   const maxIntensity   = activeSymptoms.length > 0
     ? Math.max(...activeSymptoms.map(s => s.intensity)) : 0
 
@@ -214,7 +213,7 @@ export default function HealthHub({ profile, onUpdateProfile, initialSection, on
 
           {/* ── ALIMENTAÇÃO ────────────────────────────────────────────── */}
           {activeSection === 'food' && (
-            <FoodGuide profile={profile} onUpdateProfile={onUpdateProfile} view={foodView} onViewChange={changeFoodView} />
+            <FoodGuide profile={profile} view={foodView} onViewChange={changeFoodView} />
           )}
 
           {/* ── EXERCÍCIO ──────────────────────────────────────────────── */}

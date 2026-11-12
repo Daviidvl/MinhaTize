@@ -1,7 +1,8 @@
-import { describe, it, expect } from 'vitest'
+import { describe, it, expect, beforeEach } from 'vitest'
 import {
   waterGoalMl, waterTotal, mealDays, waterDays, calcDayStreak,
   parseProtein, dayProtein, dayKcal, proteinGoalG, proteinTip, formatHour, summarizeItems,
+  currentMeal, todayCalories, saveDietProfile, saveFoodLog,
 } from '../foodUtils'
 import { DIET_F, mealOptions, mealsForMode, LOW_APPETITE_OPTIONS, EXTREME_OPTIONS } from '../../data/foodPlans'
 
@@ -153,5 +154,37 @@ describe('calcDayStreak', () => {
 
   it('stops at the first missing day', () => {
     expect(calcDayStreak(['2026-10-10', '2026-10-12', '2026-10-13'], NOW)).toBe(2)
+  })
+})
+
+// Card "Agora" do Início: mesmas janelas de horário do cardápio (MEAL_WINDOW)
+describe('currentMeal', () => {
+  const at = (h: number, m = 0) => currentMeal(new Date(2026, 10, 11, h, m))
+
+  it('picks the meal whose window contains the time', () => {
+    expect(at(7)).toEqual({ id: 'cafe', isCurrent: true })
+    expect(at(9, 30)).toEqual({ id: 'lanche-m', isCurrent: true })
+    expect(at(13)).toEqual({ id: 'almoco', isCurrent: true })
+    expect(at(23, 59)).toEqual({ id: 'ceia', isCurrent: true })
+  })
+
+  it('points to the next meal outside every window', () => {
+    expect(at(3)).toEqual({ id: 'cafe', isCurrent: false })
+  })
+})
+
+describe('todayCalories', () => {
+  beforeEach(() => { localStorage.clear() })
+
+  it('is null without a diet plan', () => {
+    expect(todayCalories('2026-11-11')).toBeNull()
+  })
+
+  it('adds the fixed share of each logged meal and the extras', () => {
+    saveDietProfile({ sex: 'F', dailyKcal: 1600 })
+    saveFoodLog({ '2026-11-11': { meals: ['cafe', 'almoco'], manual: [{ id: '1', name: 'Whey', kcal: 120 }] } })
+    // 25% + 30% de 1600 = 880, + 120 de extras
+    expect(todayCalories('2026-11-11')).toEqual({ consumed: 1000, target: 1600, pct: 63 })
+    expect(todayCalories('2026-11-12')).toEqual({ consumed: 0, target: 1600, pct: 0 })
   })
 })

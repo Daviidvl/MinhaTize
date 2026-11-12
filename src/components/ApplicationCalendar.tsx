@@ -2,8 +2,9 @@ import { useState } from 'react'
 import { Check } from 'lucide-react'
 import { UserProfile, WEEK_DAYS } from '../types'
 import {
-  toDateStr, getLog, fmtDateShort, getGlobalNextApp, calcStreak, calcAdherence, SITES,
+  getLog, fmtDateShort, getGlobalNextApp, calcStreak, calcAdherence, SITES,
 } from '../utils/applicationCalendarUtils'
+import { toDateStr, weekdayOf } from '../utils/dateUtils'
 import { getDoseLabel } from '../utils/medicationUtils'
 import { alpha, shade } from '../utils/color'
 
@@ -82,21 +83,21 @@ export default function ApplicationCalendar({ profile, onUpdateProfile, compact 
   }
   const nextApp = appDatesInMonth.find(d => d >= todayStr)
 
+  // A última aplicação é derivada do applicationLog (lastApplicationDate); o
+  // campo lastApplication fica só para perfis antigos e não é mais regravado.
   function doRegister(dateStr: string) {
     const newLog  = [...log.filter(d => d !== dateStr), dateStr].sort()
-    const lastApp = newLog.at(-1) ?? dateStr
     const newSites = { ...sites }
     if (siteInput) newSites[dateStr] = siteInput
-    onUpdateProfile({ ...profile, applicationLog: newLog, lastApplication: lastApp, applicationSites: newSites })
+    onUpdateProfile({ ...profile, applicationLog: newLog, applicationSites: newSites })
     setSelectedDay(null); setSheetMode('detail')
   }
 
   function doDelete(dateStr: string) {
     const newLog  = log.filter(d => d !== dateStr)
-    const lastApp = newLog.at(-1) ?? profile.lastApplication
     const newNotes = { ...notes }; delete newNotes[dateStr]
     const newSites = { ...sites };  delete newSites[dateStr]
-    onUpdateProfile({ ...profile, applicationLog: newLog, lastApplication: lastApp, applicationNotes: newNotes, applicationSites: newSites })
+    onUpdateProfile({ ...profile, applicationLog: newLog, applicationNotes: newNotes, applicationSites: newSites })
     setSelectedDay(null); setSheetMode('detail')
   }
 
@@ -134,7 +135,7 @@ export default function ApplicationCalendar({ profile, onUpdateProfile, compact 
   const selIsPast    = selectedDay ? selectedDay < todayStr : false
   const selIsFuture  = selectedDay ? selectedDay > todayStr : false
   const selIsToday   = selectedDay === todayStr
-  const selIsAppDay  = selectedDay ? (appDay !== undefined && new Date(selectedDay + 'T12:00:00').getDay() === appDay) : false
+  const selIsAppDay  = selectedDay ? (appDay !== undefined && weekdayOf(selectedDay) === appDay) : false
 
   const selStatus: 'Aplicado' | 'Atrasado' | 'Hoje' | 'Agendado' | 'Livre' =
     selConfirmed   ? 'Aplicado'  :

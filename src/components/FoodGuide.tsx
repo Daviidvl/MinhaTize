@@ -8,32 +8,26 @@ import FoodMenu from './FoodMenu'
 import FoodInfo from './FoodInfo'
 import FoodMealSheet from './FoodMealSheet'
 import { Segmented } from './FoodShared'
-import { readJSON, writeJSON } from '../utils/storage'
-import { STORAGE_KEYS } from '../utils/storageKeys'
 import {
-  type DietSex, type FoodView, type FoodTab, type MealOption,
-  DIET_KCAL, MEAL_SHARES, MEAL_PROTEIN, DIET_F, DIET_M, FOOD_TABS,
+  type AppetiteMode, type DietSex, type FoodView, type FoodTab, type MealOption,
+  DIET_KCAL, MEAL_PROTEIN, DIET_F, DIET_M, FOOD_TABS,
 } from '../data/foodPlans'
-import { getMondayOf } from '../data/healthHubContent'
-import { toDateStr } from '../utils/exerciseUtils'
+import { toDateStr, todayStr, getWeekDays } from '../utils/dateUtils'
 import {
-  type AppetiteMode, type DayLog, type FoodLog, type ManualItem, type WaterLog, EMPTY_DAY,
+  type DayLog, type FoodLog, type ManualItem, type WaterLog, EMPTY_DAY,
   waterGoalMl, waterTotal, mealDays, waterDays, dayProtein, dayKcal, parseProtein,
   proteinGoalG, proteinRange, formatMl, summarizeItems,
+  readDietProfile, saveDietProfile, readFoodLog, saveFoodLog, readWaterLog, saveWaterLog,
 } from '../utils/foodUtils'
+import { getCurrentWeight, weekSideEffects } from '../utils/profileUtils'
 import { alpha } from '../utils/color'
 import { notifyRemindersChanged } from '../utils/reminderUtils'
 
 interface Props {
   profile: UserProfile
-  onUpdateProfile: (p: UserProfile) => void
   view: FoodView | null  // null = abas Hoje / Cardápio / Guia
   onViewChange: (v: FoodView | null) => void
 }
-
-const LOG_KEY   = STORAGE_KEYS.foodLog
-const DIET_KEY  = STORAGE_KEYS.dietProfile
-const WATER_KEY = STORAGE_KEYS.waterLog
 
 // Sintomas da semana que pedem refeições menores (id → como aparece na frase)
 const APPETITE_SYMPTOMS: Record<string, string> = {
@@ -46,20 +40,17 @@ export default function FoodGuide({ profile, view, onViewChange }: Props) {
   const detectedSex: DietSex | null = profile.sex === 'female' ? 'F' : profile.sex === 'male' ? 'M' : null
 
   // O plano já escolhido vale mais que o sexo do perfil (o componente remonta a cada troca de tela)
-  const [sex, setSex] = useState<DietSex | null>(
-    () => readJSON<{ sex: DietSex } | null>(DIET_KEY, null)?.sex ?? detectedSex
-  )
-  const [log, setLog]         = useState<FoodLog>(() => readJSON(LOG_KEY, {}))
-  const [water, setWater]     = useState<WaterLog>(() => readJSON(WATER_KEY, {}))
+  const [sex, setSex] = useState<DietSex | null>(() => readDietProfile()?.sex ?? detectedSex)
+  const [log, setLog]         = useState<FoodLog>(readFoodLog)
+  const [water, setWater]     = useState<WaterLog>(readWaterLog)
   const [tab, setTab]         = useState<FoodTab>('today')
   const [sheetId, setSheetId] = useState<string | null>(null)
   const [toast, setToast]     = useState<Toast | null>(null)
 
-  // Persiste tizetrack_diet (o Início lê a meta de kcal daqui)
+  // Grava o plano escolhido — ou o deduzido do perfil — para o Início ler a meta de kcal
   useEffect(() => {
     if (!sex) return
-    const saved = readJSON<{ sex: DietSex; dailyKcal: number } | null>(DIET_KEY, null)
-    if (!saved || saved.sex !== sex) writeJSON(DIET_KEY, { sex, dailyKcal: DIET_KCAL[sex] })
+    if (readDietProfile()?.sex !== sex) saveDietProfile({ sex, dailyKcal: DIET_KCAL[sex] })
   }, [sex])
 
   // Aviso some sozinho
@@ -69,7 +60,7 @@ export default function FoodGuide({ profile, view, onViewChange }: Props) {
     return () => clearTimeout(t)
   }, [toast])
 
-  const today = toDateStr(new Date())
+  const today = todayStr()
   const day: DayLog = log[today] ?? EMPTY_DAY
   // Semanas de pouca fome duram dias: sem escolha hoje, herda o último modo usado
   const mode: AppetiteMode = day.mode ?? lastMode(log, today)
@@ -77,15 +68,14 @@ export default function FoodGuide({ profile, view, onViewChange }: Props) {
   const diet        = sex === 'M' ? DIET_M : DIET_F
   const dailyKcal   = sex ? DIET_KCAL[sex] : DIET_KCAL.F
   const mealProtein = MEAL_PROTEIN[sex ?? 'F']
-  const currentW    = profile.weightHistory.at(-1)?.weight ?? profile.currentWeight ?? profile.startWeight
+  const currentW    = getCurrentWeight(profile)
   const goalMl      = waterGoalMl(currentW)
   const liters      = (mlPerKg: number) => (currentW * mlPerKg / 1000).toLocaleString('pt-BR', { minimumFractionDigits: 1, maximumFractionDigits: 1 })
   const waterRange  = `${liters(35)}–${liters(40)} L`
   const required    = diet.filter(m => m.required).map(m => m.id)
 
   // Sintoma de apetite mais forte da semana, para sugerir o modo "Pouca fome"
-  const week        = profile.sideEffects?.find(e => e.date === getMondayOf(new Date()))
-  const appetiteSym = week?.symptoms
+  const appetiteSym = weekSideEffects(profile)?.symptoms
     .filter(s => s.intensity > 0 && APPETITE_SYMPTOMS[s.id])
     .sort((a, b) => b.intensity - a.intensity)[0]
 
@@ -93,7 +83,7 @@ export default function FoodGuide({ profile, view, onViewChange }: Props) {
   function saveDay(next: DayLog) {
     setLog(prev => {
       const updated = { ...prev, [today]: next }
-      writeJSON(LOG_KEY, updated)
+      saveFoodLog(updated)
       return updated
     })
   }
@@ -101,7 +91,7 @@ export default function FoodGuide({ profile, view, onViewChange }: Props) {
   function saveWater(entries: number[]) {
     setWater(prev => {
       const updated = { ...prev, [today]: entries }
-      writeJSON(WATER_KEY, updated)
+      saveWaterLog(updated)
       return updated
     })
     notifyRemindersChanged()
@@ -162,11 +152,6 @@ export default function FoodGuide({ profile, view, onViewChange }: Props) {
     notify(`+${formatMl(ml)} ml de água`, () => saveWater(before))
   }
 
-  function selectSex(s: DietSex) {
-    setSex(s)
-    writeJSON(DIET_KEY, { sex: s, dailyKcal: DIET_KCAL[s] })
-  }
-
   // ── Seletor de plano ────────────────────────────────────────────────────────
   // A hidratação não depende do plano: o widget do Início abre direto nela
   if (!sex && view !== 'hydration') {
@@ -178,7 +163,7 @@ export default function FoodGuide({ profile, view, onViewChange }: Props) {
         </div>
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
           {(['F', 'M'] as DietSex[]).map(s => (
-            <button key={s} onClick={() => selectSex(s)} className="meal-row" style={{
+            <button key={s} onClick={() => setSex(s)} className="meal-row" style={{
               padding: '24px 16px', borderRadius: '20px', border: 'none', cursor: 'pointer',
               background: 'var(--g-hero)', color: '#fff', textAlign: 'center',
               boxShadow: '0 8px 28px rgba(var(--shadow-rgb),0.28), inset 0 1px 0 rgba(255,255,255,0.08)',
@@ -228,9 +213,19 @@ export default function FoodGuide({ profile, view, onViewChange }: Props) {
             symptomHint={appetiteSym ? APPETITE_SYMPTOMS[appetiteSym.id] : null}
             mealProtein={mealProtein}
             protein={dayProtein(day, mealProtein)} proteinGoal={goal}
-            kcal={dayKcal(day, dailyKcal, MEAL_SHARES)} dailyKcal={dailyKcal}
+            kcal={dayKcal(day, dailyKcal)} dailyKcal={dailyKcal}
             waterMl={waterTotal(water[today])} waterGoalMl={goalMl}
             mealDoneDays={mealDays(log, required)}
+            weekStats={getWeekDays().map(d => {
+              const ds = toDateStr(d)
+              const l  = log[ds]
+              return {
+                date: ds,
+                protein: l ? dayProtein(l, mealProtein) : 0,
+                mealsDone: l ? required.filter(id => l.meals.includes(id)).length : 0,
+              }
+            })}
+            requiredCount={required.length}
             onOpenMeal={setSheetId}
             onAddExtra={addExtra} onRemoveExtra={removeExtra}
             onAddWater={addWater} onOpenHydration={() => onViewChange('hydration')}

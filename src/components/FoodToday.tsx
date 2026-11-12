@@ -1,20 +1,27 @@
 import { useState } from 'react'
 import { Plus, X, Check, Droplets, ChevronRight, Lightbulb, Utensils } from 'lucide-react'
-import WeekCard from './WeekCard'
 import {
-  type MealSection, type QuickExtra, APPETITE_MODES, MEAL_WINDOW, QUICK_EXTRAS, WATER_QUICK_ADD, mealsForMode,
+  type AppetiteMode, type MealSection, type QuickExtra,
+  APPETITE_MODES, MEAL_WINDOW, QUICK_EXTRAS, WATER_QUICK_ADD, mealsForMode,
 } from '../data/foodPlans'
 import {
-  type AppetiteMode, type DayLog, type ManualItem,
+  type DayLog, type ManualItem,
   formatMl, formatHour, proteinTip, countThisWeek, calcDayStreak,
 } from '../utils/foodUtils'
 import { alpha } from '../utils/color'
-import { ProteinRing, DarkMeter, Segmented, SectionLabel, ProteinChip } from './FoodShared'
+import { ProteinRing, Segmented, SectionLabel, ProteinChip } from './FoodShared'
+import { HeroCard, HeroEyebrow, DarkMeter, WeekStrip, type StripDay } from './HeroShared'
 
 const FONT = 'Inter, -apple-system, sans-serif'
 
 // 2950 → "2,95" · 1200 → "1,2"
 const liters = (ml: number) => (ml / 1000).toLocaleString('pt-BR', { maximumFractionDigits: 2 })
+
+export interface WeekDayStat {
+  date: string       // AAAA-MM-DD
+  protein: number    // g registrados no dia
+  mealsDone: number  // refeições principais marcadas
+}
 
 interface Props {
   diet: MealSection[]
@@ -30,6 +37,8 @@ interface Props {
   waterMl: number
   waterGoalMl: number
   mealDoneDays: string[]
+  weekStats: WeekDayStat[]          // dom–sáb da semana atual
+  requiredCount: number
   onOpenMeal: (id: string) => void
   onAddExtra: (item: Omit<ManualItem, 'id'>) => void
   onRemoveExtra: (id: string) => void
@@ -55,25 +64,31 @@ export default function FoodToday(p: Props) {
   const week     = countThisWeek(p.mealDoneDays)
   const streak   = calcDayStreak(p.mealDoneDays)
 
+  // Semana no card: anel = proteína × meta · ✓ = todas as refeições principais
+  const stripDays: StripDay[] = p.weekStats.map(s => {
+    const complete = p.requiredCount > 0 && s.mealsDone >= p.requiredCount
+    return {
+      date: s.date,
+      pct: p.proteinGoal > 0 ? s.protein / p.proteinGoal : 0,
+      complete,
+      mark: !complete && s.protein > 0 ? String(s.protein) : undefined,
+      summary: s.protein > 0 || s.mealsDone > 0
+        ? `${s.protein} g de proteína · ${s.mealsDone} de ${p.requiredCount} principais`
+        : 'Nada registrado neste dia',
+      ariaLabel: `${s.protein} gramas de proteína, ${s.mealsDone} de ${p.requiredCount} refeições principais`,
+    }
+  })
+
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
 
       {/* ── Resumo do dia ─────────────────────────────────────────────── */}
-      <div style={{
-        background: 'var(--g-hero)', borderRadius: '22px', padding: '18px 18px 16px', color: '#fff',
-        boxShadow: '0 6px 20px rgba(var(--shadow-rgb),0.28), 0 1px 3px rgba(var(--shadow-rgb),0.12)',
-        position: 'relative', overflow: 'hidden',
-      }}>
-        <div style={{ position: 'absolute', top: '-28px', right: '-28px', width: '120px', height: '120px', borderRadius: '50%', background: 'rgba(255,255,255,0.06)', pointerEvents: 'none' }} />
-        <div style={{ position: 'absolute', bottom: '-20px', left: '30%', width: '70px', height: '70px', borderRadius: '50%', background: 'rgba(255,255,255,0.03)', pointerEvents: 'none' }} />
-
+      <HeroCard>
         <div style={{ display: 'flex', alignItems: 'center', gap: '18px', position: 'relative' }}>
           <ProteinRing value={p.protein} goal={p.proteinGoal} />
           <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: '12px' }}>
             <div>
-              <p style={{ fontSize: '10px', fontWeight: 700, color: '#fff', opacity: 0.8, margin: 0, textTransform: 'uppercase', letterSpacing: '0.1em' }}>
-                Proteína de hoje
-              </p>
+              <HeroEyebrow>Proteína de hoje</HeroEyebrow>
               <p style={{ fontSize: '15px', fontWeight: 800, color: '#fff', margin: '2px 0 0', letterSpacing: '-0.3px' }}>
                 {p.protein >= p.proteinGoal ? 'Meta batida' : `Faltam ${p.proteinGoal - p.protein} g`}
               </p>
@@ -83,12 +98,16 @@ export default function FoodToday(p: Props) {
           </div>
         </div>
 
-        <div style={{ marginTop: '14px', paddingTop: '12px', borderTop: '1px solid rgba(255,255,255,0.14)', position: 'relative' }}>
-          <p style={{ fontSize: '12px', fontWeight: 600, color: '#fff', margin: 0, lineHeight: 1.45 }}>
-            {proteinTip(p.protein, p.proteinGoal, hour)}
-          </p>
-        </div>
-      </div>
+        <p style={{ fontSize: '12px', fontWeight: 600, color: '#fff', margin: '14px 0 0', lineHeight: 1.45, position: 'relative' }}>
+          {proteinTip(p.protein, p.proteinGoal, hour)}
+        </p>
+
+        <WeekStrip
+          days={stripDays}
+          headline={{ value: week, text: ' de 7 completos' }}
+          streak={streak} streakLabel="dias seguidos"
+        />
+      </HeroCard>
 
       {/* ── Fome do dia ───────────────────────────────────────────────── */}
       <div className="card" style={{ padding: '14px', display: 'flex', flexDirection: 'column', gap: '10px' }}>
@@ -171,21 +190,6 @@ export default function FoodToday(p: Props) {
           ))}
         </div>
       </div>
-
-      {/* ── Semana ────────────────────────────────────────────────────── */}
-      <WeekCard title="Semana de refeições" done={p.mealDoneDays} doneLabel="refeições principais registradas" pendingLabel="refeições principais em aberto">
-        <p style={{ fontSize: '11px', color: 'var(--text-muted)', margin: 0 }}>
-          <span style={{ fontWeight: 700, color: 'var(--text-primary)' }}>{week}</span>
-          {week === 1 ? ' dia completo' : ' dias completos'} essa semana
-          {streak > 1 && (
-            <>
-              {' · '}
-              <span style={{ fontWeight: 700, color: 'var(--teal-d)' }}>{streak}</span>
-              {' dias seguidos'}
-            </>
-          )}
-        </p>
-      </WeekCard>
     </div>
   )
 }

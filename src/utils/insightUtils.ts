@@ -1,12 +1,10 @@
 import { Tab, UserProfile, WEEK_DAYS_FULL } from '../types'
-import { getLog, calcStreak } from './applicationCalendarUtils'
-import { getAppsLeft, getDoseValue } from './medicationUtils'
-import { type WaterLog, waterGoalMl, waterTotal, waterDays, calcDayStreak, formatMl } from './foodUtils'
-import { type WorkoutPlan, readWorkoutPlan } from './reminderUtils'
-import { getMondayOf } from '../data/healthHubContent'
-import { toDateStr, addDays } from './dateUtils'
-import { readJSON } from './storage'
-import { STORAGE_KEYS } from './storageKeys'
+import { getLog, calcStreak, applicationWeek, isApplicationLate } from './applicationCalendarUtils'
+import { getAppsLeft, getDoseValue, isLowStock } from './medicationUtils'
+import { type WaterLog, waterGoalMl, waterTotal, waterDays, calcDayStreak, formatMl, readWaterLog } from './foodUtils'
+import { type WorkoutPlan, readWorkoutProfile, readWorkoutLog, getWorkoutPlan } from './exerciseUtils'
+import { getCurrentWeight, weekSideEffects } from './profileUtils'
+import { toDateStr, addDays, diffDays, getMondayOf, parseDay, weekdayOf } from './dateUtils'
 
 // Avisos do carrossel do Início. Diferente dos lembretes (reminderUtils), que
 // viram notificação num horário, estes olham o histórico de registros e o uso
@@ -42,8 +40,6 @@ export interface InsightContext {
 
 // Quantos avisos o carrossel mostra de uma vez
 export const MAX_INSIGHTS = 5
-// Aplicação atrasada só é cobrada nos 3 dias seguintes à data programada
-const LATE_APPLICATION_DAYS = 3
 // A partir de quantos dias sem pesagem o app sugere se pesar
 const WEIGH_GAP_DAYS = 8
 // Água de hoje: ritmo esperado entre 8h e 20h; só cobra a partir do meio-dia
@@ -54,12 +50,6 @@ const WATER_CHECK_FROM = 12 * 60
 const WATER_SLACK_ML = 250
 const WATER_LOOKBACK_DAYS = 14
 
-function diffDays(a: string, b: string): number {
-  return Math.round((new Date(a + 'T12:00:00').getTime() - new Date(b + 'T12:00:00').getTime()) / 864e5)
-}
-
-const weekdayOf = (day: string) => new Date(day + 'T12:00:00').getDay()
-const weekKeyOf = (day: string) => getMondayOf(new Date(day + 'T12:00:00'))
 const latest    = (days: string[]) => days.reduce((a, b) => (b > a ? b : a), '')
 const fmtKg     = (kg: number) => kg.toLocaleString('pt-BR', { maximumFractionDigits: 1 })
 const plural    = (n: number, one: string, many: string) => `${n} ${n === 1 ? one : many}`
@@ -67,7 +57,7 @@ const plural    = (n: number, one: string, many: string) => `${n} ${n === 1 ? on
 export function getInsights(ctx: InsightContext): Insight[] {
   const { today, profile } = ctx
   const dow = weekdayOf(today)
-  const weekKey = weekKeyOf(today)
+  const weekKey = getMondayOf(parseDay(today))
   const out: Insight[] = []
   const log  = getLog(profile)
   const dose = getDoseValue(profile)
@@ -75,9 +65,8 @@ export function getInsights(ctx: InsightContext): Insight[] {
   // ── Aplicação ──
   const appDay = profile.applicationDay
   if (appDay !== undefined) {
-    const offset        = (dow - appDay + 7) % 7 // dias desde a última data programada
-    const lastScheduled = addDays(today, -offset)
-    const doneSince     = log.some(d => d >= lastScheduled && d <= today)
+    const week          = applicationWeek(appDay, today, log)
+    const { offset, doneSince } = week
     const dayName       = WEEK_DAYS_FULL[appDay].toLowerCase()
     const streak        = calcStreak(new Set(log), appDay, today)
 
@@ -97,12 +86,9 @@ export function getInsights(ctx: InsightContext): Insight[] {
         title: 'Hoje é dia de aplicar',
         body: `${dose != null ? `Sua dose de ${fmtKg(dose)} mg` : 'Sua aplicação'} está programada para hoje. Depois de aplicar, marque no calendário.`,
       })
-    } else if (
-      offset > 0 && offset <= LATE_APPLICATION_DAYS && log.length > 0
-      && lastScheduled >= profile.startDate && !doneSince
-    ) {
+    } else if (isApplicationLate(week, log, profile.startDate)) {
       out.push({
-        id: `insight-application-late-${lastScheduled}`, kind: 'application', tone: 'warn', priority: 95,
+        id: `insight-application-late-${week.lastScheduled}`, kind: 'application', tone: 'warn', priority: 95,
         tab: 'dashboard', cta: 'Registrar aplicação',
         title: 'Aplicação sem registro',
         body: `A aplicação de ${dayName} ainda não foi marcada. Se já aplicou, registre para manter o histórico em dia.`,
@@ -131,7 +117,7 @@ export function getInsights(ctx: InsightContext): Insight[] {
 
   // ── Estoque ──
   const appsLeft = getAppsLeft(profile)
-  if (appsLeft != null && appsLeft < 4) {
+  if (appsLeft != null && isLowStock(appsLeft)) {
     out.push({
       id: `insight-stock-${weekKey}`, kind: 'stock', tone: 'warn', priority: appsLeft === 0 ? 92 : 85,
       tab: 'profile', section: 'stock', cta: 'Atualizar estoque',
@@ -146,7 +132,7 @@ export function getInsights(ctx: InsightContext): Insight[] {
   const lastApp = latest(log)
   if (lastApp) {
     const since = diffDays(today, lastApp)
-    const hasSymptoms = (profile.sideEffects ?? []).some(e => e.date === weekKey)
+    const hasSymptoms = !!weekSideEffects(profile, parseDay(today))
     if (since >= 1 && since <= 2 && !hasSymptoms) {
       out.push({
         id: `insight-symptoms-${lastApp}`, kind: 'symptoms', tone: 'info', priority: 70,
@@ -321,17 +307,16 @@ export function getInsights(ctx: InsightContext): Insight[] {
 // ── Leitura dos dados locais ─────────────────────────────────────────────────
 
 export function readInsightContext(profile: UserProfile, now = new Date()): InsightContext {
-  const weight = profile.weightHistory.at(-1)?.weight ?? profile.currentWeight ?? profile.startWeight
-  const wp     = readJSON<{ days: number } | null>(STORAGE_KEYS.workoutProfile, null)
-  const plan   = readWorkoutPlan()
+  const wp   = readWorkoutProfile()
+  const plan = getWorkoutPlan(wp)
   return {
     today: toDateStr(now),
     nowMin: now.getHours() * 60 + now.getMinutes(),
     profile,
     workoutTarget: wp && Object.keys(plan).length > 0 ? wp.days : null,
     workoutPlan: plan,
-    workoutLog: readJSON<string[]>(STORAGE_KEYS.workoutLog, []),
-    waterLog: readJSON<WaterLog>(STORAGE_KEYS.waterLog, {}),
-    waterGoalMl: waterGoalMl(weight),
+    workoutLog: readWorkoutLog(),
+    waterLog: readWaterLog(),
+    waterGoalMl: waterGoalMl(getCurrentWeight(profile)),
   }
 }

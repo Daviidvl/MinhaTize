@@ -2,6 +2,7 @@ import { useId } from 'react'
 import { Check, ChevronDown, Info } from 'lucide-react'
 import { type IconComp, type MealOption, PLATE_ORDER } from '../data/foodPlans'
 import { alpha } from '../utils/color'
+import { GoalRing } from './HeroShared'
 
 const FONT = 'Inter, -apple-system, sans-serif'
 
@@ -55,55 +56,17 @@ export function Segmented<T extends string>({
 
 // ── Anel de proteína (sobre fundo escuro) ─────────────────────────────────────
 export function ProteinRing({ value, goal, size = 108 }: { value: number; goal: number; size?: number }) {
-  const gid    = useId().replace(/:/g, '')
-  const stroke = 9
-  const r      = (size - stroke) / 2
-  const circ   = 2 * Math.PI * r
-  const pct    = goal > 0 ? Math.min(1, value / goal) : 0
-  const done   = value >= goal && goal > 0
-
+  const done = value >= goal && goal > 0
   return (
-    <div style={{ position: 'relative', width: size, height: size, flexShrink: 0 }}
-      role="img" aria-label={`Proteína: ${value} de ${goal} gramas`}>
-      <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`}>
-        <defs>
-          <linearGradient id={gid} x1="0" y1="0" x2="1" y2="1">
-            <stop offset="0%" stopColor="var(--sky)" />
-            <stop offset="100%" stopColor="var(--aqua)" />
-          </linearGradient>
-        </defs>
-        <circle cx={size / 2} cy={size / 2} r={r} fill="none" stroke="var(--track-on-dark)" strokeWidth={stroke} />
-        <circle cx={size / 2} cy={size / 2} r={r} fill="none" stroke={`url(#${gid})`} strokeWidth={stroke}
-          strokeLinecap="round" strokeDasharray={circ} strokeDashoffset={circ * (1 - pct)}
-          transform={`rotate(-90 ${size / 2} ${size / 2})`}
-          style={{ transition: 'stroke-dashoffset 0.9s var(--ease-smooth)' }}
-        />
-      </svg>
-      <div style={{ position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
-        {done
-          ? <Check size={20} strokeWidth={2.5} color="var(--aqua)" style={{ marginBottom: '1px' }} />
-          : null}
-        <p style={{ fontSize: done ? '20px' : '26px', fontWeight: 800, color: '#fff', margin: 0, lineHeight: 1, letterSpacing: '-0.8px' }}>
-          {value}<span style={{ fontSize: '12px', fontWeight: 700, marginLeft: '1px' }}>g</span>
-        </p>
-        <p style={{ fontSize: '10px', fontWeight: 600, color: '#fff', opacity: 0.8, margin: '3px 0 0' }}>de {goal} g</p>
-      </div>
-    </div>
-  )
-}
-
-// ── Mini barra sobre fundo escuro ─────────────────────────────────────────────
-export function DarkMeter({ label, value, pct }: { label: string; value: string; pct: number }) {
-  return (
-    <div>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', gap: '6px', marginBottom: '5px' }}>
-        <p style={{ fontSize: '10px', fontWeight: 700, color: '#fff', opacity: 0.8, margin: 0, textTransform: 'uppercase', letterSpacing: '0.08em' }}>{label}</p>
-        <p style={{ fontSize: '12px', fontWeight: 800, color: '#fff', margin: 0, whiteSpace: 'nowrap' }}>{value}</p>
-      </div>
-      <div style={{ height: '5px', borderRadius: '99px', background: 'var(--track-on-dark)', overflow: 'hidden' }}>
-        <div style={{ width: `${Math.min(100, pct)}%`, height: '100%', borderRadius: '99px', background: 'var(--g-ring)', transition: 'width 0.9s var(--ease-smooth)' }} />
-      </div>
-    </div>
+    <GoalRing pct={goal > 0 ? value / goal : 0} label={`Proteína: ${value} de ${goal} gramas`} size={size}>
+      {done
+        ? <Check size={20} strokeWidth={2.5} color="var(--aqua)" style={{ marginBottom: '1px' }} />
+        : null}
+      <p style={{ fontSize: done ? '20px' : '26px', fontWeight: 800, color: '#fff', margin: 0, lineHeight: 1, letterSpacing: '-0.8px' }}>
+        {value}<span style={{ fontSize: '12px', fontWeight: 700, marginLeft: '1px' }}>g</span>
+      </p>
+      <p style={{ fontSize: '10px', fontWeight: 600, color: '#fff', opacity: 0.8, margin: '3px 0 0' }}>de {goal} g</p>
+    </GoalRing>
   )
 }
 

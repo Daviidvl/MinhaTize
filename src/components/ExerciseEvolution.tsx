@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { TrendingDown, CalendarDays, Lightbulb, Check } from 'lucide-react'
 import { UserProfile } from '../types'
-import { daysSince } from '../utils/dashboardUtils'
+import { getWeightProgress, protocolDays } from '../utils/profileUtils'
 import {
   DAY_FULL, calcStreak, calcBestStreak, getFavoriteDay, getWeeklyStats, getEvolutionInsight,
 } from '../utils/exerciseUtils'
@@ -26,14 +26,8 @@ export default function ExerciseEvolution({ profile, workoutLog, target }: Props
 
   // ── Peso ──────────────────────────────────────────────────────────────────
   const firstWeight = profile.startWeight
-  const lastWeight  = profile.weightHistory.at(-1)?.weight ?? profile.currentWeight ?? firstWeight
-  const totalLost   = firstWeight - lastWeight
-  const toGoal      = lastWeight - profile.goalWeight
-  const hasGoal     = profile.startWeight !== profile.goalWeight
-  const pct         = hasGoal
-    ? Math.min(100, Math.max(0, (totalLost / (profile.startWeight - profile.goalWeight)) * 100))
-    : 0
-  const protocolWeeks = Math.floor(daysSince(profile.startDate) / 7)
+  const { lost: totalLost, toGoal, hasGoal, pct } = getWeightProgress(profile)
+  const protocolWeeks = Math.floor(protocolDays(profile) / 7)
   const pace          = protocolWeeks >= 1 && totalLost > 0 ? totalLost / protocolWeeks : null
 
   // ── Treino ────────────────────────────────────────────────────────────────

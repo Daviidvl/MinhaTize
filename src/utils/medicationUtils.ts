@@ -34,6 +34,19 @@ export function getAppsLeft(profile: UserProfile): number | null {
   return Math.floor(profile.stock.amouleMg / dose) * profile.stock.ampouleCount
 }
 
+// Menos que isto é "estoque baixo" — o mesmo limite no Início, no Perfil, nos
+// avisos e nas notificações
+export const LOW_STOCK_APPS = 4
+
+export function isLowStock(appsLeft: number | null): boolean {
+  return appsLeft != null && appsLeft < LOW_STOCK_APPS
+}
+
+// Aplicações semanais → meses aproximados de tratamento
+export function stockMonths(appsLeft: number): number {
+  return Math.round(appsLeft / 4)
+}
+
 // Deriva o modo de edição de dose (grade fixa / manual / desconhecida) a partir
 // de um perfil já salvo, para inicializar formulários de edição.
 export function resolveDoseMode(profile: UserProfile): { mode: DoseMode; fixedValue: number; customValue: string } {

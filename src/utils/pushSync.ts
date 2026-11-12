@@ -98,7 +98,7 @@ function hash(text: string): string {
 
 interface SyncMark { sig: string; at: number }
 
-export function buildScheduleForDevice(
+function buildScheduleForDevice(
   profile: UserProfile, state: ReminderState, now = new Date(),
 ): PushScheduleItem[] {
   const ctx = readReminderContext(profile, now)

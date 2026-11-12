@@ -1,5 +1,6 @@
 import { Check, Flame } from 'lucide-react'
-import { DAY_INITIALS, DAY_FULL, toDateStr, getWeekDays } from '../utils/exerciseUtils'
+import { DAY_INITIALS, DAY_FULL } from '../utils/exerciseUtils'
+import { toDateStr, getWeekDays } from '../utils/dateUtils'
 
 interface Props {
   title: string

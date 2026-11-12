@@ -1,23 +1,18 @@
-import { useState, type ReactNode, type CSSProperties } from 'react'
-import { Package, AlertTriangle, ChevronRight, Moon, Zap, Search, ShoppingBag, Cross, Target, GlassWater, Check } from 'lucide-react'
+import { Package, AlertTriangle, ChevronRight, Zap, Search, ShoppingBag, Cross, Target } from 'lucide-react'
 import { UserProfile, Tab } from '../types'
 import ApplicationCalendar from './ApplicationCalendar'
-import { calcIMC, imcLabel } from '../utils/bmiUtils'
-import { readJSON, writeJSON } from '../utils/storage'
-import { alpha } from '../utils/color'
-import { STORAGE_KEYS } from '../utils/storageKeys'
-import { getAppsLeft, getDoseValue, getMedicationLabel } from '../utils/medicationUtils'
-import { getPlateauStatus, getPlateauStatusMeta } from '../utils/plateauUtils'
-import {
-  daysSince, getGreeting, getFormattedDate, DOSE_PHASE, getMotivation, getCalorieStatus,
-  SPLIT_INFO, WORKOUT_SCHEDULE, LEVEL_LABEL, getMealNow,
-} from '../utils/dashboardUtils'
-import { toDateStr } from '../utils/exerciseUtils'
-import { type WaterLog, waterGoalMl, waterTotal, formatMl } from '../utils/foodUtils'
-import { WATER_QUICK_ADD } from '../data/foodPlans'
+import { WorkoutWidget, MealWidget, WaterWidget, StatTile } from './DashboardWidgets'
 import InsightsCarousel from './InsightsCarousel'
 import PushPrompt, { PUSH_PROMPT_ID } from './PushPrompt'
-import { notifyRemindersChanged } from '../utils/reminderUtils'
+import { LibraryWidget } from './Library'
+import { calcIMC, imcLabel } from '../utils/bmiUtils'
+import { alpha } from '../utils/color'
+import { getAppsLeft, getDoseValue, getMedicationLabel, isLowStock, stockMonths } from '../utils/medicationUtils'
+import { getPlateauStatus, getPlateauStatusMeta } from '../utils/plateauUtils'
+import { getGreeting, getFormattedDate, DOSE_PHASE, getMotivation } from '../utils/dashboardUtils'
+import { getWeightProgress, protocolDays } from '../utils/profileUtils'
+import { lastApplicationDate } from '../utils/applicationCalendarUtils'
+import { diffDays, todayStr } from '../utils/dateUtils'
 import { type Insight, getInsights, readInsightContext, MAX_INSIGHTS } from '../utils/insightUtils'
 
 interface Props {
@@ -30,387 +25,24 @@ interface Props {
   pushPromptDismissed?: boolean
 }
 
-// ── Widget de Treino ──────────────────────────────────────────────────────────
-function WorkoutWidget({ onNavigate }: { onNavigate: (t: Tab, s?: string) => void }) {
-  const wp   = readJSON<{ sex: string; days: number; level: string } | null>(STORAGE_KEYS.workoutProfile, null)
-  const wLog = readJSON<string[]>(STORAGE_KEYS.workoutLog, [])
-
-  const key      = wp ? `${wp.days}_${wp.sex}` : ''
-  const splits   = SPLIT_INFO[key]
-  const today    = new Date()
-  const todayDay = today.getDay()
-  const todayStr = toDateStr(today)
-  const schedule = wp ? (WORKOUT_SCHEDULE[wp.days] ?? []) : []
-  const idx      = schedule.indexOf(todayDay)
-  const workout  = splits && idx !== -1 ? splits[idx] : null
-  const isRest   = !!wp && !!splits && idx === -1
-  const noData   = !wp || !splits
-
-  const monday = new Date(today)
-  monday.setDate(today.getDate() - ((todayDay + 6) % 7))
-  const weekDots = Array.from({ length: 7 }, (_, i) => {
-    const d = new Date(monday); d.setDate(monday.getDate() + i)
-    const ds = toDateStr(d)
-    return { ds, isToday: ds === todayStr, done: wLog.includes(ds) }
-  })
-  const weekDone = weekDots.filter(d => d.done).length
-
-  if (noData) {
-    return (
-      <button onClick={() => onNavigate('health', 'exercise')} style={{
-        display: 'flex', flexDirection: 'column', justifyContent: 'space-between', gap: '12px',
-        padding: '16px', borderRadius: '20px', textAlign: 'left', cursor: 'pointer',
-        background: 'var(--surface)', border: '1.5px dashed var(--border-strong)',
-        boxShadow: 'var(--shadow-card)', fontFamily: 'Inter, -apple-system, sans-serif',
-        minHeight: '136px', transition: 'transform 0.15s, box-shadow 0.2s',
-      }}>
-        <p style={{ fontSize: '9px', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.10em', margin: 0 }}>Treino Hoje</p>
-        <div>
-          <p style={{ fontSize: '13px', fontWeight: 800, color: 'var(--text-primary)', margin: '0 0 3px', letterSpacing: '-0.3px' }}>Configurar treino</p>
-          <p style={{ fontSize: '10px', color: 'var(--text-muted)', margin: 0 }}>Saúde → Exercícios</p>
-        </div>
-        <ChevronRight size={14} strokeWidth={2} color="var(--text-muted)" />
-      </button>
-    )
-  }
-
-  const bgGradient = 'var(--g-hero)'
-
-  return (
-    <button
-      onClick={() => onNavigate('health', 'exercise')}
-      style={{
-        display: 'flex', flexDirection: 'column', gap: '12px',
-        padding: '16px', borderRadius: '20px', textAlign: 'left', cursor: 'pointer',
-        background: bgGradient, border: 'none',
-        boxShadow: isRest
-          ? '0 6px 20px rgba(var(--shadow-rgb),0.2), 0 1px 3px rgba(var(--shadow-rgb),0.12)'
-          : '0 6px 20px rgba(var(--shadow-rgb),0.28), 0 1px 3px rgba(var(--shadow-rgb),0.12)',
-        fontFamily: 'Inter, -apple-system, sans-serif',
-        color: '#fff', transition: 'transform 0.15s ease, box-shadow 0.2s ease',
-        position: 'relative', overflow: 'hidden',
-      }}
-    >
-      <div style={{ position: 'absolute', top: '-24px', right: '-24px', width: '90px', height: '90px', borderRadius: '50%', background: 'rgba(255,255,255,0.06)', pointerEvents: 'none' }} />
-      <div style={{ position: 'absolute', bottom: '-16px', left: '-8px', width: '64px', height: '64px', borderRadius: '50%', background: 'rgba(255,255,255,0.03)', pointerEvents: 'none' }} />
-
-      <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', position: 'relative' }}>
-        {/* Cabeçalho */}
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-          <p style={{ fontSize: '9px', fontWeight: 700, opacity: 0.45, textTransform: 'uppercase', letterSpacing: '0.12em', margin: 0 }}>
-            Treino Hoje
-          </p>
-          <ChevronRight size={11} strokeWidth={2.5} color="rgba(255,255,255,0.30)" />
-        </div>
-
-        {/* Badge + nome */}
-        <div style={{ display: 'flex', alignItems: 'flex-start', gap: '10px' }}>
-          <div style={{
-            width: '36px', height: '36px', borderRadius: '10px', flexShrink: 0,
-            background: isRest ? 'rgba(255,255,255,0.07)' : 'rgba(255,255,255,0.14)',
-            border: `1px solid ${isRest ? 'rgba(255,255,255,0.10)' : 'rgba(255,255,255,0.16)'}`,
-            display: 'flex', alignItems: 'center', justifyContent: 'center',
-          }}>
-            {isRest
-              ? <Moon size={15} strokeWidth={2} color="rgba(255,255,255,0.50)" />
-              : <span style={{ fontSize: '16px', fontWeight: 900, color: '#fff', lineHeight: 1 }}>{workout!.label}</span>
-            }
-          </div>
-          <div style={{ flex: 1, minWidth: 0 }}>
-            <p style={{ fontSize: '13px', fontWeight: 800, color: '#fff', margin: '0 0 2px', letterSpacing: '-0.3px', lineHeight: 1.2 }}>
-              {isRest ? 'Descanso' : workout!.name.includes(' + ') ? workout!.name.split(' + ')[0] : workout!.name}
-            </p>
-            {!isRest && workout!.name.includes(' + ') && (
-              <p style={{ fontSize: '10px', fontWeight: 600, color: 'rgba(255,255,255,0.90)', margin: '0 0 1px', lineHeight: 1.2 }}>
-                + {workout!.name.split(' + ').slice(1).join(' + ')}
-              </p>
-            )}
-            <p style={{ fontSize: '9px', opacity: 0.38, margin: 0 }}>
-              {isRest ? 'Recuperação ativa' : `${wp!.days}×/sem · ${LEVEL_LABEL[wp!.level] ?? wp!.level}`}
-            </p>
-          </div>
-        </div>
-
-        {/* Barra semanal */}
-        <div>
-          <div style={{ display: 'flex', gap: '3px', marginBottom: '5px' }}>
-            {weekDots.map((d, i) => (
-              <div key={i} style={{
-                flex: 1, height: '3px', borderRadius: '99px',
-                background: d.done
-                  ? 'var(--g-ring)'
-                  : d.isToday ? 'var(--track-on-dark)' : 'rgba(255,255,255,0.07)',
-                outline: d.isToday ? '1.5px solid rgba(255,255,255,0.35)' : 'none',
-                outlineOffset: '1.5px',
-                transition: 'background 0.3s',
-              }} />
-            ))}
-          </div>
-          <p style={{ fontSize: '9px', opacity: 0.38, margin: 0, fontWeight: 600 }}>
-            {weekDone}/{wp!.days} treinos esta semana
-          </p>
-        </div>
-      </div>
-    </button>
-  )
-}
-
-// ── Widget de Refeição ────────────────────────────────────────────────────────
-function MealWidget({ profile, onNavigate }: { profile: UserProfile; onNavigate: (t: Tab, s?: string) => void }) {
-  const dietProfile = readJSON<{ sex: string; dailyKcal: number } | null>(STORAGE_KEYS.dietProfile, null)
-
-  const dietSex             = (dietProfile?.sex ?? (profile.sex === 'female' ? 'F' : 'M')) as 'M' | 'F'
-  const dietSet             = !!dietProfile
-  const { slot, isCurrent } = getMealNow()
-  const kcal                = getCalorieStatus()
-
-  const pct      = kcal?.pct ?? 0
-  const consumed = kcal?.consumed ?? 0
-  const target   = kcal?.target ?? dietProfile?.dailyKcal ?? 0
-  const arcR     = 18
-  const arcCirc  = 2 * Math.PI * arcR
-  const arcOff   = arcCirc * (1 - pct / 100)
-  const arcClr   = 'url(#ring-agora)'
-  const sub      = (dietSex === 'F' ? slot.sub_F : slot.sub_M).split(' · ')[0].trim()
-
-  if (!dietSet) {
-    return (
-      <button onClick={() => onNavigate('health', 'food')} style={{
-        display: 'flex', flexDirection: 'column', justifyContent: 'space-between', gap: '12px',
-        padding: '16px', borderRadius: '20px', textAlign: 'left', cursor: 'pointer',
-        background: 'var(--surface)', border: '1.5px dashed var(--border-strong)',
-        boxShadow: 'var(--shadow-card)', fontFamily: 'Inter, -apple-system, sans-serif',
-        minHeight: '136px', transition: 'transform 0.15s, box-shadow 0.2s',
-      }}>
-        <p style={{ fontSize: '9px', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.10em', margin: 0 }}>Alimentação</p>
-        <div>
-          <p style={{ fontSize: '13px', fontWeight: 800, color: 'var(--text-primary)', margin: '0 0 3px', letterSpacing: '-0.3px' }}>Configurar plano</p>
-          <p style={{ fontSize: '10px', color: 'var(--text-muted)', margin: 0 }}>Saúde → Alimentação</p>
-        </div>
-        <ChevronRight size={14} strokeWidth={2} color="var(--text-muted)" />
-      </button>
-    )
-  }
-
-  return (
-    <button
-      onClick={() => onNavigate('health', 'food')}
-      style={{
-        display: 'flex', flexDirection: 'column', gap: '12px',
-        padding: '16px', borderRadius: '20px', textAlign: 'left', cursor: 'pointer',
-        background: 'var(--g-hero)',
-        border: 'none',
-        boxShadow: '0 6px 20px rgba(var(--shadow-rgb),0.28), 0 1px 3px rgba(var(--shadow-rgb),0.12)',
-        fontFamily: 'Inter, -apple-system, sans-serif',
-        color: '#fff', transition: 'transform 0.15s ease, box-shadow 0.2s ease',
-        position: 'relative', overflow: 'hidden',
-      }}
-    >
-      <div style={{ position: 'absolute', top: '-24px', right: '-24px', width: '90px', height: '90px', borderRadius: '50%', background: 'rgba(255,255,255,0.06)', pointerEvents: 'none' }} />
-      <div style={{ position: 'absolute', bottom: '-16px', left: '-8px', width: '64px', height: '64px', borderRadius: '50%', background: 'rgba(255,255,255,0.03)', pointerEvents: 'none' }} />
-
-      <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', position: 'relative' }}>
-        {/* Cabeçalho */}
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-          <p style={{ fontSize: '9px', fontWeight: 700, opacity: 0.45, textTransform: 'uppercase', letterSpacing: '0.12em', margin: 0 }}>
-            {isCurrent ? 'Agora' : 'Próxima refeição'}
-          </p>
-          <ChevronRight size={11} strokeWidth={2.5} color="rgba(255,255,255,0.30)" />
-        </div>
-
-        {/* Refeição + arco */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-          <div style={{ flex: 1, minWidth: 0 }}>
-            <p style={{ fontSize: '13px', fontWeight: 800, color: '#fff', margin: '0 0 2px', letterSpacing: '-0.3px', lineHeight: 1.2 }}>
-              {slot.label}
-            </p>
-            <p style={{ fontSize: '10px', opacity: 0.50, margin: 0, fontWeight: 500 }}>{sub}</p>
-          </div>
-          <div style={{ position: 'relative', flexShrink: 0, width: '44px', height: '44px' }}>
-            <svg width="44" height="44" viewBox="0 0 44 44">
-              <defs>
-                <linearGradient id="ring-agora" x1="0" y1="0" x2="1" y2="1">
-                  <stop offset="0%" stopColor="var(--sky)" />
-                  <stop offset="100%" stopColor="var(--aqua)" />
-                </linearGradient>
-              </defs>
-              <circle cx="22" cy="22" r={arcR} fill="none" stroke="var(--track-on-dark)" strokeWidth="4" />
-              <circle cx="22" cy="22" r={arcR} fill="none" stroke={arcClr} strokeWidth="4"
-                strokeLinecap="round"
-                strokeDasharray={arcCirc}
-                strokeDashoffset={arcOff}
-                transform="rotate(-90 22 22)"
-                style={{ transition: 'stroke-dashoffset 0.9s cubic-bezier(0.22,1,0.36,1)' }}
-              />
-            </svg>
-            <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-              <p style={{ fontSize: '9px', fontWeight: 800, margin: 0, lineHeight: 1, opacity: 0.92 }}>{pct}%</p>
-            </div>
-          </div>
-        </div>
-
-        {/* Progresso kcal */}
-        <div>
-          <div style={{ background: 'var(--track-on-dark)', borderRadius: '99px', height: '3px', overflow: 'hidden', marginBottom: '5px' }}>
-            <div style={{
-              width: `${pct}%`, height: '100%',
-              background: 'var(--g-ring)',
-              borderRadius: '99px', transition: 'width 0.9s cubic-bezier(0.22,1,0.36,1)',
-            }} />
-          </div>
-          <p style={{ fontSize: '9px', opacity: 0.38, margin: 0, fontWeight: 600 }}>
-            {consumed} / {target} kcal hoje
-          </p>
-        </div>
-      </div>
-    </button>
-  )
-}
-
-// ── Widget de Água ────────────────────────────────────────────────────────────
-function WaterWidget({ weight, onNavigate }: { weight: number; onNavigate: (t: Tab, s?: string) => void }) {
-  const today = toDateStr(new Date())
-  const [log, setLog] = useState<WaterLog>(() => readJSON(STORAGE_KEYS.waterLog, {}))
-
-  const goal  = waterGoalMl(weight)
-  const total = waterTotal(log[today])
-  const pct   = Math.min(100, Math.round((total / goal) * 100))
-
-  function add(ml: number) {
-    const updated = { ...log, [today]: [...(log[today] ?? []), ml] }
-    setLog(updated)
-    writeJSON(STORAGE_KEYS.waterLog, updated)
-    notifyRemindersChanged()
-  }
-
-  return (
-    <div style={{
-      borderRadius: '22px', padding: '14px 18px',
-      background: 'var(--g-water), var(--surface)',
-      boxShadow: 'inset 0 0 0 1px var(--line), var(--shadow-card)',
-      fontFamily: 'Inter, -apple-system, sans-serif',
-    }}>
-      {/* Resumo: abre a tela de Hidratação */}
-      <button
-        onClick={() => onNavigate('health', 'food:hydration')}
-        aria-label="Abrir hidratação"
-        style={{ display: 'block', width: '100%', background: 'none', border: 'none', padding: 0, cursor: 'pointer', textAlign: 'left', fontFamily: 'inherit' }}
-      >
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '12px' }}>
-          <div style={{ minWidth: 0 }}>
-            {/* Texto em --ink: o --ink-2 perde contraste sobre o azul do degradê */}
-            <p style={{ fontSize: '9px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.10em', margin: '0 0 5px', color: 'var(--ink)', opacity: 0.8 }}>
-              Água hoje
-            </p>
-            <p className="num-display" style={{ fontSize: '30px', color: 'var(--ink)', margin: '0 0 2px' }}>
-              {formatMl(total)}
-              <span style={{ fontSize: '13px', fontWeight: 600, opacity: 0.75, marginLeft: '5px', letterSpacing: '0.02em' }}>ml</span>
-            </p>
-            <p style={{ fontSize: '11px', fontWeight: 600, margin: 0, display: 'flex', alignItems: 'center', gap: '4px', color: 'var(--ink)', opacity: total >= goal ? 1 : 0.8 }}>
-              {total >= goal
-                ? <><Check size={12} strokeWidth={2.5} style={{ flexShrink: 0, color: 'var(--teal-d)' }} />Meta de {formatMl(goal)} ml atingida</>
-                : `de ${formatMl(goal)} ml · faltam ${formatMl(goal - total)} ml`}
-            </p>
-          </div>
-          <div style={{
-            width: '40px', height: '40px', borderRadius: '12px', flexShrink: 0,
-            background: 'var(--surface)', border: '1px solid var(--line)',
-            display: 'flex', alignItems: 'center', justifyContent: 'center',
-          }}>
-            <GlassWater size={19} strokeWidth={1.75} color="var(--cobalt)" />
-          </div>
-        </div>
-
-        <div style={{ background: 'var(--surface)', borderRadius: '99px', height: '4px', overflow: 'hidden', margin: '10px 0' }}>
-          <div style={{
-            width: `${pct}%`, height: '100%',
-            background: 'var(--g-progress)',
-            borderRadius: '99px', transition: 'width 0.9s cubic-bezier(0.22,1,0.36,1)',
-          }} />
-        </div>
-      </button>
-
-      {/* Registro rápido */}
-      <div style={{ display: 'flex', gap: '8px' }}>
-        {WATER_QUICK_ADD.map(q => (
-          <button
-            key={q.ml}
-            onClick={() => add(q.ml)}
-            aria-label={`Registrar ${q.ml} ml de água`}
-            className="meal-row"
-            style={{
-              flex: 1, minHeight: '34px', padding: '6px 4px', borderRadius: '10px', cursor: 'pointer',
-              display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '5px',
-              background: 'var(--surface)', border: '1px solid var(--line)',
-              color: 'var(--cobalt)', fontSize: '12px', fontWeight: 800, fontFamily: 'inherit',
-            }}
-          >
-            <q.Icon size={14} strokeWidth={2} />
-            +{q.ml} ml
-          </button>
-        ))}
-      </div>
-    </div>
-  )
-}
-
-// ── Tile de Stat ──────────────────────────────────────────────────────────────
-function StatTile({
-  label, value, unit, sub, subColor, icon, style,
-}: {
-  label: string
-  value: string | number
-  unit?: string
-  sub?: string
-  subColor?: string
-  icon?: ReactNode
-  style?: CSSProperties
-}) {
-  return (
-    <div className="stat-card" style={{ position: 'relative', overflow: 'hidden', ...style }}>
-      {icon && (
-        <div style={{ position: 'absolute', top: '14px', right: '14px', opacity: 0.12 }}>
-          {icon}
-        </div>
-      )}
-      <p className="label-base" style={{ marginBottom: '8px' }}>{label}</p>
-      <p className="num-display" style={{ fontSize: '28px', color: 'var(--text-primary)', margin: 0 }}>
-        {value}
-        {unit && <span style={{ fontSize: '13px', fontWeight: 600, color: 'var(--text-muted)', marginLeft: '3px', letterSpacing: '0' }}>{unit}</span>}
-      </p>
-      {sub && (
-        <p style={{ fontSize: '11px', marginTop: '6px', fontWeight: 700, color: subColor ?? 'var(--primary)', margin: '6px 0 0' }}>
-          {sub}
-        </p>
-      )}
-    </div>
-  )
-}
-
 // ── Componente principal ──────────────────────────────────────────────────────
 export default function Dashboard({ profile, onNavigate, onUpdateProfile, isDismissed = () => false, onDismissReminder = () => {}, pushPromptDismissed = true }: Props) {
-  const lastWeight  = profile.weightHistory.at(-1)?.weight ?? profile.currentWeight ?? profile.startWeight
-  const totalLost   = profile.startWeight - lastWeight
-  const toGoal      = lastWeight - profile.goalWeight
-  const hasGoal     = profile.startWeight !== profile.goalWeight
-  const pct         = hasGoal
-    ? Math.min(100, Math.max(0, (totalLost / (profile.startWeight - profile.goalWeight)) * 100))
-    : 0
-  const days        = daysSince(profile.startDate)
+  const { current: lastWeight, lost: totalLost, toGoal, hasGoal, pct, reachedGoal } = getWeightProgress(profile)
+  const days        = protocolDays(profile)
   const weeks       = Math.floor(days / 7)
   const imc         = calcIMC(lastWeight, profile.height)
   const imcInfo     = imc ? imcLabel(imc) : null
-  const reachedGoal = hasGoal && lastWeight <= profile.goalWeight
+  const dose        = getDoseValue(profile)
 
-  const lastApp       = profile.lastApplication
-  const daysSinceApp  = lastApp ? daysSince(lastApp) : null
-  const daysUntilNext = daysSinceApp != null ? Math.max(0, 7 - daysSinceApp) : null
+  // Próxima aplicação: 7 dias depois da última registrada
+  const lastApp       = lastApplicationDate(profile)
+  const daysUntilNext = lastApp ? Math.max(0, 7 - diffDays(todayStr(), lastApp)) : null
   const appToday      = daysUntilNext === 0
 
   const motivation = getMotivation(totalLost, toGoal, weeks, days, reachedGoal)
 
   const appsLeft = getAppsLeft(profile)
-  const stockLow = appsLeft != null && appsLeft < 4
+  const stockLow = isLowStock(appsLeft)
 
   const plateauStatus = getPlateauStatus(profile)
   const showPlateauBanner = ['possivel_estagnacao', 'em_acompanhamento_14dias', 'estagnacao_persistente'].includes(plateauStatus)
@@ -636,10 +268,10 @@ export default function Dashboard({ profile, onNavigate, onUpdateProfile, isDism
           </div>
           {/* nowrap: em telas de 360px o rótulo quebrava em duas linhas e empurrava a legenda para fora do cartão */}
           <p className="label-base" style={{ marginBottom: '8px', whiteSpace: 'nowrap' }}>Dose atual</p>
-          <p className="num-display" style={{ fontSize: getDoseValue(profile) != null ? '28px' : '16px', color: 'var(--text-primary)', margin: '0 0 6px' }}>
-            {getDoseValue(profile) != null ? (
+          <p className="num-display" style={{ fontSize: dose != null ? '28px' : '16px', color: 'var(--text-primary)', margin: '0 0 6px' }}>
+            {dose != null ? (
               <>
-                {getDoseValue(profile)}
+                {dose}
                 <span style={{ fontSize: '13px', fontWeight: 600, color: 'var(--text-muted)', marginLeft: '3px', letterSpacing: '0' }}>mg</span>
               </>
             ) : 'Não informada'}
@@ -657,9 +289,9 @@ export default function Dashboard({ profile, onNavigate, onUpdateProfile, isDism
               </span>
             </div>
           )}
-          {getDoseValue(profile) != null && DOSE_PHASE[getDoseValue(profile)!] && (
+          {dose != null && DOSE_PHASE[dose] && (
             <p style={{ fontSize: '10px', fontWeight: 600, color: 'var(--cobalt)', margin: 0 }}>
-              {DOSE_PHASE[getDoseValue(profile)!]}
+              {DOSE_PHASE[dose]}
             </p>
           )}
         </div>
@@ -672,48 +304,6 @@ export default function Dashboard({ profile, onNavigate, onUpdateProfile, isDism
         <WorkoutWidget onNavigate={onNavigate} />
         <MealWidget profile={profile} onNavigate={onNavigate} />
       </div>
-
-      {/* ── Loja de parceiros ── */}
-      <button
-        onClick={() => onNavigate('profile', 'loja')}
-        style={{ background: 'none', border: 'none', padding: 0, cursor: 'pointer', textAlign: 'left', width: '100%' }}
-        aria-label="Loja de produtos recomendados"
-      >
-        <div style={{
-          borderRadius: '26px', padding: '18px 20px',
-          background: 'var(--g-midnight)',
-          boxShadow: '0 8px 28px rgba(var(--shadow-rgb),0.28), 0 2px 6px rgba(var(--shadow-rgb),0.16)',
-          position: 'relative', overflow: 'hidden',
-          transition: 'transform 0.15s, box-shadow 0.2s',
-        }}>
-          <div style={{ position: 'absolute', top: '-32px', right: '-32px', width: '120px', height: '120px', borderRadius: '50%', background: 'rgba(255,255,255,0.08)', pointerEvents: 'none' }} />
-          <div style={{ position: 'absolute', bottom: '-20px', left: '-10px', width: '80px', height: '80px', borderRadius: '50%', background: 'rgba(255,255,255,0.04)', pointerEvents: 'none' }} />
-
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '12px', position: 'relative' }}>
-            <div style={{ minWidth: 0 }}>
-              <p style={{
-                fontSize: '9px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.10em',
-                margin: '0 0 8px', color: 'rgba(255,255,255,0.65)', fontFamily: 'Inter, sans-serif',
-              }}>
-                Loja
-              </p>
-              <p style={{ fontSize: '16px', fontWeight: 800, color: '#fff', margin: '0 0 4px', letterSpacing: '-0.3px' }}>
-                Produtos recomendados
-              </p>
-              <p style={{ fontSize: '11px', color: 'rgba(255,255,255,0.65)', fontWeight: 600, margin: 0, fontFamily: 'Inter, sans-serif' }}>
-                Selecionados para o seu tratamento
-              </p>
-            </div>
-            <div style={{
-              width: '48px', height: '48px', borderRadius: '14px', flexShrink: 0,
-              background: 'rgba(255,255,255,0.14)', border: '1px solid rgba(255,255,255,0.16)',
-              display: 'flex', alignItems: 'center', justifyContent: 'center',
-            }}>
-              <ShoppingBag size={22} strokeWidth={1.75} color="rgba(255,255,255,0.90)" />
-            </div>
-          </div>
-        </div>
-      </button>
 
       {/* ── Farmácias parceiras ── */}
       <button
@@ -781,6 +371,51 @@ export default function Dashboard({ profile, onNavigate, onUpdateProfile, isDism
         <ApplicationCalendar profile={profile} onUpdateProfile={onUpdateProfile} compact />
       </div>
 
+      {/* ── Loja de parceiros ── */}
+      <button
+        onClick={() => onNavigate('profile', 'loja')}
+        style={{ background: 'none', border: 'none', padding: 0, cursor: 'pointer', textAlign: 'left', width: '100%' }}
+        aria-label="Loja de produtos recomendados"
+      >
+        <div style={{
+          borderRadius: '26px', padding: '18px 20px',
+          background: 'var(--g-midnight)',
+          boxShadow: '0 8px 28px rgba(var(--shadow-rgb),0.28), 0 2px 6px rgba(var(--shadow-rgb),0.16)',
+          position: 'relative', overflow: 'hidden',
+          transition: 'transform 0.15s, box-shadow 0.2s',
+        }}>
+          <div style={{ position: 'absolute', top: '-32px', right: '-32px', width: '120px', height: '120px', borderRadius: '50%', background: 'rgba(255,255,255,0.08)', pointerEvents: 'none' }} />
+          <div style={{ position: 'absolute', bottom: '-20px', left: '-10px', width: '80px', height: '80px', borderRadius: '50%', background: 'rgba(255,255,255,0.04)', pointerEvents: 'none' }} />
+
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '12px', position: 'relative' }}>
+            <div style={{ minWidth: 0 }}>
+              <p style={{
+                fontSize: '9px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.10em',
+                margin: '0 0 8px', color: 'rgba(255,255,255,0.65)', fontFamily: 'Inter, sans-serif',
+              }}>
+                Loja
+              </p>
+              <p style={{ fontSize: '16px', fontWeight: 800, color: '#fff', margin: '0 0 4px', letterSpacing: '-0.3px' }}>
+                Produtos recomendados
+              </p>
+              <p style={{ fontSize: '11px', color: 'rgba(255,255,255,0.65)', fontWeight: 600, margin: 0, fontFamily: 'Inter, sans-serif' }}>
+                Selecionados para o seu tratamento
+              </p>
+            </div>
+            <div style={{
+              width: '48px', height: '48px', borderRadius: '14px', flexShrink: 0,
+              background: 'rgba(255,255,255,0.14)', border: '1px solid rgba(255,255,255,0.16)',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+            }}>
+              <ShoppingBag size={22} strokeWidth={1.75} color="rgba(255,255,255,0.90)" />
+            </div>
+          </div>
+        </div>
+      </button>
+
+      {/* ── Biblioteca ── */}
+      <LibraryWidget onOpen={() => onNavigate('library')} />
+
       {/* ── Indicador de estoque ── */}
       <button
         onClick={() => onNavigate('profile', 'stock')}
@@ -824,7 +459,7 @@ export default function Dashboard({ profile, onNavigate, onUpdateProfile, isDism
                     </span>
                   </p>
                   <p style={{ fontSize: '11px', color: stockLow ? 'var(--amber)' : 'var(--ink-2)', fontWeight: 600, margin: 0, fontFamily: 'Inter, sans-serif', display: 'flex', alignItems: 'center', gap: '5px' }}>
-                    ~{Math.round(appsLeft / 4)} {Math.round(appsLeft / 4) === 1 ? 'mês' : 'meses'} restantes
+                    ~{stockMonths(appsLeft)} {stockMonths(appsLeft) === 1 ? 'mês' : 'meses'} restantes
                     {stockLow && (
                       <span style={{ display: 'inline-flex', alignItems: 'center', gap: '3px' }}>
                         · <AlertTriangle size={10} strokeWidth={2.5} style={{ flexShrink: 0 }} />Repor em breve

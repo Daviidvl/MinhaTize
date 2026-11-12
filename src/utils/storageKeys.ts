@@ -12,6 +12,8 @@ export const STORAGE_KEYS = {
   workoutProfile: 'tizetrack_workout',
   workoutLog: 'tizetrack_workout_log',
   workoutChecks: 'tizetrack_workout_checks',
+  // Por dia: qual treino foi feito e quantos exercícios — ver utils/exerciseUtils.ts (WorkoutHistory)
+  workoutHistory: 'tizetrack_workout_history',
   dietProfile: 'tizetrack_diet',
   foodLog: 'tizetrack_food_log',
   waterLog: 'tizetrack_water_log',
@@ -26,6 +28,9 @@ export const STORAGE_KEYS = {
   usage: 'tizetrack_usage',
   // Assinatura da última agenda de push enviada ao servidor — ver utils/pushSync.ts
   pushSync: 'tizetrack_push_sync',
+  // Biblioteca: aulas/capítulos concluídos e tamanho da letra do leitor — ver utils/libraryUtils.ts
+  library: 'tizetrack_library',
+  libraryReader: 'tizetrack_library_reader',
 } as const
 
 // Chaves de dados do usuário apagadas em "Resetar todos os dados" (ProfilePage).
@@ -39,6 +44,7 @@ export const USER_DATA_KEYS: string[] = [
   STORAGE_KEYS.workoutProfile,
   STORAGE_KEYS.workoutLog,
   STORAGE_KEYS.workoutChecks,
+  STORAGE_KEYS.workoutHistory,
   STORAGE_KEYS.sideEffects,
   STORAGE_KEYS.diary,
   STORAGE_KEYS.reminders,
@@ -46,4 +52,6 @@ export const USER_DATA_KEYS: string[] = [
   STORAGE_KEYS.stockNudge,
   STORAGE_KEYS.usage,
   STORAGE_KEYS.pushSync,
+  STORAGE_KEYS.library,
+  STORAGE_KEYS.libraryReader,
 ]

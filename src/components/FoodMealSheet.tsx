@@ -2,10 +2,9 @@ import { useEffect, useId, useRef } from 'react'
 import { createPortal } from 'react-dom'
 import { X, Soup, Check } from 'lucide-react'
 import {
-  type MealSection, type MealOption, MEAL_WINDOW, APPETITE_MODES, mealOptions,
+  type AppetiteMode, type MealSection, type MealOption, MEAL_WINDOW, APPETITE_MODES, mealOptions,
 } from '../data/foodPlans'
-import type { AppetiteMode, MealPick } from '../utils/foodUtils'
-import { formatHour } from '../utils/foodUtils'
+import { type MealPick, formatHour } from '../utils/foodUtils'
 import { OptionCard, PlateOrder } from './FoodShared'
 
 interface Props {

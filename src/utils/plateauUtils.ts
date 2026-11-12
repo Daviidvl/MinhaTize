@@ -110,6 +110,17 @@ export function evaluateReassessment(profile: UserProfile, tracking: PlateauTrac
   return 'oscilacao_inconclusiva'
 }
 
+// Status que a tendência de peso indica quando não há acompanhamento ativo.
+// null = manter o atual. Uma estagnação persistente (vinda da reavaliação de
+// 14 dias) só é desfeita por uma tendência clara de queda.
+export function autoPlateauStatus(current: PlateauStatus, verdict: TrendVerdict): PlateauStatus | null {
+  const desired: PlateauStatus = verdict === 'queda' ? 'tendencia_queda'
+    : verdict === 'insuficiente' ? 'sem_sinal'
+    : 'possivel_estagnacao'
+  if (current === 'estagnacao_persistente' && desired !== 'tendencia_queda') return null
+  return current === desired ? null : desired
+}
+
 export function getPlateauStatus(profile: UserProfile): PlateauStatus {
   return profile.plateau?.status ?? 'sem_sinal'
 }

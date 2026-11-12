@@ -1,40 +1,42 @@
 import { useState } from 'react'
 import {
   Award, Calendar, Package, Settings, Zap, BarChart2, Scale, Flame, Dumbbell,
-  Target, Lightbulb, AlertTriangle, Check, ChevronLeft, ChevronRight, Shield,
-  MessageCircle, Utensils, Syringe, Pill, Heart, Bell, Cross, MapPin, Globe, BadgeCheck,
+  Target, Lightbulb, AlertTriangle, Check, ChevronLeft, Shield,
+  MessageCircle, Utensils, Bell,
 } from 'lucide-react'
+import { UserProfile } from '../types'
 import ReminderSettings from './ReminderSettings'
-import { loadReminderSettings } from '../utils/reminderUtils'
-import { UserProfile, Medication, Sex, MEDICATION_LABELS, DOSE_OPTIONS, WEEK_DAYS_FULL } from '../types'
 import StockControl from './StockControl'
-import { CONSENT_KEY } from './ConsentGate'
-import { readJSON, removeKey } from '../utils/storage'
-import { USER_DATA_KEYS } from '../utils/storageKeys'
-import { exportAllData } from '../utils/dataExport'
-import { getAppsLeft, getDoseLabel, getMedicationLabel, resolveDoseMode } from '../utils/medicationUtils'
-import { LOJA_CATEGORIES, LojaProduct } from '../data/lojaProducts'
-import { FARMACIAS, FARMACIA_WA_MESSAGE, Farmacia } from '../data/farmacias'
-import { todayStr } from '../utils/dateUtils'
+import ProfileEdit from './ProfileEdit'
+import ProfileLegal from './ProfileLegal'
+import Pharmacies from './Pharmacies'
+import { StoreHome, StoreCategory } from './Store'
+import { SLabel, LGroup, LDivider, LRow, SubHeader, WaIcon, openWA } from './ProfileShared'
+import { LOJA_CATEGORIES } from '../data/lojaProducts'
+import { loadReminderSettings } from '../utils/reminderUtils'
+import { getAppsLeft, getDoseLabel, getMedicationLabel, isLowStock, stockMonths } from '../utils/medicationUtils'
+import { getCurrentWeight, getInitials, protocolDays } from '../utils/profileUtils'
+
+// Perfil: lista de atalhos (estilo iOS Settings) e as subtelas abertas por ela.
+// Loja, Farmácias, edição e Legal vivem nos próprios arquivos.
 
 interface Props {
   profile: UserProfile
   onUpdateProfile: (p: UserProfile) => void
   onBack: () => void
+  // Subtela aberta direto por um link interno, ex.: "stock" ou "loja:aplicacao"
   initialSection?: string
 }
 
 type ProfileSection = null | 'achievements' | 'stock' | 'reminders' | 'edit' | 'equipe' | 'suporte' | 'legal' | 'loja' | 'loja-categoria' | 'farmacias'
-
-const MEDS = Object.entries(MEDICATION_LABELS) as [Medication, string][]
 
 interface Achievement {
   id: string; icon: React.ReactNode; title: string; phrase: string; unlocked: boolean
 }
 
 function buildAchievements(profile: UserProfile): Achievement[] {
-  const days    = Math.floor((Date.now() - new Date(profile.startDate).getTime()) / 864e5)
-  const lastW   = profile.weightHistory.at(-1)?.weight ?? profile.startWeight
+  const days    = protocolDays(profile)
+  const lastW   = getCurrentWeight(profile)
   const lost    = profile.startWeight - lastW
   const entries = profile.weightHistory.length
   const reachedGoal = lastW <= profile.goalWeight && profile.goalWeight < profile.startWeight
@@ -51,351 +53,6 @@ function buildAchievements(profile: UserProfile): Achievement[] {
   ]
 }
 
-// Os links da Loja são de afiliado — o usuário precisa saber disso antes de comprar
-const LOJA_AFFILIATE_NOTICE =
-  'Os links desta loja são de afiliado: o MinhaTize pode receber uma comissão pelas compras, sem custo adicional para você. ' +
-  'Preços e disponibilidade são definidos pela loja parceira e podem mudar.'
-
-// ── WhatsApp ──────────────────────────────────────────────────────────────────
-const WA = '5588988583366'
-function openWA(msg?: string) {
-  const url = msg ? `https://wa.me/${WA}?text=${encodeURIComponent(msg)}` : `https://wa.me/${WA}`
-  window.open(url, '_blank', 'noopener,noreferrer')
-}
-function WaIcon({ size = 16 }: { size?: number }) {
-  return (
-    <svg width={size} height={size} viewBox="0 0 24 24" fill="currentColor">
-      <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347z"/>
-      <path d="M11.99 2C6.476 2 2 6.477 2 11.99c0 1.872.518 3.621 1.418 5.12L2.018 22l5.005-1.388A9.944 9.944 0 0011.99 22C17.523 22 22 17.523 22 11.99 22 6.477 17.523 2 11.99 2zm0 18.18a8.14 8.14 0 01-4.152-1.133l-.297-.177-3.086.856.87-3.018-.193-.31A8.165 8.165 0 013.82 11.99c0-4.51 3.66-8.17 8.17-8.17 4.512 0 8.172 3.66 8.172 8.17 0 4.511-3.66 8.19-8.172 8.19z"/>
-    </svg>
-  )
-}
-
-// ── Loja ──────────────────────────────────────────────────────────────────────
-function ProductCard({ icon, product, onBuy }: {
-  icon: React.ReactNode; product: LojaProduct; onBuy: () => void
-}) {
-  const [fav, setFav] = useState(false)
-  const [imgError, setImgError] = useState(false)
-  const showImage = !!product.image && !imgError
-  return (
-    <div style={{
-      display: 'flex', flexDirection: 'column',
-      background: 'var(--surface)', border: '1px solid var(--border)',
-      borderRadius: '18px', overflow: 'hidden',
-    }}>
-      <div style={{
-        position: 'relative', minHeight: '84px', padding: showImage ? 0 : '18px 12px',
-        background: 'var(--surface-2)', display: 'flex', alignItems: 'center', justifyContent: 'center',
-      }}>
-        {product.discountPercent && (
-          <span style={{
-            position: 'absolute', top: '8px', left: '8px',
-            fontSize: '10px', fontWeight: 800, color: 'var(--teal-d)', background: 'var(--teal-l)',
-            padding: '3px 7px', borderRadius: '7px', letterSpacing: '-0.2px',
-          }}>-{product.discountPercent}%</span>
-        )}
-        <button
-          onClick={() => setFav(f => !f)}
-          aria-label="Favoritar"
-          style={{
-            position: 'absolute', top: '6px', right: '6px', width: '26px', height: '26px',
-            borderRadius: '50%', background: 'var(--surface)', border: '1px solid var(--border)',
-            display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', padding: 0,
-          }}
-        >
-          <Heart size={13} strokeWidth={2} color={fav ? 'var(--cobalt)' : 'var(--text-faint)'} fill={fav ? 'var(--cobalt)' : 'none'} />
-        </button>
-        {showImage ? (
-          <img
-            src={product.image}
-            alt={product.name}
-            loading="lazy"
-            referrerPolicy="no-referrer"
-            onError={() => setImgError(true)}
-            style={{ width: '100%', aspectRatio: '1 / 1', objectFit: 'cover', display: 'block' }}
-          />
-        ) : (
-          <div style={{
-            width: '44px', height: '44px', borderRadius: '12px', flexShrink: 0,
-            background: 'var(--ice)', display: 'flex', alignItems: 'center', justifyContent: 'center',
-          }}>{icon}</div>
-        )}
-      </div>
-
-      <div style={{ flex: 1, padding: '10px 12px 12px', display: 'flex', flexDirection: 'column', gap: '4px' }}>
-        <p style={{
-          fontSize: '11.5px', fontWeight: 700, color: 'var(--text-primary)', margin: 0,
-          letterSpacing: '-0.1px', lineHeight: 1.3, minHeight: '28px',
-          display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden',
-        }}>{product.name}</p>
-
-        {product.description && (
-          <p style={{
-            fontSize: '10px', fontWeight: 500, color: 'var(--text-muted)', margin: 0, lineHeight: 1.35,
-            display: '-webkit-box', WebkitLineClamp: 3, WebkitBoxOrient: 'vertical', overflow: 'hidden',
-          }}>{product.description}</p>
-        )}
-
-        {product.originalPrice && (
-          <span style={{ fontSize: '10px', color: 'var(--text-faint)', textDecoration: 'line-through', fontWeight: 500 }}>
-            {product.originalPrice}
-          </span>
-        )}
-        {product.price ? (
-          <span style={{ fontSize: '15px', fontWeight: 800, color: 'var(--ink)', letterSpacing: '-0.3px' }}>
-            {product.price}
-          </span>
-        ) : (
-          <span style={{ fontSize: '11px', fontWeight: 700, color: 'var(--text-muted)' }}>
-            Ver preço na Shopee
-          </span>
-        )}
-        {product.priceNote && (
-          <span style={{ fontSize: '9px', color: 'var(--text-muted)', fontWeight: 500, marginBottom: '2px' }}>
-            {product.priceNote}
-          </span>
-        )}
-
-        <button onClick={onBuy} style={{
-          marginTop: 'auto', width: '100%', fontSize: '11px', fontWeight: 800, color: '#fff',
-          background: 'var(--g-cta)', border: 'none', borderRadius: '9px', padding: '9px 0', cursor: 'pointer',
-          fontFamily: 'Inter, -apple-system, sans-serif', letterSpacing: '0.02em', textTransform: 'uppercase',
-        }}>Comprar</button>
-      </div>
-    </div>
-  )
-}
-
-// ── Farmácias parceiras ───────────────────────────────────────────────────────
-const FARMACIAS_NOTICE =
-  'As farmácias parceiras são estabelecimentos independentes, responsáveis pelos próprios produtos, preços e atendimento. ' +
-  'Medicamentos de venda sob prescrição exigem receita médica. O MinhaTize não vende medicamentos.'
-
-function InstagramIcon({ size = 16 }: { size?: number }) {
-  return (
-    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.75} strokeLinecap="round" strokeLinejoin="round">
-      <rect x="3" y="3" width="18" height="18" rx="5" />
-      <circle cx="12" cy="12" r="4" />
-      <circle cx="17.5" cy="6.5" r="0.6" fill="currentColor" />
-    </svg>
-  )
-}
-
-function ContactButton({ icon, label, href }: { icon: React.ReactNode; label: string; href: string }) {
-  return (
-    <a
-      href={href}
-      target="_blank"
-      rel="noopener noreferrer"
-      style={{
-        display: 'inline-flex', alignItems: 'center', gap: '6px',
-        padding: '8px 12px', borderRadius: '10px', textDecoration: 'none',
-        background: 'var(--ice)', color: 'var(--cobalt)',
-        fontSize: '12px', fontWeight: 700, fontFamily: 'Inter, -apple-system, sans-serif',
-      }}
-    >
-      {icon}{label}
-    </a>
-  )
-}
-
-function FarmaciaCard({ farmacia }: { farmacia: Farmacia }) {
-  const [logoError, setLogoError] = useState(false)
-  const showLogo = !!farmacia.logo && !logoError
-  return (
-    <div style={{
-      background: 'var(--surface)', border: '1px solid var(--border)',
-      borderRadius: '18px', overflow: 'hidden',
-    }}>
-      <div style={{
-        minHeight: showLogo ? undefined : '110px', background: 'var(--surface-2)',
-        borderBottom: '1px solid var(--border)',
-        display: 'flex', alignItems: 'center', justifyContent: 'center',
-      }}>
-        {showLogo ? (
-          <img
-            src={farmacia.logo}
-            alt={farmacia.name}
-            loading="lazy"
-            onError={() => setLogoError(true)}
-            style={{ width: '100%', height: 'auto', display: 'block' }}
-          />
-        ) : (
-          <div style={{
-            width: '56px', height: '56px', borderRadius: '16px',
-            background: 'var(--ice)', display: 'flex', alignItems: 'center', justifyContent: 'center',
-          }}><Cross size={26} strokeWidth={1.75} color="var(--cobalt)" /></div>
-        )}
-      </div>
-
-      <div style={{ padding: '14px 16px 16px', display: 'flex', flexDirection: 'column', gap: '12px' }}>
-        <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: '10px' }}>
-          <div style={{ minWidth: 0 }}>
-            <p style={{ fontSize: '15px', fontWeight: 800, color: 'var(--ink)', margin: '0 0 4px', letterSpacing: '-0.3px' }}>
-              {farmacia.name}
-            </p>
-            <p style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: '11px', fontWeight: 600, color: 'var(--text-muted)', margin: 0, textTransform: 'uppercase', letterSpacing: '0.04em' }}>
-              <MapPin size={12} strokeWidth={2} /> {farmacia.location}
-            </p>
-          </div>
-          <span style={{
-            display: 'inline-flex', alignItems: 'center', gap: '4px', flexShrink: 0,
-            fontSize: '10px', fontWeight: 800, color: 'var(--teal-d)', background: 'var(--teal-l)',
-            padding: '4px 8px', borderRadius: '99px', textTransform: 'uppercase', letterSpacing: '0.04em',
-          }}>
-            <BadgeCheck size={12} strokeWidth={2} /> Parceira
-          </span>
-        </div>
-
-        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
-          {farmacia.whatsapp && (
-            <ContactButton
-              icon={<WaIcon size={15} />}
-              label="WhatsApp"
-              href={`https://wa.me/${farmacia.whatsapp}?text=${encodeURIComponent(FARMACIA_WA_MESSAGE)}`}
-            />
-          )}
-          {farmacia.instagram && (
-            <ContactButton icon={<InstagramIcon size={15} />} label="Instagram" href={farmacia.instagram} />
-          )}
-          {farmacia.site && (
-            <ContactButton icon={<Globe size={15} strokeWidth={1.75} />} label="Site" href={farmacia.site} />
-          )}
-        </div>
-      </div>
-    </div>
-  )
-}
-
-// ── Shared atoms ──────────────────────────────────────────────────────────────
-function SLabel({ children }: { children: React.ReactNode }) {
-  return (
-    <p style={{
-      fontSize: '11px', fontWeight: 700, color: 'var(--text-muted)',
-      textTransform: 'uppercase', letterSpacing: '0.07em', margin: '0 0 6px', padding: '0 2px',
-    }}>{children}</p>
-  )
-}
-
-function LGroup({ children }: { children: React.ReactNode }) {
-  return (
-    <div style={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: '16px', overflow: 'hidden' }}>
-      {children}
-    </div>
-  )
-}
-
-function LDivider() {
-  return <div style={{ height: '1px', background: 'var(--border)', margin: '0 16px 0 62px' }} />
-}
-
-function CategoryBanner({ iconBg, icon, label, sub, onClick }: {
-  iconBg: string; icon: React.ReactNode; label: string; sub: string; onClick: () => void
-}) {
-  return (
-    <button onClick={onClick} style={{
-      gridColumn: '1 / -1', display: 'flex', alignItems: 'center', gap: '14px',
-      padding: '18px 20px', borderRadius: '22px', textAlign: 'left', cursor: 'pointer',
-      background: iconBg, border: 'none', position: 'relative', overflow: 'hidden',
-      boxShadow: 'inset 0 0 0 1px var(--line), 0 8px 22px rgba(var(--shadow-rgb),0.10), 0 2px 6px rgba(var(--shadow-rgb),0.08)',
-      fontFamily: 'Inter, -apple-system, sans-serif',
-    }}>
-      <div style={{ position: 'absolute', top: '-28px', right: '-28px', width: '100px', height: '100px', borderRadius: '50%', background: 'rgba(255,255,255,0.10)', pointerEvents: 'none' }} />
-      <div style={{
-        width: '48px', height: '48px', borderRadius: '14px', flexShrink: 0, position: 'relative',
-        background: 'var(--ice)', display: 'flex', alignItems: 'center', justifyContent: 'center',
-      }}>{icon}</div>
-      <div style={{ flex: 1, minWidth: 0, position: 'relative' }}>
-        <p style={{ fontSize: '15px', fontWeight: 800, color: 'var(--ink)', margin: '0 0 2px', letterSpacing: '-0.3px' }}>{label}</p>
-        <p style={{ fontSize: '11px', color: 'var(--text-muted)', fontWeight: 600, margin: 0 }}>{sub}</p>
-      </div>
-      <ChevronRight size={18} strokeWidth={1.75} style={{ color: 'var(--text-muted)', flexShrink: 0, position: 'relative' }} />
-    </button>
-  )
-}
-
-function CategoryTile({ gradient, shadowColor, icon, label, onClick, span = 2, minHeight = '118px' }: {
-  gradient: string; shadowColor: string; icon: React.ReactNode; label: string; onClick: () => void
-  span?: number; minHeight?: string
-}) {
-  const big       = span >= 4
-  const textColor = 'var(--ink)'
-  const badgeBg   = 'var(--ice)'
-  const circleBg  = 'rgba(255,255,255,0.10)'
-  return (
-    <button onClick={onClick} style={{
-      gridColumn: `span ${span}`,
-      display: 'flex', flexDirection: 'column', justifyContent: 'space-between', gap: '14px',
-      minHeight, padding: big ? '18px' : '14px', borderRadius: big ? '22px' : '20px', textAlign: 'left', cursor: 'pointer',
-      background: gradient, border: 'none', position: 'relative', overflow: 'hidden',
-      boxShadow: `inset 0 0 0 1px var(--line), 0 8px 22px ${shadowColor}, 0 2px 6px rgba(var(--shadow-rgb),0.08)`,
-      fontFamily: 'Inter, -apple-system, sans-serif', transition: 'transform 0.15s, box-shadow 0.2s',
-    }}>
-      <div style={{
-        position: 'absolute', top: big ? '-26px' : '-20px', right: big ? '-26px' : '-20px',
-        width: big ? '90px' : '64px', height: big ? '90px' : '64px', borderRadius: '50%',
-        background: circleBg, pointerEvents: 'none',
-      }} />
-
-      <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', position: 'relative' }}>
-        <div style={{
-          width: big ? '44px' : '34px', height: big ? '44px' : '34px', borderRadius: big ? '13px' : '10px', flexShrink: 0,
-          background: badgeBg, display: 'flex', alignItems: 'center', justifyContent: 'center',
-        }}>{icon}</div>
-      </div>
-
-      <p style={{ fontSize: big ? '14px' : '12px', fontWeight: 800, color: textColor, margin: 0, letterSpacing: '-0.2px', lineHeight: 1.22, position: 'relative' }}>
-        {label}
-      </p>
-    </button>
-  )
-}
-
-function LRow({ iconBg, icon, label, badge, value, onClick }: {
-  iconBg: string; icon: React.ReactNode; label: string
-  badge?: string; value?: React.ReactNode; onClick: () => void
-}) {
-  return (
-    <button onClick={onClick} style={{
-      width: '100%', display: 'flex', alignItems: 'center', gap: '12px',
-      padding: '13px 14px', background: 'transparent', border: 'none',
-      cursor: 'pointer', fontFamily: 'Inter, -apple-system, sans-serif', textAlign: 'left',
-    }}>
-      <div style={{
-        width: '34px', height: '34px', borderRadius: '9px', flexShrink: 0,
-        background: iconBg, display: 'flex', alignItems: 'center', justifyContent: 'center',
-      }}>{icon}</div>
-      <span style={{ flex: 1, fontSize: '14px', fontWeight: 600, color: 'var(--text-primary)' }}>{label}</span>
-      {badge && (
-        <span style={{
-          fontSize: '11px', fontWeight: 700, color: 'var(--primary)',
-          background: 'var(--primary-light)', padding: '2px 8px', borderRadius: '99px',
-        }}>{badge}</span>
-      )}
-      {value && !badge && (
-        <span style={{ fontSize: '12px', color: 'var(--text-muted)', fontWeight: 500, display: 'inline-flex', alignItems: 'center', gap: '4px' }}>{value}</span>
-      )}
-      <ChevronRight size={15} style={{ color: 'var(--text-faint)', flexShrink: 0, marginLeft: '2px' }} />
-    </button>
-  )
-}
-
-function SubHeader({ title, onBack }: { title: string; onBack: () => void }) {
-  return (
-    <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-      <button onClick={onBack} style={{
-        width: '36px', height: '36px', borderRadius: '50%', flexShrink: 0,
-        background: 'var(--surface-2)', border: '1px solid var(--border)',
-        cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center',
-        color: 'var(--text-primary)',
-      }}><ChevronLeft size={16} strokeWidth={1.75} /></button>
-      <h2 style={{ fontSize: '17px', fontWeight: 800, color: 'var(--text-primary)', margin: 0 }}>{title}</h2>
-    </div>
-  )
-}
-
-// ── Main ──────────────────────────────────────────────────────────────────────
 export default function ProfilePage({ profile, onUpdateProfile, onBack, initialSection }: Props) {
   // initialSection pode trazer uma categoria da Loja, ex.: "loja:aplicacao"
   const [initSection, initCategoria] = (initialSection ?? '').split(':')
@@ -404,101 +61,16 @@ export default function ProfilePage({ profile, onUpdateProfile, onBack, initialS
     deepCategoria ? 'loja-categoria' : ((initSection || null) as ProfileSection),
   )
   const [lojaCategoria, setLojaCategoria] = useState<string | null>(deepCategoria)
-  const initialDose = resolveDoseMode(profile)
-  const [form, setForm] = useState({
-    name:            profile.name,
-    age:             profile.age?.toString() ?? '',
-    sex:             (profile.sex ?? '') as Sex | '',
-    medication:      profile.medication,
-    medicationName:  profile.medicationName ?? '',
-    height:          profile.height.toString(),
-    startWeight:     profile.startWeight.toString(),
-    goalWeight:      profile.goalWeight.toString(),
-    doseMode:        initialDose.mode,
-    fixedDose:       initialDose.fixedValue,
-    customDose:      initialDose.customValue,
-    presentationMg:  profile.presentationMg?.toString() ?? '',
-    presentationMl:  profile.presentationMl?.toString() ?? '',
-    startDate:       profile.startDate,
-    applicationDay:  profile.applicationDay ?? new Date().getDay(),
-  })
-  const [saved, setSaved]         = useState(false)
-  const [showReset, setShowReset] = useState(false)
 
-  const initials   = profile.name.split(' ').map(w => w[0]).slice(0, 2).join('').toUpperCase()
-  const days       = Math.floor((Date.now() - new Date(profile.startDate).getTime()) / 864e5)
-  const weeks      = Math.floor(days / 7)
-  const lastWeight = profile.weightHistory.at(-1)?.weight ?? profile.startWeight
-  const totalLost  = profile.startWeight - lastWeight
-
-  function setF(field: string, value: string | number | boolean) { setForm(f => ({ ...f, [field]: value })) }
-
-  function selectMedication(m: Medication) {
-    setForm(f => ({
-      ...f, medication: m,
-      doseMode: m === 'retatrutida' && f.doseMode === 'fixed' ? 'custom' : f.doseMode,
-    }))
-  }
-
-  function resolvedDose(): number | undefined {
-    if (form.doseMode === 'unknown') return undefined
-    if (form.doseMode === 'fixed') return form.fixedDose
-    const n = parseFloat(form.customDose)
-    return n > 0 ? n : undefined
-  }
-
-  function canSave() {
-    if (form.medication === 'outro' && form.medicationName.trim().length < 2) return false
-    if (form.doseMode === 'custom' && !(parseFloat(form.customDose) > 0)) return false
-    // Mesmas faixas do cadastro inicial (ProfileSetup)
-    const inRange = (v: string, min: number, max: number) => { const n = parseFloat(v); return n >= min && n <= max }
-    const age = Number(form.age)
-    if (form.age && !(Number.isInteger(age) && age >= 18 && age <= 120)) return false
-    if (!form.startDate || form.startDate > todayStr()) return false
-    return form.name.trim().length >= 2
-      && inRange(form.height, 80, 280)
-      && inRange(form.startWeight, 20, 500)
-      && inRange(form.goalWeight, 20, 500)
-  }
-  function handleSave() {
-    if (!canSave()) return
-    const presMg = parseFloat(form.presentationMg), presMl = parseFloat(form.presentationMl)
-    const hasPres = presMg > 0 && presMl > 0
-    onUpdateProfile({
-      ...profile,
-      name:           form.name.trim(),
-      age:            form.age ? parseInt(form.age) : undefined,
-      sex:            (form.sex as Sex) || undefined,
-      medication:     form.medication,
-      medicationName: form.medication === 'outro' ? form.medicationName.trim() : undefined,
-      height:         parseFloat(form.height),
-      startWeight:    parseFloat(form.startWeight),
-      goalWeight:     parseFloat(form.goalWeight),
-      currentDose:    resolvedDose(),
-      presentationMg: hasPres ? presMg : undefined,
-      presentationMl: hasPres ? presMl : undefined,
-      startDate:      form.startDate,
-      applicationDay: form.applicationDay,
-    })
-    setSaved(true)
-    setTimeout(() => setSaved(false), 2000)
-  }
-
-  const selBtn = (active: boolean): React.CSSProperties => ({
-    padding: '10px 8px', borderRadius: '10px', border: 'none', cursor: 'pointer',
-    background: active ? 'var(--g-cta)' : 'var(--surface-2)',
-    color: active ? '#fff' : 'var(--text-primary)', fontWeight: 700, fontSize: '12px',
-    transition: 'all 0.15s', fontFamily: 'Inter, -apple-system, sans-serif',
-    boxShadow: active ? 'var(--shadow-green)' : 'none',
-    outline: active ? 'none' : '1px solid var(--border)',
-  })
-
+  const initials     = getInitials(profile.name)
+  const weeks        = Math.floor(protocolDays(profile) / 7)
+  const totalLost    = profile.startWeight - getCurrentWeight(profile)
   const achievements = buildAchievements(profile)
   const unlocked     = achievements.filter(a => a.unlocked).length
   const appsLeft     = getAppsLeft(profile)
-  const stockLow     = appsLeft != null && appsLeft < 4
+  const stockLow     = isLowStock(appsLeft)
 
-  // ── Sub-pages ───────────────────────────────────────────────────────────────
+  // ── Subtelas ────────────────────────────────────────────────────────────────
   if (section === 'achievements') return (
     <div className="fade-in" style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
       <SubHeader title="Conquistas" onBack={() => setSection(null)} />
@@ -551,7 +123,7 @@ export default function ProfilePage({ profile, onUpdateProfile, onBack, initialS
         </p>
         {appsLeft != null && (
           <p style={{ fontSize: '12px', opacity: 0.75, margin: '4px 0 14px' }}>
-            ≈ {Math.round(appsLeft / 4)} {Math.round(appsLeft / 4) === 1 ? 'mês' : 'meses'} de tratamento
+            ≈ {stockMonths(appsLeft)} {stockMonths(appsLeft) === 1 ? 'mês' : 'meses'} de tratamento
           </p>
         )}
         {appsLeft != null && (
@@ -593,157 +165,7 @@ export default function ProfilePage({ profile, onUpdateProfile, onBack, initialS
   )
 
   if (section === 'edit') return (
-    <div className="fade-in" style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
-      <SubHeader title="Editar perfil" onBack={() => setSection(null)} />
-      <div className="card" style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
-        <p style={{ fontWeight: 700, fontSize: '13px', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.06em', margin: 0 }}>Dados pessoais</p>
-        <div>
-          <label className="label-base">Nome</label>
-          <input type="text" className="input-field" value={form.name} onChange={e => setF('name', e.target.value)} maxLength={40} />
-        </div>
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
-          <div>
-            <label className="label-base">Idade</label>
-            <input type="number" className="input-field" placeholder="--" value={form.age} onChange={e => setF('age', e.target.value)} min={10} max={120} />
-          </div>
-          <div>
-            <label className="label-base">Sexo</label>
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '5px' }}>
-              {([['female','F'],['male','M'],['other','O']] as const).map(([v, l]) => (
-                <button key={v} style={selBtn(form.sex === v)} onClick={() => setF('sex', v)}>{l}</button>
-              ))}
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <div className="card" style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
-        <p style={{ fontWeight: 700, fontSize: '13px', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.06em', margin: 0 }}>Dados corporais</p>
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
-          <div>
-            <label className="label-base">Altura (cm)</label>
-            <input type="number" className="input-field" value={form.height} onChange={e => setF('height', e.target.value)} min={100} max={250} />
-          </div>
-          <div>
-            <label className="label-base">Início do protocolo</label>
-            <input type="date" className="input-field" value={form.startDate} onChange={e => setF('startDate', e.target.value)} max={todayStr()} style={{ fontSize: '12px' }} />
-          </div>
-          <div>
-            <label className="label-base">Peso inicial (kg)</label>
-            <input type="number" className="input-field" value={form.startWeight} onChange={e => setF('startWeight', e.target.value)} min={20} max={300} step={0.1} />
-          </div>
-          <div>
-            <label className="label-base">Meta de peso (kg)</label>
-            <input type="number" className="input-field" value={form.goalWeight} onChange={e => setF('goalWeight', e.target.value)} min={20} max={300} step={0.1} />
-          </div>
-        </div>
-      </div>
-
-      <div className="card" style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-        <p style={{ fontWeight: 700, fontSize: '13px', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.06em', margin: 0 }}>Medicamento</p>
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-          {MEDS.map(([v, l]) => (
-            <button key={v} style={{ ...selBtn(form.medication === v), textAlign: 'left', padding: '11px 14px', display: 'flex', alignItems: 'center', gap: '8px' }}
-              onClick={() => selectMedication(v)}>
-              <span style={{ flex: 1 }}>{l}</span>
-              {v === 'retatrutida' && <span className="badge badge-warm" style={{ fontSize: '9px' }}>investigacional</span>}
-            </button>
-          ))}
-        </div>
-
-        {form.medication === 'outro' && (
-          <div>
-            <label className="label-base">Nome do medicamento</label>
-            <input type="text" className="input-field" placeholder="Digite o nome do medicamento"
-              value={form.medicationName} onChange={e => setF('medicationName', e.target.value)} maxLength={60} />
-          </div>
-        )}
-
-        {form.medication === 'retatrutida' && (
-          <div className="card-warning">
-            <p style={{ fontSize: '11px', fontWeight: 700, color: 'var(--warn-text)', margin: '0 0 4px' }}>
-              Retatrutida — molécula investigacional
-            </p>
-            <p style={{ fontSize: '12px', color: 'var(--warn-text)', margin: 0, lineHeight: 1.5 }}>
-              As informações cadastradas correspondem aos dados informados pelo usuário e não representam validação da apresentação ou procedência do produto.
-            </p>
-          </div>
-        )}
-      </div>
-
-      <div className="card" style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-        <p style={{ fontWeight: 700, fontSize: '13px', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.06em', margin: 0 }}>Dose atual</p>
-        {form.medication !== 'retatrutida' && (
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '7px' }}>
-            {DOSE_OPTIONS.map(d => (
-              <button key={d} style={selBtn(form.doseMode === 'fixed' && form.fixedDose === d)}
-                onClick={() => setForm(f => ({ ...f, doseMode: 'fixed', fixedDose: d }))}>{d}mg</button>
-            ))}
-          </div>
-        )}
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '7px' }}>
-          <button style={selBtn(form.doseMode === 'custom')} onClick={() => setF('doseMode', 'custom')}>Outra dose</button>
-          <button style={selBtn(form.doseMode === 'unknown')} onClick={() => setF('doseMode', 'unknown')}>Não sei informar</button>
-        </div>
-        {form.doseMode === 'custom' && (
-          <div>
-            <label className="label-base">Digite a dose utilizada por aplicação (mg)</label>
-            <input type="number" className="input-field" placeholder="Ex: 6"
-              value={form.customDose} onChange={e => setF('customDose', e.target.value)} min={0.1} step={0.1} />
-          </div>
-        )}
-      </div>
-
-      <div className="card" style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-        <p style={{ fontWeight: 700, fontSize: '13px', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.06em', margin: 0 }}>Apresentação do produto (opcional)</p>
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
-          <input type="number" className="input-field" placeholder="Concentração (mg)"
-            value={form.presentationMg} onChange={e => setF('presentationMg', e.target.value)} min={0.1} step={0.1} />
-          <input type="number" className="input-field" placeholder="Volume (mL)"
-            value={form.presentationMl} onChange={e => setF('presentationMl', e.target.value)} min={0.01} step={0.01} />
-        </div>
-      </div>
-
-      <div className="card" style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-        <p style={{ fontWeight: 700, fontSize: '13px', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.06em', margin: 0 }}>Dia da aplicação</p>
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '6px' }}>
-          {WEEK_DAYS_FULL.map((day, i) => (
-            <button key={i} style={{ ...selBtn(form.applicationDay === i), textAlign: 'left', padding: '10px 12px' }} onClick={() => setF('applicationDay', i)}>{day}</button>
-          ))}
-        </div>
-      </div>
-
-      <button className="btn-primary" style={{ width: '100%', opacity: canSave() ? 1 : 0.4 }} onClick={handleSave} disabled={!canSave()}>
-        {saved ? 'Salvo com sucesso!' : 'Salvar alterações'}
-      </button>
-
-      {!showReset ? (
-        <button onClick={() => setShowReset(true)} style={{
-          width: '100%', padding: '12px', borderRadius: '10px',
-          border: '1.5px solid var(--red-line)', background: 'transparent',
-          color: 'var(--red)', fontWeight: 600, fontSize: '13px', cursor: 'pointer',
-          fontFamily: 'Inter, -apple-system, sans-serif',
-        }}>Resetar todos os dados</button>
-      ) : (
-        <div className="card" style={{ border: '1.5px solid var(--red-line)' }}>
-          <p style={{ fontSize: '13px', color: 'var(--red)', fontWeight: 700, marginBottom: '4px' }}>
-            Tem certeza? Todo o histórico será apagado permanentemente.
-          </p>
-          <p style={{ fontSize: '11px', color: 'var(--text-muted)', marginBottom: '12px', lineHeight: 1.5 }}>
-            Serão removidos: perfil, peso, exames, diário, efeitos colaterais e planos salvos. Seu token de acesso ao app é mantido.
-          </p>
-          <div style={{ display: 'flex', gap: '8px' }}>
-            <button onClick={() => setShowReset(false)} className="btn-ghost" style={{ flex: 1 }}>Cancelar</button>
-            <button onClick={() => {
-              USER_DATA_KEYS.forEach(removeKey)
-              window.location.reload()
-            }} style={{ flex: 1, padding: '10px', borderRadius: '8px', border: 'none', background: 'var(--red)', color: 'var(--surface)', fontWeight: 700, cursor: 'pointer', fontFamily: 'Inter, -apple-system, sans-serif' }}>
-              Sim, resetar
-            </button>
-          </div>
-        </div>
-      )}
-    </div>
+    <ProfileEdit profile={profile} onUpdateProfile={onUpdateProfile} onBack={() => setSection(null)} />
   )
 
   if (section === 'equipe') return (
@@ -826,162 +248,18 @@ export default function ProfilePage({ profile, onUpdateProfile, onBack, initialS
     </div>
   )
 
-  if (section === 'legal') return (
-    <div className="fade-in" style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
-      <SubHeader title="Legal & Privacidade" onBack={() => setSection(null)} />
-      <ConsentInfo />
+  if (section === 'legal') return <ProfileLegal profile={profile} onBack={() => setSection(null)} />
 
-      <div style={{ padding: '14px 16px', background: 'var(--red-bg)', border: '1px solid var(--red-line)', borderRadius: '12px' }}>
-        <p style={{ fontSize: '11px', fontWeight: 700, color: 'var(--danger-text)', margin: '0 0 6px', textTransform: 'uppercase', letterSpacing: '0.06em' }}>Aviso Médico</p>
-        <p style={{ fontSize: '12px', color: 'var(--text-secondary)', margin: 0, lineHeight: 1.65 }}>
-          O MinhaTize é <strong style={{ color: 'var(--text-primary)' }}>exclusivamente educativo</strong>. Não realiza diagnósticos, não prescreve medicamentos e não substitui o acompanhamento médico ou nutricional.
-        </p>
-      </div>
-
-      <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-        <InfoRow label="Versão dos Termos" value="1.0 — Junho/2026" />
-        <InfoRow label="Controlador dos dados" value="MinhaTize" />
-        <InfoRow label="Contato de privacidade" value="privacidade@minhatize.com.br" />
-      </div>
-
-      <div className="card">
-        <p style={{ fontSize: '13px', fontWeight: 700, color: 'var(--text-primary)', marginBottom: '6px' }}>Exportar meus dados</p>
-        <p style={{ fontSize: '12px', color: 'var(--text-muted)', lineHeight: 1.65, marginBottom: '14px' }}>Baixe todos os seus dados em formato JSON (portabilidade — Art. 18, V da LGPD).</p>
-        <button onClick={() => exportAllData(profile)} style={{
-          width: '100%', padding: '11px', borderRadius: '10px', border: 'none',
-          background: 'var(--primary)', color: '#fff', fontWeight: 700, fontSize: '13px',
-          cursor: 'pointer', fontFamily: 'Inter, -apple-system, sans-serif',
-        }}>Baixar dados (JSON)</button>
-      </div>
-
-      <div className="card">
-        <p style={{ fontSize: '13px', fontWeight: 700, color: 'var(--text-primary)', marginBottom: '8px' }}>Seus direitos (Art. 18 LGPD)</p>
-        <p style={{ fontSize: '12px', color: 'var(--text-muted)', lineHeight: 1.65, marginBottom: '14px' }}>Você pode solicitar: acesso, correção, exclusão, portabilidade ou revogação do consentimento.</p>
-        <a href="mailto:privacidade@minhatize.com.br?subject=Exercício%20de%20direitos%20LGPD" style={{
-          display: 'block', textAlign: 'center', padding: '11px',
-          background: 'var(--primary-light)', borderRadius: '10px',
-          color: 'var(--primary)', fontWeight: 700, fontSize: '13px',
-          textDecoration: 'none', border: '1px solid var(--sky)',
-        }}>Enviar solicitação por e-mail</a>
-      </div>
-
-      <div className="card" style={{ border: '1px solid var(--red-line)' }}>
-        <p style={{ fontSize: '13px', fontWeight: 700, color: 'var(--red)', marginBottom: '6px' }}>Revogar consentimento</p>
-        <p style={{ fontSize: '12px', color: 'var(--text-muted)', lineHeight: 1.6, marginBottom: '14px' }}>
-          Ao revogar, seus dados locais serão apagados e você precisará aceitar os termos novamente.
-        </p>
-        <button onClick={() => {
-          [...USER_DATA_KEYS, CONSENT_KEY].forEach(removeKey)
-          window.location.reload()
-        }} style={{
-          width: '100%', padding: '11px', borderRadius: '10px',
-          border: '1.5px solid var(--red-line)', background: 'transparent',
-          color: 'var(--red)', fontWeight: 600, fontSize: '13px', cursor: 'pointer',
-          fontFamily: 'Inter, -apple-system, sans-serif',
-        }}>Revogar e apagar dados</button>
-      </div>
-    </div>
-  )
-
+  // Loja e Farmácias abrem direto do Início: o Voltar sai do Perfil
   if (section === 'loja') return (
-    <div className="fade-in" style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
-      <SubHeader title="Loja" onBack={onBack} />
-
-      <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-        <SLabel>Categorias</SLabel>
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(6, 1fr)', gap: '10px' }}>
-          <CategoryBanner
-            iconBg="var(--surface)"
-            icon={<Syringe size={22} strokeWidth={1.75} color="var(--cobalt)" />}
-            label="Aplicação & Insumos"
-            sub="Agulhas, seringas e descarte"
-            onClick={() => { setLojaCategoria('aplicacao'); setSection('loja-categoria') }}
-          />
-          <CategoryTile
-            span={6} minHeight="150px"
-            gradient="var(--surface)" shadowColor="rgba(var(--shadow-rgb),0.10)"
-            icon={<Pill size={22} strokeWidth={1.75} color="var(--cobalt)" />} label="Suplementos & Vitaminas"
-            onClick={() => { setLojaCategoria('suplementos'); setSection('loja-categoria') }}
-          />
-          <CategoryTile
-            span={3} minHeight="132px"
-            gradient="var(--surface)" shadowColor="rgba(var(--shadow-rgb),0.10)"
-            icon={<Dumbbell size={19} strokeWidth={1.75} color="var(--cobalt)" />} label="Treino & Bem-estar"
-            onClick={() => { setLojaCategoria('treino'); setSection('loja-categoria') }}
-          />
-          <CategoryTile
-            span={3} minHeight="132px"
-            gradient="var(--surface)" shadowColor="rgba(var(--shadow-rgb),0.10)"
-            icon={<Scale size={19} strokeWidth={1.75} color="var(--cobalt)" />} label="Monitoramento"
-            onClick={() => { setLojaCategoria('monitoramento'); setSection('loja-categoria') }}
-          />
-        </div>
-      </div>
-      <p style={{ fontSize: '11px', color: 'var(--text-muted)', textAlign: 'center', lineHeight: 1.5, margin: 0 }}>
-        {LOJA_AFFILIATE_NOTICE}
-      </p>
-    </div>
+    <StoreHome onBack={onBack} onCategory={id => { setLojaCategoria(id); setSection('loja-categoria') }} />
   )
 
-  if (section === 'farmacias') return (
-    <div className="fade-in" style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
-      <SubHeader title="Farmácias parceiras" onBack={onBack} />
-
-      <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-        {FARMACIAS.map(f => <FarmaciaCard key={f.name} farmacia={f} />)}
-      </div>
-
-      <p style={{ fontSize: '11px', color: 'var(--text-muted)', textAlign: 'center', lineHeight: 1.5, margin: 0 }}>
-        {FARMACIAS_NOTICE}
-      </p>
-    </div>
+  if (section === 'loja-categoria' && lojaCategoria) return (
+    <StoreCategory categoryId={lojaCategoria} onBack={() => setSection('loja')} />
   )
 
-  if (section === 'loja-categoria' && lojaCategoria) {
-    const cat = LOJA_CATEGORIES[lojaCategoria]
-    return (
-      <div className="fade-in" style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
-        <SubHeader title={cat.title} onBack={() => setSection('loja')} />
-
-        <div style={{
-          borderRadius: '22px', padding: '18px 20px', background: cat.gradient,
-          boxShadow: `0 8px 24px ${cat.shadowColor}, 0 2px 6px rgba(var(--shadow-rgb),0.14)`,
-          display: 'flex', alignItems: 'center', gap: '14px', position: 'relative', overflow: 'hidden',
-        }}>
-          <div style={{ position: 'absolute', top: '-28px', right: '-28px', width: '100px', height: '100px', borderRadius: '50%', background: 'rgba(255,255,255,0.08)', pointerEvents: 'none' }} />
-          <div style={{
-            width: '48px', height: '48px', borderRadius: '14px', flexShrink: 0, position: 'relative',
-            background: 'rgba(255,255,255,0.16)', display: 'flex', alignItems: 'center', justifyContent: 'center',
-          }}>{cat.icon('#fff', 22)}</div>
-          <div style={{ position: 'relative', minWidth: 0 }}>
-            <p style={{ fontSize: '15px', fontWeight: 800, color: '#fff', margin: '0 0 2px', letterSpacing: '-0.3px' }}>{cat.title}</p>
-            <p style={{ fontSize: '11px', color: 'rgba(255,255,255,0.65)', fontWeight: 600, margin: 0 }}>{cat.sub}</p>
-          </div>
-        </div>
-
-        {cat.groups.map(g => (
-          <div key={g.label} style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-            <SLabel>{g.label}</SLabel>
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
-              {g.products.map(p => (
-                <ProductCard
-                  key={p.name}
-                  icon={cat.icon(cat.accent, 22)}
-                  product={p}
-                  onBuy={() => p.url
-                    ? window.open(p.url, '_blank', 'noopener,noreferrer')
-                    : openWA(`Olá! Tenho interesse no produto: ${p.name}`)}
-                />
-              ))}
-            </div>
-          </div>
-        ))}
-        <p style={{ fontSize: '11px', color: 'var(--text-muted)', textAlign: 'center', lineHeight: 1.5, margin: 0 }}>
-          {LOJA_AFFILIATE_NOTICE}
-        </p>
-      </div>
-    )
-  }
+  if (section === 'farmacias') return <Pharmacies onBack={onBack} />
 
   // ── Vista principal (lista estilo iOS Settings) ───────────────────────────
   return (
@@ -1113,43 +391,6 @@ export default function ProfilePage({ profile, onUpdateProfile, onBack, initialS
         </LGroup>
       </div>
 
-    </div>
-  )
-}
-
-// ── Helpers ───────────────────────────────────────────────────────────────────
-function InfoRow({ label, value }: { label: string; value: string }) {
-  return (
-    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '10px 14px', background: 'var(--surface-2)', borderRadius: '10px' }}>
-      <span style={{ fontSize: '12px', color: 'var(--text-muted)' }}>{label}</span>
-      <span style={{ fontSize: '12px', fontWeight: 600, color: 'var(--text-primary)' }}>{value}</span>
-    </div>
-  )
-}
-
-function ConsentInfo() {
-  let date = 'Não registrado'
-  let version = '—'
-  const parsed = readJSON<{ date?: string; version?: string } | null>(CONSENT_KEY, null)
-  if (parsed) {
-    version = parsed.version ?? '—'
-    if (parsed.date) {
-      date = new Date(parsed.date).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' })
-    }
-  }
-  return (
-    <div style={{ padding: '14px 16px', background: 'var(--teal-l)', border: '1px solid var(--teal)', borderRadius: '12px' }}>
-      <p style={{ fontSize: '11px', fontWeight: 700, color: 'var(--success)', margin: '0 0 8px', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
-        Consentimento registrado
-      </p>
-      <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-        <p style={{ fontSize: '12px', color: 'var(--text-secondary)', margin: 0 }}>
-          <strong style={{ color: 'var(--text-primary)' }}>Data:</strong> {date}
-        </p>
-        <p style={{ fontSize: '12px', color: 'var(--text-secondary)', margin: 0 }}>
-          <strong style={{ color: 'var(--text-primary)' }}>Versão:</strong> {version}
-        </p>
-      </div>
     </div>
   )
 }
