@@ -1,6 +1,12 @@
 {
   "compilerOptions": {
     "composite": true,
+    // Só checa tipos: nada de vite.config.js ao lado do .ts (o Vite carregaria o .js
+    // antigo no lugar do .ts editado). As declarações exigidas por "composite" vão
+    // para node_modules/.tmp, fora do projeto.
+    "emitDeclarationOnly": true,
+    "declarationDir": "./node_modules/.tmp/tsconfig.node",
+    "tsBuildInfoFile": "./node_modules/.tmp/tsconfig.node.tsbuildinfo",
     "skipLibCheck": true,
     "module": "ESNext",
     "moduleResolution": "bundler",
