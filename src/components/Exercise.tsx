@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import {
   Dumbbell, Droplets, Moon, Waves, Lightbulb, Info,
-  RotateCcw, ChevronDown, BarChart2, Check,
+  RotateCcw, ChevronDown, BarChart2, Check, Play,
 } from 'lucide-react'
 import { UserProfile } from '../types'
 import ExerciseEvolution from './ExerciseEvolution'
@@ -17,9 +17,27 @@ import {
   isWorkoutComplete, summarizeDay, focusWorkoutLabel, getSplitDays,
   readWorkoutProfile, saveWorkoutProfile, readWorkoutLog, saveWorkoutLog,
 } from '../utils/exerciseUtils'
+import {
+  type WorkoutSessionRecord,
+  readActiveSession, clearActiveSession, readSessions, appendSession,
+} from '../utils/workoutSessionUtils'
 import { todayStr } from '../utils/dateUtils'
 import { alpha } from '../utils/color'
 import { notifyRemindersChanged } from '../utils/reminderUtils'
+import { getCurrentWeight } from '../utils/profileUtils'
+import { useFlash } from '../hooks/useFlash'
+
+// A tela do treino guiado é baixada à parte (fora do pacote inicial). Para abrir
+// mesmo sem internet na academia, ela é pré-baixada assim que o app fica ocioso:
+// o service worker guarda o arquivo no cache.
+const loadSession = () => import('./WorkoutSession')
+type SessionView = Awaited<ReturnType<typeof loadSession>>['default']
+
+if (typeof window !== 'undefined') {
+  const warm = () => { loadSession().catch(() => {}) }
+  if ('requestIdleCallback' in window) window.requestIdleCallback(warm, { timeout: 8000 })
+  else setTimeout(warm, 4000)
+}
 
 // Marcações do dia e histórico por dia só são lidos por esta tela
 const CHECKS_KEY  = STORAGE_KEYS.workoutChecks
@@ -78,6 +96,13 @@ export default function Exercise({ userProfile, view, onViewChange }: Props) {
   })
   const [history, setHistory] = useState<WorkoutHistory>(() => readJSON(HISTORY_KEY, {}))
 
+  // Treino guiado: qual está aberto, o que ficou em andamento e as sessões concluídas
+  const [sessionLabel, setSessionLabel] = useState<string | null>(null)
+  const [SessionView, setSessionView] = useState<SessionView | null>(null)
+  const [loadFailed, flashLoadFailed] = useFlash(5000)
+  const [active, setActive] = useState(() => readActiveSession(today))
+  const [sessions, setSessions] = useState<WorkoutSessionRecord[]>(readSessions)
+
   const splitDays = profile ? getSplitDays(profile) : []
   const schedule = profile ? (WORKOUT_SCHEDULE[profile.days] ?? []) : []
 
@@ -92,7 +117,32 @@ export default function Exercise({ userProfile, view, onViewChange }: Props) {
 
   function toggleExercise(label: string, idx: number) {
     const prev = checks[label] ?? []
-    const next = { ...checks, [label]: prev.includes(idx) ? prev.filter(i => i !== idx) : [...prev, idx] }
+    applyChecks({ ...checks, [label]: prev.includes(idx) ? prev.filter(i => i !== idx) : [...prev, idx] }, label)
+  }
+
+  // Treino guiado: exercícios com todas as séries feitas entram marcados (nunca desmarca)
+  function markExercises(label: string, idxs: number[]) {
+    const prev  = checks[label] ?? []
+    const added = idxs.filter(i => !prev.includes(i))
+    if (added.length) applyChecks({ ...checks, [label]: [...prev, ...added] }, label)
+  }
+
+  function finishSession(record: WorkoutSessionRecord) {
+    setSessions(appendSession(record))
+  }
+
+  function openSession(label: string) {
+    loadSession()
+      .then(m => { setSessionView(() => m.default); setSessionLabel(label) })
+      .catch(() => flashLoadFailed())
+  }
+
+  function closeSession() {
+    setSessionLabel(null)
+    setActive(readActiveSession(todayStr()))
+  }
+
+  function applyChecks(next: DayChecks['done'], label: string) {
     setChecks(next)
     writeJSON(CHECKS_KEY, { date: today, done: next })
 
@@ -127,6 +177,8 @@ export default function Exercise({ userProfile, view, onViewChange }: Props) {
   function resetProfile() {
     removeKey(STORAGE_KEYS.workoutProfile)
     removeKey(CHECKS_KEY)
+    clearActiveSession()
+    setActive(null)
     setChecks({})
     setProfile(null)
     setForm({})
@@ -255,8 +307,36 @@ export default function Exercise({ userProfile, view, onViewChange }: Props) {
   }
 
   // ── Render: plan ──────────────────────────────────────────────────────────
+  const activeLabel  = active?.plan.label
+  const sessionDay   = splitDays.find(d => d.label === sessionLabel)
+  const todaySession = sessions.filter(r => r.date === today).at(-1)
+
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+
+      {loadFailed && (
+        <div role="alert" className="card-warning" style={{ padding: '12px 14px' }}>
+          <p style={{ fontSize: '12px', color: 'var(--warn-text)', lineHeight: 1.5, margin: 0 }}>
+            Não foi possível abrir o treino guiado sem internet. Conecte-se uma vez e tente de novo — depois ele funciona offline.
+          </p>
+        </div>
+      )}
+
+      {sessionDay && SessionView && (
+        <SessionView
+          key={sessionDay.label}
+          day={sessionDay}
+          items={exercisesOf(sessionDay)}
+          level={profile!.level}
+          volume={vol!}
+          weightKg={getCurrentWeight(userProfile)}
+          resume={activeLabel === sessionDay.label ? active : null}
+          otherActiveLabel={activeLabel && activeLabel !== sessionDay.label ? activeLabel : undefined}
+          onProgress={markExercises}
+          onFinish={finishSession}
+          onClose={closeSession}
+        />
+      )}
 
       {/* Semana + treino de agora */}
       {view === null && (
@@ -265,7 +345,10 @@ export default function Exercise({ userProfile, view, onViewChange }: Props) {
           checks={checks} workoutLog={workoutLog} history={history}
           target={profile!.days} sets={vol!.sets}
           schedule={schedule}
+          activeLabel={activeLabel} activePaused={active?.pausedAt != null}
+          todaySession={todaySession}
           onOpenWorkout={() => onViewChange('workout')}
+          onStartWorkout={openSession}
         />
       )}
 
@@ -305,7 +388,7 @@ export default function Exercise({ userProfile, view, onViewChange }: Props) {
       )}
 
       {view === 'evolution' && (
-        <ExerciseEvolution profile={userProfile} workoutLog={workoutLog} target={profile!.days} />
+        <ExerciseEvolution profile={userProfile} workoutLog={workoutLog} target={profile!.days} sessions={sessions} />
       )}
 
       {view === 'workout' && (
@@ -369,7 +452,7 @@ export default function Exercise({ userProfile, view, onViewChange }: Props) {
 
           {/* Como registrar */}
           <p style={{ fontSize: '11px', color: 'var(--text-muted)', lineHeight: 1.5, margin: '0 4px' }}>
-            Marque cada exercício ao terminar. Quando todos os exercícios de um treino estiverem marcados, o dia de hoje entra na sua semana de treino.
+            Use o treino guiado para ser conduzido série a série, ou marque cada exercício ao terminar. Quando todos os exercícios de um treino estiverem marcados, o dia de hoje entra na sua semana de treino.
           </p>
 
           {/* Day cards */}
@@ -435,6 +518,23 @@ export default function Exercise({ userProfile, view, onViewChange }: Props) {
                     borderTop: `1px solid ${alpha(day.color, 13)}`,
                     display: 'flex', flexDirection: 'column', gap: '7px',
                   }}>
+                    <button
+                      onClick={() => openSession(day.label)}
+                      style={{
+                        width: '100%', marginTop: '12px', padding: '12px', borderRadius: '12px', border: 'none',
+                        cursor: 'pointer', fontFamily: "Inter, -apple-system, sans-serif", fontWeight: 800, fontSize: '13px',
+                        background: complete ? 'var(--surface-2)' : 'var(--g-cta)',
+                        color: complete ? 'var(--cobalt)' : '#fff',
+                        boxShadow: complete ? 'none' : 'var(--shadow-blue)',
+                        outline: complete ? '1.5px solid var(--border)' : 'none',
+                        display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '7px',
+                      }}
+                    >
+                      <Play size={14} strokeWidth={2.25} fill="currentColor" />
+                      {activeLabel === day.label
+                        ? 'Retomar treino guiado'
+                        : complete ? 'Treinar de novo (guiado)' : 'Iniciar treino guiado'}
+                    </button>
                     {exercises.map((ex, i) => {
                       const done = checked.includes(i)
                       return (

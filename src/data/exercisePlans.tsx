@@ -23,6 +23,9 @@ export interface WorkoutProfile {
 export interface ExItem {
   name: string
   tip?: string
+  // Isometria (prancha etc.): segundos por série — iniciante usa o mínimo,
+  // avançado o máximo. No treino guiado vira contagem regressiva em vez de repetições.
+  secs?: [number, number]
 }
 
 export interface WorkoutDay {
@@ -58,14 +61,14 @@ export const SPLITS: Record<SplitKey, WorkoutDay[]> = {
         { name: 'Desenvolvimento militar', tip: 'Core contraído, sem arquear lombar' },
         { name: 'Tríceps polia (corda)', tip: 'Cotovelos fixos ao lado do corpo' },
         { name: 'Leg press 45°', tip: 'Joelhos alinhados com os pés' },
-        { name: 'Prancha abdominal', tip: '3 × 30–45s' },
+        { name: 'Prancha abdominal', tip: '3 × 30–45s', secs: [30, 45] },
       ],
       home: [
         { name: 'Flexão aberta (foco peitoral)', tip: 'Peito quase toca o chão' },
         { name: 'Flexão declinada (pés na cadeira)', tip: 'Foco no alto do peitoral' },
         { name: 'Tríceps banco', tip: 'Desça até 90° no cotovelo' },
         { name: 'Agachamento livre', tip: 'Calcanhar no chão, profundidade paralela' },
-        { name: 'Prancha abdominal', tip: '3 × 30–45s' },
+        { name: 'Prancha abdominal', tip: '3 × 30–45s', secs: [30, 45] },
       ],
     },
     {
@@ -291,7 +294,7 @@ export const SPLITS: Record<SplitKey, WorkoutDay[]> = {
         { name: 'Elevação lateral com halteres' },
         { name: 'Elevação frontal com anilha' },
         { name: 'Face pull no cabo' },
-        { name: 'Prancha 3 × 45s' },
+        { name: 'Prancha 3 × 45s', secs: [45, 45] },
       ],
       home: [
         { name: 'Desenvolvimento com halteres' },

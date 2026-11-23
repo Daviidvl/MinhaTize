@@ -15,7 +15,8 @@ export function exportAllData(profile: UserProfile) {
     workout: readJSON(STORAGE_KEYS.workoutProfile, null),
     workoutLog: readJSON(STORAGE_KEYS.workoutLog, null),
     workoutChecks: readJSON(STORAGE_KEYS.workoutChecks, null),
-    workoutHistory: readJSON(STORAGE_KEYS.workoutHistory, null), consent,
+    workoutHistory: readJSON(STORAGE_KEYS.workoutHistory, null),
+    workoutSessions: readJSON(STORAGE_KEYS.workoutSessions, null), consent,
     reminders: readJSON(STORAGE_KEYS.reminders, null),
     library: readJSON(STORAGE_KEYS.library, null),
   }

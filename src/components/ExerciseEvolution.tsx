@@ -1,7 +1,9 @@
 import { useState } from 'react'
-import { TrendingDown, CalendarDays, Lightbulb, Check } from 'lucide-react'
+import { TrendingDown, CalendarDays, Lightbulb, Check, Flame, Timer } from 'lucide-react'
 import { UserProfile } from '../types'
 import { getWeightProgress, protocolDays } from '../utils/profileUtils'
+import { type WorkoutSessionRecord, sessionTotals, fmtDuration } from '../utils/workoutSessionUtils'
+import { addDays, todayStr } from '../utils/dateUtils'
 import {
   DAY_FULL, calcStreak, calcBestStreak, getFavoriteDay, getWeeklyStats, getEvolutionInsight,
 } from '../utils/exerciseUtils'
@@ -10,6 +12,7 @@ interface Props {
   profile: UserProfile
   workoutLog: string[]
   target: number  // treinos por semana do plano
+  sessions: WorkoutSessionRecord[]  // treinos guiados concluídos
 }
 
 const WEEKS  = 8
@@ -21,7 +24,7 @@ function weekLabel(d: Date) {
   return d.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' })
 }
 
-export default function ExerciseEvolution({ profile, workoutLog, target }: Props) {
+export default function ExerciseEvolution({ profile, workoutLog, target, sessions }: Props) {
   const [sel, setSel] = useState(WEEKS - 1)
 
   // ── Peso ──────────────────────────────────────────────────────────────────
@@ -127,6 +130,42 @@ export default function ExerciseEvolution({ profile, workoutLog, target }: Props
           </div>
         ))}
       </div>
+
+      {/* Treino guiado: tempo e calorias dos últimos 30 dias */}
+      {(() => {
+        const t = sessionTotals(sessions, addDays(todayStr(), -29))
+        return (
+          <div className="card" style={{ padding: '14px 16px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '7px', marginBottom: t.count ? '10px' : '6px' }}>
+              <Timer size={14} strokeWidth={2} style={{ color: 'var(--cobalt)', flexShrink: 0 }} />
+              <p style={{ fontSize: '13px', fontWeight: 700, color: 'var(--text-primary)', margin: 0 }}>Treino guiado · últimos 30 dias</p>
+            </div>
+            {t.count === 0 ? (
+              <p style={{ fontSize: '12px', color: 'var(--text-muted)', lineHeight: 1.5, margin: 0 }}>
+                Faça um treino guiado para acompanhar aqui o tempo treinado e as calorias estimadas.
+              </p>
+            ) : (
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '8px' }}>
+                {[
+                  { label: t.count === 1 ? 'treino' : 'treinos', value: `${t.count}`, icon: null },
+                  { label: 'treinando', value: fmtDuration(t.totalSecs), icon: null },
+                  { label: 'kcal estimadas', value: `~${t.kcal}`, icon: <Flame size={13} strokeWidth={2.25} color="var(--amber-fill)" /> },
+                ].map(item => (
+                  <div key={item.label} style={{
+                    background: 'var(--surface-2)', borderRadius: '10px', padding: '9px 6px',
+                    textAlign: 'center', border: '1px solid var(--border)',
+                  }}>
+                    <p style={{ fontSize: '16px', fontWeight: 800, color: 'var(--text-primary)', margin: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '3px' }}>
+                      {item.icon}{item.value}
+                    </p>
+                    <p style={{ fontSize: '10px', color: 'var(--text-muted)', marginTop: '2px' }}>{item.label}</p>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        )
+      })()}
 
       {/* Treinos e peso por semana */}
       <div className="card" style={{ padding: '14px 16px' }}>

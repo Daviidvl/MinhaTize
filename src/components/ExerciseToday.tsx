@@ -1,9 +1,10 @@
-import { Check, Dumbbell, ChevronRight } from 'lucide-react'
+import { Check, Dumbbell, ChevronRight, Play, Flame, Clock } from 'lucide-react'
 import { DAY_ICON_MAP } from '../data/exercisePlans'
 import {
   type WorkoutHistory,
   calcStreak, getMotivation, plannedLabel, focusWorkoutLabel,
 } from '../utils/exerciseUtils'
+import { type WorkoutSessionRecord, fmtDuration } from '../utils/workoutSessionUtils'
 import { toDateStr, getWeekDays } from '../utils/dateUtils'
 import { alpha } from '../utils/color'
 import { HeroCard, HeroEyebrow, GoalRing, DarkMeter, WeekStrip, type StripDay } from './HeroShared'
@@ -25,7 +26,11 @@ interface Props {
   target: number                    // meta semanal = nº de treinos da divisão
   sets: string
   schedule: number[]                // dias da semana (0=dom) de cada treino, na ordem da divisão
+  activeLabel?: string              // treino guiado em andamento hoje
+  activePaused?: boolean
+  todaySession?: WorkoutSessionRecord  // último treino guiado concluído hoje
   onOpenWorkout: () => void         // abre a lista já com o treino em foco expandido
+  onStartWorkout: (label: string) => void  // abre o treino guiado
 }
 
 // Tela inicial de treinos: card azul da semana + treino sugerido para agora
@@ -115,64 +120,105 @@ export default function ExerciseToday(p: Props) {
       </HeroCard>
 
       {/* ── Treino de agora ───────────────────────────────────────────── */}
-      {focus && (
-        <button
-          onClick={p.onOpenWorkout}
-          className="meal-row"
-          style={{
-            width: '100%', display: 'flex', alignItems: 'center', gap: '12px', padding: '14px',
-            borderRadius: '18px', cursor: 'pointer', textAlign: 'left', fontFamily: FONT,
+      {focus && (() => {
+        const resuming = p.activeLabel === focus.label
+        return (
+          <div style={{
+            borderRadius: '18px', overflow: 'hidden',
             background: 'var(--surface)', border: `1.5px solid ${alpha(focus.color, 19)}`,
             boxShadow: 'var(--shadow-card)',
-          }}
-        >
-          <span style={{
-            width: '46px', height: '46px', borderRadius: '13px', flexShrink: 0,
-            background: alpha(focus.color, 9), border: `1px solid ${alpha(focus.color, 19)}`, color: focus.color,
-            display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '2px',
           }}>
-            {DAY_ICON_MAP[focus.label] ?? <Dumbbell size={18} strokeWidth={1.75} />}
-            <span style={{ fontSize: '9px', fontWeight: 900, letterSpacing: '0.05em' }}>{focus.label}</span>
-          </span>
-
-          <span style={{ flex: 1, minWidth: 0 }}>
-            <span style={{
-              display: 'block', fontSize: '10px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em',
-              color: todayComplete ? 'var(--teal-d)' : focusDone > 0 ? focus.color : 'var(--text-muted)',
-            }}>
-              {todayComplete ? 'Concluído hoje' : focusDone > 0 ? 'Em andamento' : restDay ? 'Dia de descanso' : 'Treino de hoje'}
-            </span>
-            <span style={{ display: 'block', fontSize: '14px', fontWeight: 800, color: 'var(--text-primary)', marginTop: '2px' }}>
-              Treino {focus.label} — {focus.name}
-            </span>
-            <span style={{ display: 'block', fontSize: '11px', color: 'var(--text-muted)', marginTop: '2px' }}>
-              {todayComplete && upcoming && upcoming !== focus.label
-                ? `Próximo: Treino ${upcoming}${nameOf(upcoming) ? ` — ${nameOf(upcoming)}` : ''}`
-                : restDay
-                  ? 'Se quiser treinar hoje, este é o próximo'
-                  : focusDone > 0
-                  ? `${focusDone} de ${focus.total} feitos · ${p.sets} séries`
-                  : `${focus.total} exercícios · ${p.sets} séries`}
-            </span>
-            {focusDone > 0 && !todayComplete && (
-              <span className="progress-track" style={{ display: 'block', height: '5px', marginTop: '8px' }}>
-                <span className="progress-fill" style={{ display: 'block', width: `${(focusDone / focus.total) * 100}%` }} />
+            <button
+              onClick={p.onOpenWorkout}
+              className="meal-row"
+              aria-label={`Ver Treino ${focus.label} — ${focus.name}`}
+              style={{
+                width: '100%', display: 'flex', alignItems: 'center', gap: '12px', padding: '14px',
+                cursor: 'pointer', textAlign: 'left', fontFamily: FONT, background: 'none', border: 'none',
+              }}
+            >
+              <span style={{
+                width: '46px', height: '46px', borderRadius: '13px', flexShrink: 0,
+                background: alpha(focus.color, 9), border: `1px solid ${alpha(focus.color, 19)}`, color: focus.color,
+                display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '2px',
+              }}>
+                {DAY_ICON_MAP[focus.label] ?? <Dumbbell size={18} strokeWidth={1.75} />}
+                <span style={{ fontSize: '9px', fontWeight: 900, letterSpacing: '0.05em' }}>{focus.label}</span>
               </span>
-            )}
-          </span>
 
-          {todayComplete ? (
-            <ChevronRight size={16} strokeWidth={2} color="var(--text-muted)" style={{ flexShrink: 0 }} />
-          ) : (
-            <span style={{
-              flexShrink: 0, padding: '8px 12px', borderRadius: '11px',
-              background: 'var(--cobalt)', color: '#fff', fontSize: '12px', fontWeight: 800,
-            }}>
-              {focusDone > 0 ? 'Continuar' : restDay ? 'Treinar' : 'Começar'}
-            </span>
-          )}
-        </button>
-      )}
+              <span style={{ flex: 1, minWidth: 0 }}>
+                <span style={{
+                  display: 'block', fontSize: '10px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em',
+                  color: todayComplete ? 'var(--teal-d)' : resuming || focusDone > 0 ? focus.color : 'var(--text-muted)',
+                }}>
+                  {todayComplete ? 'Concluído hoje'
+                    : resuming ? (p.activePaused ? 'Treino guiado pausado' : 'Treino guiado em andamento')
+                    : focusDone > 0 ? 'Em andamento' : restDay ? 'Dia de descanso' : 'Treino de hoje'}
+                </span>
+                <span style={{ display: 'block', fontSize: '14px', fontWeight: 800, color: 'var(--text-primary)', marginTop: '2px' }}>
+                  Treino {focus.label} — {focus.name}
+                </span>
+                <span style={{ display: 'block', fontSize: '11px', color: 'var(--text-muted)', marginTop: '2px' }}>
+                  {todayComplete && upcoming && upcoming !== focus.label
+                    ? `Próximo: Treino ${upcoming}${nameOf(upcoming) ? ` — ${nameOf(upcoming)}` : ''}`
+                    : restDay
+                      ? 'Se quiser treinar hoje, este é o próximo'
+                      : focusDone > 0
+                      ? `${focusDone} de ${focus.total} feitos · ${p.sets} séries`
+                      : `${focus.total} exercícios · ${p.sets} séries`}
+                </span>
+                {focusDone > 0 && !todayComplete && (
+                  <span className="progress-track" style={{ display: 'block', height: '5px', marginTop: '8px' }}>
+                    <span className="progress-fill" style={{ display: 'block', width: `${(focusDone / focus.total) * 100}%` }} />
+                  </span>
+                )}
+              </span>
+
+              <ChevronRight size={16} strokeWidth={2} color="var(--text-muted)" style={{ flexShrink: 0 }} />
+            </button>
+
+            {/* Resultado do treino guiado de hoje */}
+            {p.todaySession && !resuming && (
+              <div style={{
+                display: 'flex', gap: '14px', padding: '0 14px 12px 72px', marginTop: '-4px',
+                fontSize: '11px', fontWeight: 700, color: 'var(--text-secondary)',
+              }}>
+                <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+                  <Clock size={12} strokeWidth={2.25} color="var(--cobalt)" />{fmtDuration(p.todaySession.totalSecs)}
+                </span>
+                {p.todaySession.kcal > 0 && (
+                  <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+                    <Flame size={12} strokeWidth={2.25} color="var(--amber-fill)" />~{p.todaySession.kcal} kcal
+                  </span>
+                )}
+                <span>{p.todaySession.sets} séries</span>
+              </div>
+            )}
+
+            {(!todayComplete || resuming) && (
+              <div style={{ padding: '0 14px 14px' }}>
+                <button
+                  onClick={() => p.onStartWorkout(focus.label)}
+                  style={{
+                    width: '100%', padding: '13px', borderRadius: '13px', border: 'none', cursor: 'pointer',
+                    background: 'var(--g-cta)', color: '#fff', fontFamily: FONT, fontWeight: 800, fontSize: '14px',
+                    boxShadow: 'var(--shadow-blue)',
+                    display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px',
+                  }}
+                >
+                  <Play size={15} strokeWidth={2.25} fill="currentColor" />
+                  {resuming ? 'Retomar treino guiado' : focusDone > 0 ? 'Continuar com treino guiado' : 'Iniciar treino guiado'}
+                </button>
+                {!resuming && focusDone === 0 && (
+                  <p style={{ fontSize: '11px', color: 'var(--text-muted)', textAlign: 'center', margin: '7px 0 0' }}>
+                    Cronômetro de execução, descanso e voz do personal
+                  </p>
+                )}
+              </div>
+            )}
+          </div>
+        )
+      })()}
     </div>
   )
 }
