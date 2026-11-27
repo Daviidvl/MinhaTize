@@ -1,18 +1,27 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest'
 import type { VercelRequest, VercelResponse } from '@vercel/node'
 
-const insert = vi.fn()
-const maybeSingleTokens = vi.fn()
+// rpc: as funções de pagamento do banco (supabase/migrations/20261125_billing_idempotency.sql)
+const rpc = vi.fn()
 const sendMock = vi.fn()
 
 vi.mock('../_lib/supabaseAdmin', () => ({
-  getSupabaseAdmin: () => ({
-    from: () => ({
-      select: () => ({ eq: () => ({ maybeSingle: maybeSingleTokens }) }),
-      insert,
-    }),
-  }),
+  getSupabaseAdmin: () => ({ rpc }),
 }))
+
+// Compra nova aplicada e e-mail enviado
+async function defaultRpc(fn: string) {
+  if (fn === 'billing_apply_event') {
+    return { data: { outcome: 'token_created', duplicate: false, token_id: '1', email_key: 'access_email:token:1' }, error: null }
+  }
+  if (fn === 'email_outbox_claim') {
+    return {
+      data: { outcome: 'claimed', outbox_id: 1, idempotency_key: '0b0c0d0e-0000-4000-8000-000000000000', template: 'access_granted', token: 't', email: 'buyer@example.com', name: 'Buyer' },
+      error: null,
+    }
+  }
+  return { data: null, error: null }
+}
 
 // Classe (e não vi.fn) para sobreviver ao vi.restoreAllMocks() do afterEach
 vi.mock('resend', () => ({
@@ -47,9 +56,8 @@ describe('api/webhook handler', () => {
     process.env.WIVEN_WEBHOOK_SECRET = 'super-secret-value'
     delete process.env.UPSTASH_REDIS_REST_URL
     delete process.env.UPSTASH_REDIS_REST_TOKEN
-    insert.mockReset().mockResolvedValue({ error: null })
-    maybeSingleTokens.mockReset().mockResolvedValue({ data: null, error: null })
-    sendMock.mockReset().mockResolvedValue({})
+    rpc.mockReset().mockImplementation(defaultRpc)
+    sendMock.mockReset().mockResolvedValue({ data: { id: 'email-1' }, error: null })
     vi.spyOn(console, 'warn').mockImplementation(() => {})
     vi.spyOn(console, 'error').mockImplementation(() => {})
     vi.spyOn(console, 'log').mockImplementation(() => {})
@@ -83,7 +91,7 @@ describe('api/webhook handler', () => {
     const res = makeRes()
     await handler(makeReq({ body: { event: 'TRANSACTION_PAID', token: forged } }), res) // lançar = teste falha
     expect(res.statusCode).toBe(401)
-    expect(insert).not.toHaveBeenCalled()
+    expect(rpc).not.toHaveBeenCalled()
   })
 
   it('rejects a token sent as a non-string (array/object) without throwing', async () => {
@@ -92,7 +100,7 @@ describe('api/webhook handler', () => {
       await handler(makeReq({ body: { event: 'TRANSACTION_PAID', token } }), res)
       expect(res.statusCode).toBe(401)
     }
-    expect(insert).not.toHaveBeenCalled()
+    expect(rpc).not.toHaveBeenCalled()
   })
 
   it('accepts a request with the correct secret and stores a new token', async () => {
@@ -107,7 +115,7 @@ describe('api/webhook handler', () => {
     const res = makeRes()
     await handler(req, res)
     expect(res.statusCode).toBe(200)
-    expect(insert).toHaveBeenCalled()
+    expect(rpc).toHaveBeenCalledWith('billing_apply_event', expect.anything())
   })
 
   it('blocks repeated requests from the same IP once the rate limit is exceeded', async () => {

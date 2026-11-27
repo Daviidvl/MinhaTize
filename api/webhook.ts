@@ -1,73 +1,20 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node'
-import { Resend } from 'resend'
-import { randomUUID } from 'crypto'
-import { getSupabaseAdmin } from './_lib/supabaseAdmin.js'
 import { createRateLimiter } from './_lib/rateLimit.js'
 import { getClientIp, secretsMatch } from './_lib/auth.js'
 import { parseJsonBody } from './_lib/http.js'
+import {
+  type BillingEvent, type WivenPayload,
+  PAID_EVENT, isAllowedProduct, revokeEvents, toBillingEvent, transactionIdOf,
+} from './_lib/wivenEvents.js'
+import { applyBillingEvent, deliverOutboxEmail, recordBillingFailure } from './_lib/billing.js'
 
 // Limite generoso: o objetivo é conter flood/abuso, não a operação normal do
 // Wiven (que chama pouquíssimas vezes por venda). 60/min por IP.
 const checkRateLimit = createRateLimiter('webhook', 60, 60_000)
 
-// ─── Tipos do payload da Wiven ────────────────────────────────────────────────
-interface WivenPayload {
-  event?: string          // "TRANSACTION_PAID"
-  token?: string          // token de autenticidade do webhook
-  offerCode?: string
-  client?: {
-    id?: string
-    name?: string
-    email?: string
-    phone?: string
-    cpf?: string
-  }
-  transaction?: {
-    id?: string
-    status?: string       
-    paymentMethod?: string
-    amount?: number
-    createdAt?: string
-    payedAt?: string
-  }
-  orderItems?: {
-    id?: string
-    price?: number
-    product?: { id?: string; name?: string }
-  }[]
-}
-
-const PAID_EVENT = 'TRANSACTION_PAID'
-
-const envList = (name: string): string[] =>
-  (process.env[name] ?? '').split(',').map(s => s.trim()).filter(Boolean)
-
-// Eventos que revogam o acesso (reembolso, chargeback, cancelamento). Os nomes
-// vêm do painel da Wiven e são configurados em WIVEN_REVOKE_EVENTS, separados
-// por vírgula. Sem a variável, nenhum evento revoga (comportamento anterior).
-// TRANSACTION_PAID nunca revoga: incluído por engano, toda compra cairia aqui
-// e o comprador ficaria sem acesso.
-function revokeEvents(): string[] {
-  return envList('WIVEN_REVOKE_EVENTS').filter(e => e !== PAID_EVENT)
-}
-
-// Produtos que liberam o MinhaTize. Se a conta da Wiven vender outros produtos
-// e o webhook valer para a conta inteira, a compra de qualquer um deles geraria
-// um acesso. WIVEN_PRODUCT_IDS (ids de produto e/ou códigos de oferta,
-// separados por vírgula) restringe a emissão; sem a variável, toda venda paga
-// libera (comportamento anterior).
-function isAllowedProduct(body: WivenPayload): boolean {
-  const allowed = envList('WIVEN_PRODUCT_IDS')
-  if (allowed.length === 0) return true
-  const items = Array.isArray(body.orderItems) ? body.orderItems : []
-  const ids = [body.offerCode, ...items.map(i => i?.product?.id)]
-  return ids.some(id => typeof id === 'string' && allowed.includes(id))
-}
-
-// Código do Postgres para violação de UNIQUE
-const UNIQUE_VIOLATION = '23505'
-
 // ─── Verificação de autenticidade (timing-safe) ───────────────────────────────
+// A Wiven autentica com um segredo fixo no corpo (body.token), não com uma
+// assinatura do corpo bruto — por isso a verificação é feita depois do parse.
 function isValidRequest(body: WivenPayload): boolean {
   if (!process.env.WIVEN_WEBHOOK_SECRET) {
     console.warn('[webhook] WIVEN_WEBHOOK_SECRET não configurado')
@@ -77,6 +24,8 @@ function isValidRequest(body: WivenPayload): boolean {
 }
 
 // ─── Handler ──────────────────────────────────────────────────────────────────
+// Idempotente: a mesma entrega repetida (reenvio da Wiven, duas requisições
+// simultâneas) não cria outro token nem manda outro e-mail. Ver api/_lib/billing.ts.
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   // Aceitar apenas POST
   if (req.method !== 'POST') return res.status(405).end()
@@ -101,30 +50,20 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   if (!parsed) return res.status(400).json({ error: 'Invalid payload' })
   const body = parsed as WivenPayload
 
-  // 1. Verificar autenticidade ANTES de qualquer outra coisa
+  // 1. Verificar autenticidade ANTES de qualquer outra coisa: sem isso nada é
+  //    gravado, liberado ou enviado
   if (!isValidRequest(body)) {
     console.warn('[webhook] Token inválido recebido')
     return res.status(401).json({ error: 'Unauthorized' })
   }
 
-  const transactionId = body.transaction?.id ?? ''
-
   // 2. Reembolso / chargeback: revoga o token daquela transação
   if (body.event && revokeEvents().includes(body.event)) {
-    if (!transactionId) {
+    if (!transactionIdOf(body)) {
       console.error('[webhook] Evento de revogação sem transaction.id:', body.event)
       return res.status(400).json({ error: 'Missing transaction id' })
     }
-    const { error: revokeError } = await getSupabaseAdmin()
-      .from('tokens')
-      .update({ active: false })
-      .eq('order_id', transactionId)
-    if (revokeError) {
-      console.error('[webhook] Erro ao revogar token:', revokeError.message)
-      return res.status(500).json({ error: 'Database error' })
-    }
-    console.log('[webhook] Acesso revogado:', body.event, transactionId)
-    return res.status(200).json({ success: true, action: 'revoked' })
+    return processEvent(res, toBillingEvent(body, 'revoke'))
   }
 
   // 3. Demais eventos são ignorados. O nome fica no log para facilitar descobrir
@@ -137,257 +76,62 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   // 3b. Venda de outro produto da conta: não emite acesso. 200 para a Wiven não
   //     reentregar; error no log para um WIVEN_PRODUCT_IDS errado não passar batido.
   if (!isAllowedProduct(body)) {
-    console.error('[webhook] Produto fora de WIVEN_PRODUCT_IDS — acesso não emitido. Transação:', transactionId || '(sem id)')
+    console.error('[webhook] Produto fora de WIVEN_PRODUCT_IDS — acesso não emitido. Transação:', transactionIdOf(body) || '(sem id)')
     return res.status(200).json({ received: true, action: 'ignored — product not allowed' })
   }
 
-  // 4. Extrair dados do comprador
-  const email       = body.client?.email ?? ''
-  const name        = body.client?.name  ?? ''
-
-  if (!email) {
+  // 4. E-mail do comprador
+  if (!body.client?.email || typeof body.client.email !== 'string' || !body.client.email.trim()) {
     console.error('[webhook] E-mail do cliente ausente')
     return res.status(400).json({ error: 'Missing customer email' })
   }
 
-  // 5. Conectar ao Supabase
-  const supabase = getSupabaseAdmin()
+  return processEvent(res, toBillingEvent(body, 'grant'))
+}
 
-  // 6. Evitar duplicatas — mesmo transaction.id não gera dois tokens
-  if (transactionId) {
-    const { data: existing } = await supabase
-      .from('tokens')
-      .select('token')
-      .eq('order_id', transactionId)
-      .maybeSingle()
+// ─── Aplicar o evento e enviar o e-mail ───────────────────────────────────────
+async function processEvent(res: VercelResponse, event: BillingEvent) {
+  const txLabel = event.transaction_id ?? '(sem id)'
 
-    if (existing) {
-      console.log('[webhook] Transação já processada, reenviando e-mail:', transactionId)
-      if (!(await sendEmail(existing.token, email, name))) {
-        console.error('[webhook] Reenvio de e-mail falhou para a transação:', transactionId)
-        return res.status(502).json({ error: 'Email delivery failed' })
-      }
-      return res.status(200).json({ success: true, duplicate: true })
-    }
-  }
-
-  // 7. Gerar token único de acesso
-  const token = randomUUID()
-
-  // 8. Salvar no banco
-  const { error: dbError } = await supabase.from('tokens').insert({
-    token,
-    email,
-    customer_name: name,
-    order_id:      transactionId || null,
-    active:        true,
-  })
-
-  // Duas entregas simultâneas do mesmo pedido passam juntas pelo passo 6; a
-  // UNIQUE(order_id) do banco barra a segunda aqui. Nesse caso o token que vale
-  // é o que já foi gravado — reenviamos esse, em vez de responder erro.
-  if (dbError?.code === UNIQUE_VIOLATION && transactionId) {
-    const { data: winner } = await supabase
-      .from('tokens')
-      .select('token')
-      .eq('order_id', transactionId)
-      .maybeSingle()
-    if (winner) {
-      if (!(await sendEmail(winner.token, email, name))) {
-        console.error('[webhook] Reenvio de e-mail falhou para a transação:', transactionId)
-        return res.status(502).json({ error: 'Email delivery failed' })
-      }
-      return res.status(200).json({ success: true, duplicate: true })
-    }
-  }
-
-  if (dbError) {
-    console.error('[webhook] Erro ao salvar token:', dbError.message)
+  // Uma transação no banco: registra o evento, emite/revoga o token e enfileira
+  // o e-mail. Se falhar, nada fica gravado pela metade.
+  let result
+  try {
+    result = await applyBillingEvent(event)
+  } catch (err) {
+    const message = (err as Error)?.message ?? String(err)
+    console.error('[webhook] Falha ao processar', event.event_type, 'da transação', txLabel, '—', message)
+    // Guarda o evento para o cron (api/billing-cron.ts) e responde 500 para a
+    // Wiven reentregar — o que chegar primeiro resolve, sem duplicar.
+    await recordBillingFailure(event, message)
     return res.status(500).json({ error: 'Database error' })
   }
 
-  // 9. Enviar e-mail com link de acesso
-  // Se o e-mail não sair, respondemos 502 para o gateway reentregar o webhook:
-  // a reentrega cai no passo 6 (token já existe) e só reenvia o e-mail.
-  const emailSent = await sendEmail(token, email, name)
-  if (!emailSent) {
-    console.error('[webhook] Token salvo mas e-mail falhou para a transação:', transactionId || '(sem id)')
-    return res.status(502).json({ error: 'Email delivery failed' })
+  if (result.outcome === 'revoked') {
+    console.log('[webhook] Acesso revogado:', event.event_type, txLabel, result.duplicate ? '(reentrega)' : '')
+    return res.status(200).json({ success: true, action: 'revoked', ...(result.duplicate ? { duplicate: true } : {}) })
   }
 
-  return res.status(200).json({ success: true })
-}
+  if (result.outcome === 'already_revoked') {
+    console.warn('[webhook] Pagamento de uma transação já estornada — acesso não emitido:', txLabel)
+    return res.status(200).json({ received: true, action: 'ignored — transaction revoked' })
+  }
 
-// ─── Envio de e-mail via Resend ───────────────────────────────────────────────
-async function sendEmail(token: string, email: string, name: string): Promise<boolean> {
-  try {
-    const resend     = new Resend(process.env.RESEND_API_KEY)
-    const appUrl     = process.env.APP_URL    ?? 'https://minhatize.vercel.app'
-    const pdfUrl     = process.env.PDF_URL    ?? `${appUrl}/guia-instalacao.pdf`
-    const fromEmail  = process.env.EMAIL_FROM ?? 'noreply@minhatize.com.br'
-    // Link limpo, sem token na URL: o app sempre pede o token na tela de entrada.
-    const accessLink = appUrl
-
-    // O SDK do Resend não lança exceção em erro de API (domínio não verificado,
-    // chave inválida, destinatário rejeitado): devolve { data: null, error }.
-    const { error } = await resend.emails.send({
-      from:    `MinhaTize <${fromEmail}>`,
-      to:      email,
-      subject: 'Seu acesso ao MinhaTize está pronto',
-      html:    buildEmailHtml({ name, accessLink, pdfUrl, appUrl, token }),
-    })
-    if (error) {
-      console.error('[sendEmail] Resend recusou o envio:', error.name, error.message)
-      return false
+  // E-mail com o token. A fila garante um e-mail por token: numa reentrega, só
+  // sai se o envio anterior não tiver dado certo.
+  if (result.email_key) {
+    const delivery = await deliverOutboxEmail(result.email_key)
+    if (delivery === 'failed') {
+      // O token está salvo; 502 faz a Wiven reentregar, e a reentrega só tenta
+      // o e-mail de novo (o cron também tenta)
+      console.error('[webhook] Token salvo mas e-mail falhou para a transação:', txLabel)
+      return res.status(502).json({ error: 'Email delivery failed' })
     }
-    return true
-  } catch (err) {
-    console.error('[sendEmail] Erro:', err)
-    return false
+    if (delivery === 'exhausted') {
+      console.error('[webhook] E-mail de acesso esgotou as tentativas — reenviar manualmente (DEPLOY.md). Transação:', txLabel)
+    }
   }
-}
 
-// ─── Template de e-mail ───────────────────────────────────────────────────────
-function buildEmailHtml({ name, accessLink, pdfUrl, appUrl, token }: {
-  name: string
-  accessLink: string
-  pdfUrl: string
-  appUrl: string
-  token: string
-}): string {
-  const firstName = (name.split(' ')[0] || 'Olá')
-    .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
-  const logoUrl   = `${appUrl}/logo-mark.png`
-  const divider   = '<div style="border-top:1px solid #EAEFF6;margin:28px 0;line-height:0;font-size:0;">&nbsp;</div>'
-
-  const step = (n: string, text: string) => `
-        <tr>
-          <td width="28" valign="top" style="padding-bottom:16px;">
-            <div style="width:22px;height:22px;border-radius:50%;background:#EEF4FF;color:#1A52C9;font-size:11px;font-weight:800;text-align:center;line-height:22px;">${n}</div>
-          </td>
-          <td valign="top" style="padding-bottom:16px;padding-left:12px;">
-            <p style="font-size:13.5px;color:#364C6E;line-height:1.65;margin:0;">${text}</p>
-          </td>
-        </tr>`
-
-  return `<!DOCTYPE html>
-<html lang="pt-BR">
-<head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width,initial-scale=1">
-  <title>Seu acesso ao MinhaTize</title>
-</head>
-<body style="margin:0;padding:0;background:#F6F9FC;font-family:Inter,-apple-system,sans-serif;">
-<table width="100%" cellpadding="0" cellspacing="0" style="background:#F6F9FC;padding:48px 16px;">
-  <tr><td align="center">
-  <table width="100%" cellpadding="0" cellspacing="0" style="max-width:540px;">
-
-    <!-- Logo -->
-    <tr><td style="padding-bottom:28px;">
-      <table cellpadding="0" cellspacing="0">
-        <tr>
-          <td style="vertical-align:middle;">
-            <img src="${logoUrl}" alt="MinhaTize" width="34" height="34"
-              style="display:block;width:34px;height:34px;" />
-          </td>
-          <td style="padding-left:11px;vertical-align:middle;">
-            <span style="font-size:15px;font-weight:800;color:#0A1628;letter-spacing:-0.3px;">MinhaTize</span>
-          </td>
-        </tr>
-      </table>
-    </td></tr>
-
-    <!-- Card principal -->
-    <tr><td style="background:#FFFFFF;border:1px solid #EAEFF6;border-radius:20px;padding:40px 36px;box-shadow:0 4px 20px rgba(10,22,40,0.06);">
-
-      <p style="font-size:11px;font-weight:800;color:#00A882;letter-spacing:0.08em;text-transform:uppercase;margin:0 0 16px;">
-        Pagamento confirmado
-      </p>
-      <h1 style="font-size:25px;font-weight:800;color:#0A1628;letter-spacing:-0.6px;line-height:1.3;margin:0 0 12px;">
-        Tudo pronto, ${firstName}.
-      </h1>
-      <p style="font-size:14px;color:#637A9A;line-height:1.7;margin:0;">
-        Seu protocolo de Tirzepatida j&#225; est&#225; liberado. Veja abaixo como acessar o app de acompanhamento e baixar o material completo.
-      </p>
-
-      ${divider}
-
-      <!-- Passo a passo -->
-      <p style="font-size:11px;font-weight:800;color:#96ABCA;letter-spacing:0.06em;text-transform:uppercase;margin:0 0 18px;">
-        Como acessar o app
-      </p>
-      <table width="100%" cellpadding="0" cellspacing="0">
-        ${step('1', 'Toque no bot&#227;o <strong style="color:#0A1628;">Abrir o app</strong>, logo abaixo.')}
-        ${step('2', 'Na tela de entrada, cole o <strong style="color:#0A1628;">token de acesso</strong> que est&#225; neste e-mail.')}
-        ${step('3', 'Pronto &#8212; o acesso fica salvo no aparelho. S&#243; ser&#225; pedido de novo se voc&#234; sair da conta.')}
-      </table>
-
-      <table width="100%" cellpadding="0" cellspacing="0" style="margin-top:4px;">
-        <tr><td align="center">
-          <a href="${accessLink}" style="display:block;width:100%;box-sizing:border-box;padding:15px 20px;background:linear-gradient(135deg,#2E6FEB,#7B5CF5);border-radius:14px;color:#FFFFFF;font-size:14.5px;font-weight:700;text-decoration:none;text-align:center;letter-spacing:-0.1px;box-shadow:0 6px 20px rgba(46,111,235,0.28);">
-            Abrir o app
-          </a>
-        </td></tr>
-      </table>
-
-      <!-- Token -->
-      <table width="100%" cellpadding="0" cellspacing="0" style="margin-top:20px;background:#F7F9FC;border:1px solid #EAEFF6;border-radius:14px;">
-        <tr><td style="padding:16px 18px;">
-          <p style="font-size:10.5px;font-weight:800;color:#96ABCA;letter-spacing:0.05em;text-transform:uppercase;margin:0 0 7px;">Seu token de acesso</p>
-          <p style="font-family:'SFMono-Regular',Consolas,monospace;font-size:13.5px;font-weight:700;color:#0A1628;margin:0;word-break:break-all;">
-            ${token}
-          </p>
-        </td></tr>
-      </table>
-      <p style="font-size:11.5px;color:#96ABCA;line-height:1.6;margin:10px 0 0;">
-        C&#243;digo pessoal e intransfer&#237;vel. N&#227;o compartilhe com outras pessoas.
-      </p>
-
-      ${pdfUrl ? `
-      ${divider}
-
-      <!-- PDF -->
-      <table width="100%" cellpadding="0" cellspacing="0">
-        <tr>
-          <td valign="middle">
-            <p style="font-size:14px;font-weight:700;color:#0A1628;margin:0 0 3px;">Guia de instala&#231;&#227;o</p>
-            <p style="font-size:12px;color:#637A9A;margin:0;">Passo a passo com imagens: acesso e instala&#231;&#227;o no celular</p>
-          </td>
-          <td align="right" valign="middle">
-            <a href="${pdfUrl}" style="display:inline-block;padding:10px 18px;border:1.5px solid #D3DDED;border-radius:10px;color:#1A52C9;font-size:12.5px;font-weight:700;text-decoration:none;white-space:nowrap;">
-              Baixar PDF
-            </a>
-          </td>
-        </tr>
-      </table>
-      ` : ''}
-
-      ${divider}
-
-      <!-- Instalar no celular -->
-      <p style="font-size:11px;font-weight:800;color:#96ABCA;letter-spacing:0.06em;text-transform:uppercase;margin:0 0 10px;">
-        Instalar como app no celular
-      </p>
-      <p style="font-size:12.5px;color:#637A9A;margin:0;line-height:1.7;">
-        <strong style="color:#364C6E;">iPhone:</strong> abra o link no Safari, toque em Compartilhar e selecione "Adicionar &#224; Tela de In&#237;cio".<br>
-        <strong style="color:#364C6E;">Android:</strong> abra o link no Chrome, toque no menu &#8942; e selecione "Adicionar &#224; tela inicial".
-      </p>
-
-    </td></tr>
-
-    <!-- Footer -->
-    <tr><td style="padding:26px 8px 0;text-align:center;">
-      <p style="font-size:11.5px;color:#96ABCA;margin:0 0 4px;line-height:1.6;">
-        D&#250;vidas sobre o acesso? Responda este e-mail que a gente ajuda.
-      </p>
-      <p style="font-size:11px;color:#C1CEE2;margin:0;">
-        &copy; 2026 MinhaTize
-      </p>
-    </td></tr>
-
-  </table>
-  </td></tr>
-</table>
-</body>
-</html>`
+  if (result.duplicate) console.log('[webhook] Evento já processado:', event.event_type, txLabel)
+  return res.status(200).json(result.duplicate ? { success: true, duplicate: true } : { success: true })
 }

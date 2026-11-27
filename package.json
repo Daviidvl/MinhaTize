@@ -13,6 +13,7 @@
     "test": "vitest",
     "test:ui": "vitest --ui",
     "test:coverage": "vitest --coverage",
+    "test:sql": "bash supabase/tests/run-billing-tests.sh",
     "lint": "eslint src api",
     "type-check": "tsc --noEmit && tsc --noEmit -p tsconfig.api.json"
   },
