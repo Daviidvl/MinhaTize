@@ -3,8 +3,10 @@ import { createRateLimiter } from './_lib/rateLimit.js'
 import { getClientIp, secretsMatch } from './_lib/auth.js'
 import { parseJsonBody } from './_lib/http.js'
 import {
-  type BillingEvent, type WivenPayload,
-  PAID_EVENT, isAllowedProduct, revokeEvents, toBillingEvent, transactionIdOf,
+  type BillingEvent, type Built, type WivenPayload,
+  PAID_EVENT, SUBSCRIPTION_CHARGE_EVENTS, SUBSCRIPTION_STATUS_EVENTS,
+  hasSubscription, isAllowedProduct, isSubscriptionProduct, revokeEvents,
+  toBillingEvent, toSubscriptionCharge, toSubscriptionStatus, transactionIdOf,
 } from './_lib/wivenEvents.js'
 import { applyBillingEvent, deliverOutboxEmail, recordBillingFailure } from './_lib/billing.js'
 
@@ -66,27 +68,62 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     return processEvent(res, toBillingEvent(body, 'revoke'))
   }
 
-  // 3. Demais eventos são ignorados. O nome fica no log para facilitar descobrir
-  //    quais eventos a Wiven envia (ex.: ao configurar WIVEN_REVOKE_EVENTS).
+  // 3. Assinaturas. Uma cobrança de assinatura NUNCA segue para o caminho da
+  //    compra única (que dá acesso vitalício), mesmo vindo como TRANSACTION_PAID.
+  const event = String(body.event ?? '')
+  if ((event === PAID_EVENT && hasSubscription(body)) || SUBSCRIPTION_CHARGE_EVENTS.includes(event)) {
+    return processSubscription(res, body, () => toSubscriptionCharge(body))
+  }
+  const newStatus = Object.hasOwn(SUBSCRIPTION_STATUS_EVENTS, event) ? SUBSCRIPTION_STATUS_EVENTS[event] : undefined
+  if (newStatus) {
+    return processSubscription(res, body, () => toSubscriptionStatus(body, newStatus))
+  }
+
+  // 4. Demais eventos são ignorados (inclusive período grátis: as ofertas não
+  //    têm). O nome fica no log para facilitar descobrir o que a Wiven envia.
   if (body.event !== PAID_EVENT) {
     console.log('[webhook] Evento ignorado:', String(body.event).slice(0, 60))
     return res.status(200).json({ received: true, action: 'ignored — not TRANSACTION_PAID' })
   }
 
-  // 3b. Venda de outro produto da conta: não emite acesso. 200 para a Wiven não
-  //     reentregar; error no log para um WIVEN_PRODUCT_IDS errado não passar batido.
+  // 5. Compra única (vitalício). Venda de outro produto da conta: não emite
+  //    acesso. 200 para a Wiven não reentregar; error no log para um
+  //    WIVEN_PRODUCT_IDS errado não passar batido.
   if (!isAllowedProduct(body)) {
     console.error('[webhook] Produto fora de WIVEN_PRODUCT_IDS — acesso não emitido. Transação:', transactionIdOf(body) || '(sem id)')
     return res.status(200).json({ received: true, action: 'ignored — product not allowed' })
   }
 
-  // 4. E-mail do comprador
+  // 6. E-mail do comprador
   if (!body.client?.email || typeof body.client.email !== 'string' || !body.client.email.trim()) {
     console.error('[webhook] E-mail do cliente ausente')
     return res.status(400).json({ error: 'Missing customer email' })
   }
 
   return processEvent(res, toBillingEvent(body, 'grant'))
+}
+
+// ─── Assinaturas ──────────────────────────────────────────────────────────────
+async function processSubscription(res: VercelResponse, body: WivenPayload, build: () => Built) {
+  const ref = transactionIdOf(body) || String(body.subscription?.id ?? '(sem id)')
+  // Produto que não é a assinatura do MinhaTize (ou variável não configurada):
+  // não libera nada. 200 para a Wiven não reentregar; error para não passar batido.
+  if (!isSubscriptionProduct(body)) {
+    console.error('[webhook] Assinatura de produto fora de WIVEN_SUBSCRIPTION_PRODUCT_IDS — acesso não emitido:', String(body.event), ref)
+    return res.status(200).json({ received: true, action: 'ignored — product not allowed' })
+  }
+  const built = build()
+  if (!built.ok) {
+    if (built.reason === 'unknown_plan') {
+      // Oferta com uma periodicidade que o app não conhece: não libera, mas não
+      // adianta a Wiven reentregar
+      console.error('[webhook] Plano desconhecido — acesso não emitido:', built.detail, ref)
+      return res.status(200).json({ received: true, action: 'ignored — unknown plan' })
+    }
+    console.error('[webhook] Evento de assinatura incompleto:', String(body.event), built.detail)
+    return res.status(400).json({ error: 'Invalid subscription event' })
+  }
+  return processEvent(res, built.event)
 }
 
 // ─── Aplicar o evento e enviar o e-mail ───────────────────────────────────────
@@ -115,6 +152,17 @@ async function processEvent(res: VercelResponse, event: BillingEvent) {
   if (result.outcome === 'already_revoked') {
     console.warn('[webhook] Pagamento de uma transação já estornada — acesso não emitido:', txLabel)
     return res.status(200).json({ received: true, action: 'ignored — transaction revoked' })
+  }
+
+  if (result.outcome === 'no_period') {
+    // O outro aviso da mesma cobrança (SUBSCRIPTION_STARTED/RENEWED) traz a data
+    console.warn('[webhook] Cobrança de assinatura sem período calculável — aguardando o aviso da assinatura:', txLabel)
+    return res.status(200).json({ received: true, action: 'ignored — no period' })
+  }
+
+  if (result.outcome === 'stale') {
+    console.log('[webhook] Evento de assinatura mais antigo que o estado atual — ignorado:', event.event_type, event.subscription_id)
+    return res.status(200).json({ received: true, action: 'ignored — stale' })
   }
 
   // E-mail com o token. A fila garante um e-mail por token: numa reentrega, só

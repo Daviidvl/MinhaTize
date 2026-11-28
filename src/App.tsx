@@ -123,7 +123,8 @@ export default function App() {
   const [activeTab, setActiveTab]     = useState<Tab>(deepLink?.tab ?? 'dashboard')
   const [deepSection, setDeepSection] = useState<string | null>(deepLink?.section ?? null)
   const [profile, setProfile]         = useState<UserProfile>(loadProfile)
-  const [tokenStatus, setTokenStatus] = useState<'checking' | 'valid' | 'invalid'>('checking')
+  // 'expired' = assinatura vencida: mostra a renovação e mantém o token
+  const [tokenStatus, setTokenStatus] = useState<'checking' | 'valid' | 'invalid' | 'expired'>('checking')
   const [consentGiven, setConsentGiven] = useState<boolean>(hasConsent)
   const [legalDoc, setLegalDoc]       = useState<LegalDoc | null>(() => {
     const p = new URLSearchParams(window.location.search).get('legal')
@@ -143,6 +144,12 @@ export default function App() {
         if (result === 'valid') {
           if (!readRaw(STORAGE_KEYS.owner)) await claimLocalData(stored)
           if (!cancelled) setTokenStatus('valid')
+          return
+        }
+        // Assinatura vencida: o token fica guardado (renovou, volta a valer) e
+        // os dados do aparelho também
+        if (result === 'expired') {
+          if (!cancelled) setTokenStatus('expired')
           return
         }
         // Sem internet ou com a API instável ('unknown') o app abre offline só
@@ -269,8 +276,14 @@ export default function App() {
     )
   }
 
-  if (tokenStatus === 'invalid') {
-    return <LoginScreen onAccessGranted={() => setTokenStatus('valid')} onLegal={doc => { if (isLegalDoc(doc)) setLegalDoc(doc) }} />
+  if (tokenStatus === 'invalid' || tokenStatus === 'expired') {
+    return (
+      <LoginScreen
+        expired={tokenStatus === 'expired'}
+        onAccessGranted={() => setTokenStatus('valid')}
+        onLegal={doc => { if (isLegalDoc(doc)) setLegalDoc(doc) }}
+      />
+    )
   }
 
   if (!consentGiven) {

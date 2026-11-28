@@ -32,7 +32,8 @@ prefixo `VITE_` — todas são lidas só no servidor.
 | `APP_URL` | recomendada | usa `https://minhatize.vercel.app` |
 | `UPSTASH_REDIS_REST_URL`, `UPSTASH_REDIS_REST_TOKEN` | **recomendadas** | o limite de requisições fica em memória por instância e não vale entre instâncias |
 | `WIVEN_REVOKE_EVENTS` | recomendada | reembolso e chargeback não revogam o token |
-| `WIVEN_PRODUCT_IDS` | recomendada se a conta Wiven vende outros produtos | toda venda paga da conta gera um acesso ao MinhaTize |
+| `WIVEN_PRODUCT_IDS` | recomendada se a conta Wiven vende outros produtos | toda venda paga da conta gera um acesso **vitalício** ao MinhaTize (assinaturas nunca entram aqui) |
+| `WIVEN_SUBSCRIPTION_PRODUCT_IDS` | sim, para vender assinaturas | nenhuma assinatura libera acesso (o webhook responde 200 e registra erro no log) |
 | `VAPID_PUBLIC_KEY`, `VAPID_PRIVATE_KEY` | sim | as notificações no celular não funcionam (`/api/push` responde 503) |
 | `CRON_SECRET` | sim | o disparo das notificações (`/api/push-cron`) e a recuperação de pagamentos (`/api/billing-cron`) recusam todas as chamadas |
 | `ACCESS_PROOF_PRIVATE_KEY` | sim | o app só abre com internet: sem a prova assinada, quem está offline cai na tela de entrada |
@@ -64,6 +65,44 @@ venda paga de outro produto não gera token (o webhook responde 200 e registra
 `[webhook] Produto fora de WIVEN_PRODUCT_IDS` como erro no log). Confira os
 valores num webhook de teste antes de cadastrar: um id errado faz **nenhuma**
 compra liberar acesso.
+
+Esta lista é do produto **vitalício** (compra única antiga: `cmqd6k3cc0k4b01pt6hrsjmyh`,
+oferta `WOSNO2H`). **Não coloque o produto de assinatura aqui.** Uma cobrança de
+assinatura nunca segue o caminho do vitalício, mesmo que esteja na lista.
+
+### Assinaturas (`WIVEN_SUBSCRIPTION_PRODUCT_IDS`)
+
+Id do produto de assinatura na Wiven (`APP MINHA TIZE`: `cmwlix69p08sn01oei0ec4066`).
+Os três planos são ofertas desse produto, e o plano é reconhecido pela periodicidade
+que vem no evento: Meses/1 = mensal, Meses/3 = trimestral, Anos/1 = anual. Uma oferta
+com outra periodicidade não libera nada (log `[webhook] Plano desconhecido`).
+
+**Eventos que o webhook da Wiven precisa ter marcados:** Transação paga, Transação
+estornada, Transação contestada, Assinatura iniciada, Assinatura renovada, Renovação de
+assinatura pendente, Assinatura expirada e Assinatura cancelada.
+
+Regras (migration `20261127_subscriptions.sql`):
+
+| Situação | Acesso |
+|---|---|
+| Assinou / renovou | até a próxima cobrança (`nextChargeAt`) |
+| Renovação pendente (PIX) | continua até a Wiven avisar que expirou (cerca de 3 dias depois do vencimento) |
+| Aviso de expiração perdido | termina sozinho 7 dias depois do vencimento (rede de segurança) |
+| Cancelou | até o fim do período pago (a Wiven só avisa nessa data) |
+| Reembolso ou chargeback | termina na hora |
+| Reassinou | volta com o mesmo token (pelo id de cliente da Wiven) |
+| Cliente antigo (vitalício) | nada muda: o banco recusa transformá-lo em assinante |
+
+Os preços que aparecem na tela de entrada estão em `src/data/plans.ts`. Eles só
+aparecem; quem cobra é a Wiven. Mudou o preço ou a oferta na Wiven, mude lá também.
+
+**Ver a situação de um assinante:**
+
+```sql
+select t.plan, t.paid_until, t.expires_at, s.gateway_subscription_id, s.status, s.status_changed_at
+  from public.tokens t join public.billing_subscriptions s on s.token_id = t.id::text
+ where t.email = '<e-mail do assinante>';
+```
 
 ### Prova de acesso offline (`ACCESS_PROOF_PRIVATE_KEY`)
 
@@ -153,11 +192,12 @@ As migrations ficam em `supabase/migrations/` e são aplicadas **manualmente**
 | `20261021_push_subscriptions.sql` | tabela `push_subscriptions` (inscrições e agenda de notificações) | **antes**. Sem a tabela a inscrição responde 500; o app tenta de novo depois, sem erro visível |
 | `20261112_revoke_client_roles.sql` | garante RLS e retira de `anon`/`authenticated` todo privilégio em `tokens`, `consents` e `push_subscriptions` | qualquer uma (o código só usa a `service_role`). O fim do arquivo traz as consultas de conferência |
 | `20261125_billing_idempotency.sql` | tabelas `billing_events`, `billing_transactions`, `email_outbox` e as funções do webhook idempotente. Não altera nenhuma linha de `tokens` | **antes** — sem as funções, o webhook novo responde 500 a toda venda (a Wiven reentrega, mas ninguém recebe token até a migration rodar). Rode a conferência do fim do arquivo antes e depois |
+| `20261127_subscriptions.sql` | assinaturas: `tokens.access_type` (todos os atuais = `legacy_purchase`), plano, validade, tabela `billing_subscriptions`, a trava do legado e `expires_at` se faltar. Substitui `billing_apply_event` | **antes**, depois da `20261125`. Sem ela o login continua funcionando (a validação ignora as colunas que faltam), mas nenhuma assinatura é emitida. Rode a conferência do fim do arquivo antes e depois |
 
 Confira também, a cada mudança de schema:
 
 - **RLS habilitado** em `tokens`, `consents`, `push_subscriptions`, `billing_events`,
-  `billing_transactions` e `email_outbox`, sem policy para `anon`/`authenticated`
+  `billing_transactions`, `email_outbox` e `billing_subscriptions`, sem policy para `anon`/`authenticated`
   (o app só acessa o banco pelo servidor, com a `service_role`).
 - As funções de pagamento **sem** `EXECUTE` para `anon`/`authenticated` (consulta no
   fim da migration `20261125`): a anon key é pública, e com esse privilégio
@@ -177,6 +217,11 @@ Confira também, a cada mudança de schema:
   200 sem mandar outro e-mail. (Reenviar o webhook de uma venda **antiga**, anterior
   à migration, manda o e-mail uma vez — a fila ainda não o conhecia.)
 - `/api/billing-cron` no cron-job.org respondendo 200, com `stuck` zerado.
+- Assinaturas: tela de entrada (sem token) mostra os três planos; cada link abre o
+  checkout da Wiven com o valor certo. Assinar o plano mensal com um e-mail seu →
+  e-mail com o token; Perfil → Minha assinatura mostra "Mensal · até <data>". No
+  Supabase, a consulta "Ver a situação de um assinante" mostra a assinatura `active`.
+  Pedir o reembolso → o token deixa de entrar (tela "Sua assinatura venceu").
 - Notificações: no celular (no iPhone, com o app na tela de início), permitir as
   notificações, ajustar um lembrete para daqui a 10 minutos em Perfil → Lembretes,
   fechar o app e esperar o aviso. Conferir no Supabase que a linha apareceu em
@@ -192,3 +237,10 @@ pelas funções são linhas normais de `tokens` e continuam valendo. Pause o job
 `/api/billing-cron` no cron-job.org (a versão anterior não tem a rota: responderia 404).
 Para desfazer a migration em si, o bloco "Reverter" no fim do arquivo renomeia
 as tabelas em vez de apagá-las.
+
+Assinaturas: antes de voltar para uma versão sem elas, **despublique os links dos
+planos** (ou desative as ofertas na Wiven). A versão anterior ignora as cobranças de
+assinatura (`WIVEN_PRODUCT_IDS` só tem o vitalício), então quem assinar nesse
+intervalo não recebe token; os tokens de assinatura já emitidos continuam expirando
+pelo `expires_at`, que a versão anterior respeita. Durante o rollback, renovações não
+estendem o acesso.

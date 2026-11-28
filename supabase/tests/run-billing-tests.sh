@@ -13,9 +13,9 @@ set -euo pipefail
 
 HERE="$(cd "$(dirname "$0")" && pwd)"
 ROOT="$(cd "$HERE/../.." && pwd)"
-# BILLING_MIGRATION: outro arquivo no lugar da migration (para conferir que os
-# testes acusam uma versão quebrada)
-MIGRATION="${BILLING_MIGRATION:-$ROOT/supabase/migrations/20261125_billing_idempotency.sql}"
+# BILLING_MIGRATIONS: outros arquivos no lugar das migrations, separados por
+# espaço (para conferir que os testes acusam uma versão quebrada)
+MIGRATIONS="${BILLING_MIGRATIONS:-$ROOT/supabase/migrations/20261125_billing_idempotency.sql $ROOT/supabase/migrations/20261127_subscriptions.sql}"
 PORT="${PG_TEST_PORT:-54329}"
 
 find_pg_bin() {
@@ -63,11 +63,15 @@ expect() { # expect "<descrição>" "<esperado>" "<obtido>"
 
 echo "Versão: $(q 'show server_version')"
 "${DB[@]}" -f "$HERE/setup.sql" >/dev/null
-PGOPTIONS='-c client_min_messages=warning' "${DB[@]}" -f "$MIGRATION" >/dev/null
-PGOPTIONS='-c client_min_messages=warning' "${DB[@]}" -f "$MIGRATION" >/dev/null
-echo "ok - migration aplicada duas vezes sem erro (idempotente)"
+for pass in 1 2; do
+  for m in $MIGRATIONS; do
+    PGOPTIONS='-c client_min_messages=warning' "${DB[@]}" -f "$m" >/dev/null
+  done
+done
+echo "ok - migrations aplicadas duas vezes sem erro (idempotentes): $(for m in $MIGRATIONS; do basename "$m" .sql; done | tr '\n' ' ')"
 
 "${DB[@]}" -f "$HERE/billing_idempotency.test.sql"
+"${DB[@]}" -f "$HERE/subscriptions.test.sql"
 
 # ── Concorrência real: várias conexões ao mesmo tempo ────────────────────────
 evt() { # evt <tipo> <transação> <ação>
@@ -132,6 +136,42 @@ for p in "${pids[@]}"; do wait "$p" || fail "E-mail: uma das conexões falhou: $
 expect "E-mail: exatamente uma reserva" 1 "$(cat "$WORK"/c4.* | grep -c '^claimed$')"
 expect "E-mail: as outras ficam de fora" $((N - 1)) "$(cat "$WORK"/c4.* | grep -c '^busy$')"
 echo "ok - e-mail: $N envios simultâneos do mesmo e-mail resultam em uma única reserva"
+
+# ── Assinaturas ───────────────────────────────────────────────────────────────
+# charge <tipo> <transação> <assinatura> <cliente>
+charge() {
+  echo "jsonb_build_object('gateway','wiven','event_key','$1:$2','event_type','$1','action','subscription_charge','transaction_id','$2','subscription_id','$3','customer_id','$4','plan','mensal','period_end',(now() + interval '30 days')::text,'occurred_at',now()::text,'email','conc-sub@example.com','name','Conc')"
+}
+
+# Os dois avisos da mesma cobrança (TRANSACTION_PAID e SUBSCRIPTION_STARTED), várias vezes, ao mesmo tempo
+pids=()
+for i in $(seq 1 $N); do
+  if [ $((i % 2)) -eq 0 ]; then t=TRANSACTION_PAID; else t=SUBSCRIPTION_STARTED; fi
+  # outcome:duplicate — uma entrega duplicada repete o resultado da original
+  "${DB[@]}" -tA -c "set role service_role; select r->>'outcome' || ':' || (r->>'duplicate') from public.billing_apply_event($(charge $t tx-sc-1 sub-c1 cli-c1)) r" > "$WORK/c5.$i" 2>&1 &
+  pids+=($!)
+done
+for p in "${pids[@]}"; do wait "$p" || fail "Assinatura simultânea: uma das conexões falhou: $(cat "$WORK"/c5.* | head -3)"; done
+expect "Assinatura simultânea: um token criado" 1 "$(cat "$WORK"/c5.* | grep -c '^token_created:false$')"
+expect "Assinatura simultânea: o outro aviso só confirma" 1 "$(cat "$WORK"/c5.* | grep -c '^subscription_charged:false$')"
+expect "Assinatura simultânea: o resto é duplicado" $((N - 2)) "$(cat "$WORK"/c5.* | grep -c ':true$')"
+expect "Assinatura simultânea: um token" 1 "$(q "select count(*) from tokens where gateway_customer_id = 'cli-c1'")"
+expect "Assinatura simultânea: uma transação" 1 "$(q "select count(*) from billing_transactions where gateway_transaction_id = 'tx-sc-1'")"
+expect "Assinatura simultânea: um e-mail" 1 "$(q "select count(*) from email_outbox where business_key = 'access_email:subscription:sub-c1'")"
+echo "ok - os dois avisos da mesma cobrança, $N vezes ao mesmo tempo: um token, uma transação, um e-mail"
+
+# Duas assinaturas novas do mesmo cliente ao mesmo tempo: um token só
+pids=()
+for i in $(seq 1 $N); do
+  if [ $((i % 2)) -eq 0 ]; then e="$(charge SUBSCRIPTION_STARTED tx-sc-a sub-ca cli-c2)"; else e="$(charge SUBSCRIPTION_STARTED tx-sc-b sub-cb cli-c2)"; fi
+  "${DB[@]}" -tA -c "set role service_role; select public.billing_apply_event($e)->>'outcome'" > "$WORK/c6.$i" 2>&1 &
+  pids+=($!)
+done
+for p in "${pids[@]}"; do wait "$p" || fail "Mesmo cliente: uma das conexões falhou: $(cat "$WORK"/c6.* | head -3)"; done
+expect "Mesmo cliente: um token" 1 "$(q "select count(*) from tokens where gateway_customer_id = 'cli-c2'")"
+expect "Mesmo cliente: as duas assinaturas apontam para ele" 1 \
+  "$(q "select count(distinct token_id) from billing_subscriptions where gateway_subscription_id in ('sub-ca','sub-cb')")"
+echo "ok - duas assinaturas simultâneas do mesmo cliente compartilham um token"
 
 echo
 echo "Todos os testes de banco passaram."

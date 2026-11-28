@@ -31,11 +31,14 @@ export function tokenFingerprint(token: string): string {
   return createHash('sha256').update(token).digest('hex')
 }
 
-// "<payload base64url>.<assinatura base64url>", ou null sem chave configurada
-export function createAccessProof(token: string, now = Date.now()): string | null {
+// "<payload base64url>.<assinatura base64url>", ou null sem chave configurada.
+// accessEndsAt: fim do acesso (assinatura); a prova nunca vale além dele — sem
+// isso, uma assinatura vencida continuaria abrindo o app offline por 30 dias.
+export function createAccessProof(token: string, now = Date.now(), accessEndsAt: number | null = null): string | null {
   const key = signingKey()
   if (!key) return null
-  const payload = Buffer.from(JSON.stringify({ fp: tokenFingerprint(token), exp: now + PROOF_TTL_MS })).toString('base64url')
+  const exp = accessEndsAt != null ? Math.min(now + PROOF_TTL_MS, accessEndsAt) : now + PROOF_TTL_MS
+  const payload = Buffer.from(JSON.stringify({ fp: tokenFingerprint(token), exp })).toString('base64url')
   // ieee-p1363 (r||s): o formato que o WebCrypto espera na verificação
   const sig = sign('sha256', Buffer.from(payload), { key, dsaEncoding: 'ieee-p1363' }).toString('base64url')
   return `${payload}.${sig}`

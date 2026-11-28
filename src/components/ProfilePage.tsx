@@ -2,8 +2,10 @@ import { useState } from 'react'
 import {
   Award, Calendar, Package, Settings, Zap, BarChart2, Scale, Flame, Dumbbell,
   Target, Lightbulb, AlertTriangle, Check, ChevronLeft, Shield,
-  MessageCircle, Utensils, Bell,
+  MessageCircle, Utensils, Bell, CreditCard,
 } from 'lucide-react'
+import { getAccessInfo } from '../utils/token'
+import { planName } from '../data/plans'
 import { UserProfile } from '../types'
 import ReminderSettings from './ReminderSettings'
 import StockControl from './StockControl'
@@ -28,7 +30,12 @@ interface Props {
   initialSection?: string
 }
 
-type ProfileSection = null | 'achievements' | 'stock' | 'reminders' | 'edit' | 'equipe' | 'suporte' | 'legal' | 'loja' | 'loja-categoria' | 'farmacias'
+type ProfileSection = null | 'achievements' | 'stock' | 'reminders' | 'edit' | 'equipe' | 'suporte' | 'legal' | 'loja' | 'loja-categoria' | 'farmacias' | 'assinatura'
+
+// "27/12/2026"
+function formatDate(iso: string): string {
+  return new Date(iso).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric' })
+}
 
 interface Achievement {
   id: string; icon: React.ReactNode; title: string; phrase: string; unlocked: boolean
@@ -69,6 +76,10 @@ export default function ProfilePage({ profile, onUpdateProfile, onBack, initialS
   const unlocked     = achievements.filter(a => a.unlocked).length
   const appsLeft     = getAppsLeft(profile)
   const stockLow     = isLowStock(appsLeft)
+  // Gravado na última validação online (só informativo; quem decide é o servidor)
+  const access       = getAccessInfo()
+  const accessPlan   = access?.type === 'subscription' ? planName(access.plan) ?? 'Assinatura' : 'Vitalício'
+  const accessUntil  = access?.type === 'subscription' && access.paidUntil ? formatDate(access.paidUntil) : null
 
   // ── Subtelas ────────────────────────────────────────────────────────────────
   if (section === 'achievements') return (
@@ -248,6 +259,44 @@ export default function ProfilePage({ profile, onUpdateProfile, onBack, initialS
     </div>
   )
 
+  if (section === 'assinatura' && access) return (
+    <div className="fade-in" style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+      <SubHeader title="Minha assinatura" onBack={() => setSection(null)} />
+      <div className="card" style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+          <div style={{ width: '44px', height: '44px', borderRadius: '12px', flexShrink: 0, background: 'var(--ice)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            <CreditCard size={20} strokeWidth={1.75} style={{ color: 'var(--cobalt)' }} />
+          </div>
+          <div>
+            <p style={{ margin: 0, fontSize: '15px', fontWeight: 700, color: 'var(--text-primary)' }}>
+              {access.type === 'subscription' ? `Plano ${accessPlan}` : 'Acesso vitalício'}
+            </p>
+            <p style={{ margin: '2px 0 0', fontSize: '12px', color: 'var(--text-muted)' }}>
+              {access.type === 'subscription'
+                ? (accessUntil ? `Válido até ${accessUntil}` : 'Assinatura ativa')
+                : 'Compra única, sem mensalidade'}
+            </p>
+          </div>
+        </div>
+        <p style={{ fontSize: '13px', color: 'var(--text-secondary)', lineHeight: 1.55, margin: 0 }}>
+          {access.type === 'subscription'
+            ? 'A renovação é automática e feita pela Wiven. Para cancelar ou trocar de plano, fale com o suporte ou use a plataforma onde você assinou.'
+            : 'Sua compra garante o acesso ao MinhaTize sem cobranças recorrentes.'}
+        </p>
+        {access.type === 'subscription' && (
+          <button onClick={() => openWA('Olá! Quero falar sobre a minha assinatura do MinhaTize.')} style={{
+            display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px',
+            width: '100%', padding: '13px 20px', background: 'var(--g-cta)',
+            color: '#fff', border: 'none', borderRadius: '12px', fontSize: '14px', fontWeight: 700,
+            cursor: 'pointer', fontFamily: 'Inter, -apple-system, sans-serif',
+          }}>
+            <WaIcon size={18} /> Falar com o suporte
+          </button>
+        )}
+      </div>
+    </div>
+  )
+
   if (section === 'legal') return <ProfileLegal profile={profile} onBack={() => setSection(null)} />
 
   // Loja e Farmácias abrem direto do Início: o Voltar sai do Perfil
@@ -377,6 +426,22 @@ export default function ProfilePage({ profile, onUpdateProfile, onBack, initialS
           />
         </LGroup>
       </div>
+
+      {/* Seção: Minha assinatura (só depois de uma validação online) */}
+      {access && (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+          <SLabel>Minha assinatura</SLabel>
+          <LGroup>
+            <LRow
+              iconBg="var(--ice)"
+              icon={<CreditCard size={18} strokeWidth={1.75} style={{ color: 'var(--cobalt)' }} />}
+              label="Plano"
+              value={accessUntil ? `${accessPlan} · até ${accessUntil}` : accessPlan}
+              onClick={() => setSection('assinatura')}
+            />
+          </LGroup>
+        </div>
+      )}
 
       {/* Seção: Legal */}
       <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>

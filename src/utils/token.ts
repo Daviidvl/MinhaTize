@@ -1,4 +1,4 @@
-import { readRaw, writeRaw, removeKey, readJSON } from './storage'
+import { readRaw, writeRaw, removeKey, readJSON, writeJSON } from './storage'
 import { STORAGE_KEYS, USER_DATA_KEYS } from './storageKeys'
 import { verifyAccessProof } from './accessProof'
 
@@ -13,6 +13,30 @@ export function saveToken(token: string): void {
 export function clearToken(): void {
   removeKey(STORAGE_KEYS.token)
   removeKey(STORAGE_KEYS.accessProof)
+  removeKey(STORAGE_KEYS.accessInfo)
+}
+
+// ─── Tipo de acesso (o que o Perfil mostra) ───────────────────────────────────
+// Só informativo: quem decide o acesso é o servidor, a cada validação.
+export interface AccessInfo {
+  type: 'legacy_purchase' | 'subscription'
+  plan: string | null
+  paidUntil: string | null
+}
+
+function parseAccessInfo(v: unknown): AccessInfo | null {
+  if (!v || typeof v !== 'object') return null
+  const a = v as Record<string, unknown>
+  if (a.type !== 'legacy_purchase' && a.type !== 'subscription') return null
+  return {
+    type: a.type,
+    plan: typeof a.plan === 'string' ? a.plan : null,
+    paidUntil: typeof a.paidUntil === 'string' && Number.isFinite(Date.parse(a.paidUntil)) ? a.paidUntil : null,
+  }
+}
+
+export function getAccessInfo(): AccessInfo | null {
+  return parseAccessInfo(readJSON<unknown>(STORAGE_KEYS.accessInfo, null))
 }
 
 // Aceita token puro ou URL completa colada pelo usuário
@@ -73,7 +97,9 @@ export function wipeLocalUserData(): void {
 // ─── Validação ────────────────────────────────────────────────────────────────
 // 'unknown' = não deu para perguntar ao servidor (sem internet, 429, 5xx).
 // Não é o mesmo que 'invalid': só uma recusa explícita do servidor encerra a sessão.
-export type TokenCheck = 'valid' | 'invalid' | 'unknown'
+// 'expired' = assinatura vencida: o token continua guardado e volta a valer
+// quando a renovação for paga.
+export type TokenCheck = 'valid' | 'invalid' | 'expired' | 'unknown'
 
 export async function checkToken(token: string): Promise<TokenCheck> {
   if (!token || token.length < 8) return 'invalid'
@@ -89,13 +115,15 @@ export async function checkToken(token: string): Promise<TokenCheck> {
       headers: { Authorization: `Bearer ${token}` },
     })
     if (!res.ok) return 'unknown'
-    const data = await res.json() as { valid?: unknown; proof?: unknown }
+    const data = await res.json() as { valid?: unknown; proof?: unknown; access?: unknown; reason?: unknown }
     if (data.valid === true) {
       // Renova a prova que libera o app sem internet (ver hasOfflineAccess)
       if (typeof data.proof === 'string' && data.proof.length < 1000) writeRaw(STORAGE_KEYS.accessProof, data.proof)
+      const access = parseAccessInfo(data.access)
+      if (access) writeJSON(STORAGE_KEYS.accessInfo, access)
       return 'valid'
     }
-    if (data.valid === false) return 'invalid'
+    if (data.valid === false) return data.reason === 'expired' ? 'expired' : 'invalid'
     return 'unknown'
   } catch {
     return 'unknown'

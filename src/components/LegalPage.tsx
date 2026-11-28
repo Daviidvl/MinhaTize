@@ -58,7 +58,7 @@ function Termos() {
   return (
     <>
       <div style={{ ...s.info, marginBottom: '20px' }}>
-        <strong>Versão 1.0 — Junho de 2026</strong><br />
+        <strong>Versão 1.1 — Novembro de 2026</strong><br />
         Leia atentamente antes de utilizar a plataforma.
       </div>
 
@@ -112,6 +112,17 @@ function Termos() {
         <p style={s.p}>
           O acesso é individual e intransferível, vinculado ao token enviado ao e-mail cadastrado na compra.
           É proibido compartilhar o link de acesso com terceiros.
+        </p>
+        <h3 style={s.h3}>3.4 Planos e Pagamento</h3>
+        <p style={s.p}>
+          O acesso é contratado por assinatura (mensal, trimestral ou anual), com renovação automática
+          processada pela plataforma de pagamento. Valores e condições são os exibidos no checkout no
+          momento da contratação. O acesso vale enquanto a assinatura estiver em dia; cancelamento,
+          reembolso e renovação seguem a Política de Cancelamento.
+        </p>
+        <p style={s.p}>
+          Quem adquiriu o acesso por pagamento único antes da adoção das assinaturas mantém o acesso
+          vitalício nas condições da compra, sem cobrança recorrente.
         </p>
       </div>
 
@@ -542,19 +553,26 @@ function Cancelamento() {
   return (
     <>
       <div style={{ ...s.info, marginBottom: '20px' }}>
-        <strong>Versão 1.0 — Junho de 2026</strong>
+        <strong>Versão 2.0 — Novembro de 2026</strong>
       </div>
 
       <div style={s.section}>
         <h2 style={s.h2}>1. Modelo de Acesso</h2>
         <p style={s.p}>
-          O MinhaTize é comercializado como um <strong style={{ color: 'var(--text-primary)' }}>produto digital de acesso único</strong>,
-          sem assinatura recorrente ou renovação automática. O pagamento único concede acesso
-          vitalício ao conteúdo e às funcionalidades disponíveis na data da compra.
+          O MinhaTize é comercializado por <strong style={{ color: 'var(--text-primary)' }}>assinatura</strong>,
+          nos planos mensal, trimestral ou anual, com renovação automática ao fim de cada período,
+          processada pela plataforma de pagamento (Wiven). O acesso vale enquanto a assinatura
+          estiver em dia.
         </p>
         <p style={s.p}>
-          O acesso é entregue via token único enviado ao e-mail cadastrado na plataforma de pagamento.
+          O acesso é entregue via token enviado ao e-mail cadastrado na plataforma de pagamento.
+          Quem assinar de novo depois de cancelar volta a usar o mesmo token.
         </p>
+        <div style={{ ...s.info }}>
+          <strong>Compras anteriores às assinaturas:</strong> quem adquiriu o MinhaTize por pagamento
+          único antes da adoção das assinaturas mantém o acesso vitalício, nas condições da compra,
+          sem nenhuma cobrança recorrente e sem precisar assinar um plano.
+        </div>
       </div>
 
       <div style={s.section}>
@@ -562,7 +580,7 @@ function Cancelamento() {
         <div style={{ ...s.info }}>
           Nos termos do Art. 49 da Lei 8.078/90 (Código de Defesa do Consumidor), você tem
           direito ao <strong>cancelamento e reembolso integral em até 7 dias corridos</strong> a
-          partir da data da compra, sem necessidade de justificativa.
+          partir da data da contratação, sem necessidade de justificativa.
         </div>
         <p style={s.p}>
           Para exercer o direito de arrependimento dentro do prazo legal:
@@ -575,20 +593,34 @@ function Cancelamento() {
       </div>
 
       <div style={s.section}>
-        <h2 style={s.h2}>3. Cancelamento Após 7 Dias</h2>
+        <h2 style={s.h2}>3. Cancelamento da Assinatura</h2>
         <p style={s.p}>
-          Após o prazo de 7 dias, o produto digital entregue (acesso ao app) não dá direito a
-          reembolso automático, pois o bem digital foi disponibilizado integralmente. Casos
-          excepcionais (falha técnica comprovada, entrega incorreta) serão analisados individualmente.
+          A assinatura pode ser cancelada a qualquer momento, pela plataforma onde foi contratada ou
+          pelo e-mail <strong style={{ color: 'var(--text-primary)' }}>contato@minhatize.com.br</strong>.
+          O cancelamento interrompe a renovação automática, e o acesso continua até o fim do período
+          já pago.
         </p>
         <p style={s.p}>
-          Para solicitações fora do prazo legal, entre em contato:
-          <strong style={{ color: 'var(--text-primary)' }}> contato@minhatize.com.br</strong>
+          Após o prazo de 7 dias de cada contratação, o período em curso não dá direito a reembolso
+          automático, pois o acesso foi disponibilizado integralmente. Casos excepcionais (falha
+          técnica comprovada, cobrança indevida) serão analisados individualmente.
         </p>
       </div>
 
       <div style={s.section}>
-        <h2 style={s.h2}>4. Plataformas de Pagamento</h2>
+        <h2 style={s.h2}>4. Renovação Não Paga, Reembolso e Contestação</h2>
+        <p style={s.p}>
+          Se a renovação não for paga, o acesso é encerrado quando a plataforma de pagamento informar
+          que a assinatura expirou. Ao pagar a renovação, o mesmo token volta a funcionar.
+        </p>
+        <p style={s.p}>
+          Em caso de reembolso ou de contestação da cobrança (chargeback), o acesso correspondente é
+          encerrado imediatamente.
+        </p>
+      </div>
+
+      <div style={s.section}>
+        <h2 style={s.h2}>5. Plataformas de Pagamento</h2>
         <p style={s.p}>
           O processamento de pagamento é realizado por plataformas parceiras (Wiven, Hotmart).
           Cada plataforma possui sua própria política de reembolso, que se aplica cumulativamente
@@ -597,9 +629,9 @@ function Cancelamento() {
       </div>
 
       <div style={s.section}>
-        <h2 style={s.h2}>5. Dados Após Cancelamento</h2>
+        <h2 style={s.h2}>6. Dados Após o Fim do Acesso</h2>
         <p style={s.p}>
-          Após o cancelamento, o token de acesso é desativado no banco de dados. Os dados
+          Após o fim do acesso, o token deixa de ser aceito pelo app. Os dados
           armazenados localmente no dispositivo permanecem sob controle do usuário. O usuário
           pode exportar todos os dados antes do cancelamento (Perfil → Legal → Exportar dados).
         </p>
@@ -610,7 +642,7 @@ function Cancelamento() {
       </div>
 
       <div style={s.section}>
-        <h2 style={s.h2}>6. Contato</h2>
+        <h2 style={s.h2}>7. Contato</h2>
         <p style={s.p}>
           Cancelamentos e dúvidas: <strong style={{ color: 'var(--text-primary)' }}>contato@minhatize.com.br</strong><br />
           Proteção de dados: <strong style={{ color: 'var(--text-primary)' }}>privacidade@minhatize.com.br</strong>

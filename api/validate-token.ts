@@ -1,13 +1,17 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node'
 import { setCors } from './_lib/cors.js'
 import { createRateLimiter } from './_lib/rateLimit.js'
-import { getClientIp, extractBearerToken, checkToken, UUID_RE } from './_lib/auth.js'
+import { getClientIp, extractBearerToken, resolveToken, UUID_RE } from './_lib/auth.js'
 import { createAccessProof } from './_lib/accessProof.js'
 
 const checkRateLimit = createRateLimiter('validate-token', 30, 60_000) // máx 30 tentativas por minuto
 
 // Contrato com o app (src/utils/token.ts):
-//   200 { valid: true, proof? } → token ativo; `proof` libera o app offline por 30 dias
+//   200 { valid: true, proof?, access } → token ativo; `proof` libera o app
+//         offline por até 30 dias (nunca além do fim da assinatura); `access`
+//         é o que o Perfil mostra: { type, plan, paidUntil }
+//   200 { valid: false, reason: 'expired', plan } → assinatura vencida: o app
+//         oferece a renovação e mantém o token (renovou, volta a valer)
 //   200 { valid: false }        → token recusado
 //   429 / 503                   → não foi possível verificar; o app mantém a sessão
 //                                 só se tiver uma prova válida
@@ -36,14 +40,24 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   }
 
   // ── Consultar Supabase ────────────────────────────────────────────────────
-  const status = await checkToken(token)
+  const { status, access } = await resolveToken(token)
   if (status === 'error') {
     return res.status(503).json({ valid: false })
+  }
+  if (status === 'expired') {
+    res.setHeader('Cache-Control', 'no-store')
+    return res.status(200).json({ valid: false, reason: 'expired', plan: access?.plan ?? null })
   }
   if (status !== 'active') return res.status(200).json({ valid: false })
 
   // A resposta carrega uma credencial: não pode ficar em cache intermediário
   res.setHeader('Cache-Control', 'no-store')
-  const proof = createAccessProof(token)
-  return res.status(200).json(proof ? { valid: true, proof } : { valid: true })
+  const expiresAt = access?.expiresAt ? Date.parse(access.expiresAt) : null
+  const proof = createAccessProof(token, Date.now(), Number.isFinite(expiresAt) ? expiresAt : null)
+  const info = {
+    type: access?.type ?? 'legacy_purchase',
+    plan: access?.plan ?? null,
+    paidUntil: access?.paidUntil ?? null,
+  }
+  return res.status(200).json(proof ? { valid: true, proof, access: info } : { valid: true, access: info })
 }

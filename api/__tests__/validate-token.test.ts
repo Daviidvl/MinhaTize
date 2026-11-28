@@ -70,11 +70,54 @@ describe('api/validate-token handler', () => {
     expect(maybeSingle).not.toHaveBeenCalled()
   })
 
-  it('returns valid:true, without caching, for an active token', async () => {
+  it('returns valid:true, without caching, for an active token (old purchase = lifetime)', async () => {
     const res = makeRes()
     await handler(makeReq(), res)
-    expect(res.body).toEqual({ valid: true })
+    expect(res.body).toEqual({ valid: true, access: { type: 'legacy_purchase', plan: null, paidUntil: null } })
     expect(res.headers['Cache-Control']).toBe('no-store')
+  })
+
+  // ── Assinaturas ─────────────────────────────────────────────────────────────
+  const inDays = (d: number) => new Date(Date.now() + d * 864e5).toISOString()
+
+  it('returns the plan and the paid period of an active subscription', async () => {
+    maybeSingle.mockResolvedValue({
+      data: { id: 'u', access_type: 'subscription', plan: 'mensal', paid_until: inDays(30), expires_at: inDays(37) },
+      error: null,
+    })
+    const res = makeRes()
+    await handler(makeReq(), res)
+    expect(res.body).toMatchObject({ valid: true, access: { type: 'subscription', plan: 'mensal', paidUntil: expect.any(String) } })
+  })
+
+  it('tells an expired subscription apart from an invalid token (the app offers renewal)', async () => {
+    maybeSingle.mockResolvedValue({
+      data: { id: 'u', access_type: 'subscription', plan: 'anual', paid_until: inDays(-8), expires_at: inDays(-1) },
+      error: null,
+    })
+    const res = makeRes()
+    await handler(makeReq(), res)
+    expect(res.statusCode).toBe(200)
+    expect(res.body).toEqual({ valid: false, reason: 'expired', plan: 'anual' })
+  })
+
+  it('never issues an offline proof that outlives the subscription', async () => {
+    const { generateKeyPairSync } = await import('crypto')
+    const { privateKey } = generateKeyPairSync('ec', { namedCurve: 'P-256' })
+    process.env.ACCESS_PROOF_PRIVATE_KEY = privateKey.export({ format: 'der', type: 'pkcs8' }).toString('base64')
+    vi.resetModules()
+    const { default: h } = await import('../validate-token')
+    const ends = inDays(3)
+    maybeSingle.mockResolvedValue({
+      data: { id: 'u', access_type: 'subscription', plan: 'mensal', paid_until: inDays(-4), expires_at: ends },
+      error: null,
+    })
+    const res = makeRes()
+    await h(makeReq(), res)
+    delete process.env.ACCESS_PROOF_PRIVATE_KEY
+    const proof = (res.body as { proof: string }).proof
+    const payload = JSON.parse(Buffer.from(proof.split('.')[0], 'base64url').toString()) as { exp: number }
+    expect(payload.exp).toBe(Date.parse(ends)) // 3 dias, não 30
   })
 
   // O GET ?token= antigo deixava o token em logs de acesso e no histórico

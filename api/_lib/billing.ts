@@ -8,12 +8,17 @@ import type { BillingEvent } from './wivenEvents.js'
 // no e-mail. Aqui só chamamos essas funções e falamos com o Resend.
 
 export interface ApplyResult {
-  outcome: 'token_created' | 'token_exists' | 'already_revoked' | 'revoked'
+  outcome:
+    | 'token_created' | 'token_exists' | 'already_revoked' | 'revoked'     // compra única e estorno
+    | 'subscription_charged' | 'no_period'                                // cobrança de assinatura
+    | 'status_changed' | 'status_recorded' | 'stale'                      // status de assinatura
   duplicate: boolean
   token_id?: string
   email_key?: string
   token_active?: boolean
   tokens_revoked?: number
+  subscription_id?: string | null
+  paid_until?: string | null
 }
 
 // Lança em erro de banco: quem chama registra a falha e responde 5xx

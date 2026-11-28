@@ -53,9 +53,13 @@ reset role;
 set role service_role;
 
 -- ── Clientes antigos intactos depois da migration ────────────────────────────
+-- Colunas que existiam antes das migrations (as novas são conferidas em subscriptions.test.sql)
+create view pg_temp.tokens_original as
+  select id, token, email, customer_name, order_id, active, created_at from public.tokens;
+
 do $$ begin
-  assert (select count(*) from (select * from public.tokens except select * from public.test_legacy_snapshot) d) = 0
-     and (select count(*) from (select * from public.test_legacy_snapshot except select * from public.tokens) d) = 0,
+  assert (select count(*) from (select * from pg_temp.tokens_original except select * from public.test_legacy_snapshot) d) = 0
+     and (select count(*) from (select * from public.test_legacy_snapshot except select * from pg_temp.tokens_original) d) = 0,
     'a migration não altera nenhuma linha de tokens';
 end $$;
 \echo 'ok - Teste 7: a migration não toca em nenhum cliente antigo'
@@ -205,7 +209,7 @@ begin
   assert r3->>'email_key' is null, 'não envia e-mail para token inativo';
 
   -- Nenhum cliente antigo mudou depois de todos os testes acima
-  assert (select count(*) from (select * from public.tokens where id in (select id from public.test_legacy_snapshot)
+  assert (select count(*) from (select * from pg_temp.tokens_original where id in (select id from public.test_legacy_snapshot)
                                 except select * from public.test_legacy_snapshot) d) = 0,
     'nenhum token antigo foi alterado';
 end $$;

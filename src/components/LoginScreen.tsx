@@ -1,20 +1,41 @@
 import { useState } from 'react'
 import {
-  checkToken, saveToken, extractToken,
+  checkToken, saveToken, extractToken, getStoredToken,
   belongsToAnotherToken, claimLocalData, wipeLocalUserData,
 } from '../utils/token'
+import PlanOptions from './PlanOptions'
 
 interface Props {
   onAccessGranted: () => void
   onLegal?: (doc: string) => void
+  // Assinatura vencida: mostra a renovação; o token continua guardado
+  expired?: boolean
 }
 
-export default function LoginScreen({ onAccessGranted, onLegal }: Props) {
+export default function LoginScreen({ onAccessGranted, onLegal, expired = false }: Props) {
   const [value, setValue]   = useState('')
   const [loading, setLoading] = useState(false)
   const [error, setError]   = useState('')
   // Token já validado, aguardando o usuário confirmar a troca de dono dos dados
   const [pendingToken, setPendingToken] = useState<string | null>(null)
+  const [renewChecking, setRenewChecking] = useState(false)
+  const [renewError, setRenewError] = useState('')
+
+  // "Já renovei": confere de novo o token guardado
+  async function handleRenewed() {
+    const stored = getStoredToken()
+    if (!stored) return
+    setRenewChecking(true)
+    setRenewError('')
+    const result = await checkToken(stored)
+    setRenewChecking(false)
+    if (result === 'valid') { onAccessGranted(); return }
+    setRenewError(
+      result === 'unknown' ? 'Não foi possível verificar agora. Confira sua conexão e tente novamente.'
+        : result === 'expired' ? 'Ainda não recebemos a confirmação da renovação. Depois do pagamento, isso pode levar alguns minutos.'
+          : 'Este acesso não está mais ativo. Escolha um dos planos acima.',
+    )
+  }
 
   async function enter(token: string) {
     saveToken(token)
@@ -101,7 +122,7 @@ export default function LoginScreen({ onAccessGranted, onLegal }: Props) {
             margin: '0 0 6px',
             letterSpacing: '-0.5px',
           }}>
-            Minha Tize
+            {expired ? 'Sua assinatura venceu' : 'Minha Tize'}
           </h1>
           <p style={{
             fontSize: '14px',
@@ -109,9 +130,27 @@ export default function LoginScreen({ onAccessGranted, onLegal }: Props) {
             margin: 0,
             lineHeight: 1.5,
           }}>
-            Cole o link de acesso recebido no e-mail
+            {expired
+              ? 'Renove para continuar usando. Seus dados continuam salvos neste aparelho.'
+              : 'Cole o link de acesso recebido no e-mail'}
           </p>
         </div>
+
+        {/* Renovação: os planos e a nova conferência do mesmo token */}
+        {expired && !pendingToken && (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', marginBottom: '24px' }}>
+            <PlanOptions />
+            <button className="btn-primary" style={{ width: '100%' }} onClick={handleRenewed} disabled={renewChecking}>
+              {renewChecking ? 'Verificando...' : 'Já renovei, entrar'}
+            </button>
+            {renewError && (
+              <p role="alert" style={{ fontSize: '13px', color: 'var(--error)', margin: 0, lineHeight: 1.5 }}>{renewError}</p>
+            )}
+            <p style={{ fontSize: '12px', color: 'var(--text-muted)', margin: '4px 0 0', textAlign: 'center' }}>
+              Ou entre com outro token:
+            </p>
+          </div>
+        )}
 
         {/* Aparelho com dados de outro acesso */}
         {pendingToken && (
@@ -249,6 +288,28 @@ export default function LoginScreen({ onAccessGranted, onLegal }: Props) {
           Não recebeu o e-mail? Verifique a caixa de spam<br />ou entre em contato com o suporte.
         </p>
       </div>
+
+      {/* Quem ainda não tem acesso: os planos */}
+      {!expired && (
+        <div style={{
+          width: '100%',
+          maxWidth: '380px',
+          marginTop: '16px',
+          background: 'var(--surface)',
+          borderRadius: '24px',
+          border: '1px solid var(--border)',
+          padding: '24px 20px',
+          boxShadow: '0 8px 40px rgba(var(--shadow-rgb),0.08), 0 2px 8px rgba(var(--shadow-rgb),0.04)',
+        }}>
+          <h2 style={{ fontSize: '16px', fontWeight: 800, color: 'var(--text-primary)', margin: '0 0 4px', letterSpacing: '-0.3px' }}>
+            Ainda não tem acesso?
+          </h2>
+          <p style={{ fontSize: '13px', color: 'var(--text-muted)', margin: '0 0 14px', lineHeight: 1.5 }}>
+            Assine e receba o token de acesso no seu e-mail.
+          </p>
+          <PlanOptions />
+        </div>
+      )}
 
       {/* Links legais */}
       {onLegal && (

@@ -7,6 +7,8 @@ export const STORAGE_KEYS = {
   owner: 'tizetrack_owner',
   // Prova assinada pelo servidor que libera o app offline — ver utils/accessProof.ts
   accessProof: 'tizetrack_access_proof',
+  // Tipo de acesso, plano e validade vindos da última validação — ver utils/token.ts (Perfil)
+  accessInfo: 'tizetrack_access_info',
   theme: 'minha-tize-theme',
   consent: 'tizetrack_consent',
   workoutProfile: 'tizetrack_workout',
